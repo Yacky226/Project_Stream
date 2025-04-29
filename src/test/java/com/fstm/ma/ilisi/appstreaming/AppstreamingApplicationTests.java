@@ -1,0 +1,13 @@
+package com.fstm.ma.ilisi.appstreaming;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class AppstreamingApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
