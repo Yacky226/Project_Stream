@@ -1,24 +1,22 @@
 package com.fstm.ma.ilisi.appstreaming.model.dto;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonView;
+import jakarta.validation.constraints.*;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class UtilisateurDTO {
 
-	@NotNull
     private Long id;
 
     @NotBlank
     private String nom;
 
     @NotBlank
-    @JsonIgnore
+    @JsonView
     private String password;
 
     @NotBlank
@@ -26,5 +24,11 @@ public class UtilisateurDTO {
     private String email;
 
     @NotNull
-    private String role; 
+    private String role;
+
+    @PastOrPresent // La date de naissance doit être dans le passé ou aujourd'hui
+    @JsonFormat(pattern = "dd/MM/yyyy") // Format pour la sérialisation JSON
+    private LocalDate dateNaissance;
+
+    private String photoProfil; // Chemin ou URL de la photo
 }

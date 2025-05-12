@@ -57,7 +57,7 @@ public class EtudiantController {
 
         Etudiant etudiant = etudiantRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Étudiant non trouvé avec email : " + email));
-
+        
         return ResponseEntity.ok(etudiant.getNiveau());
     }
 }

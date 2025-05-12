@@ -17,6 +17,8 @@ public class EtudiantMapper {
         dto.setPassword(etudiant.getPassword());
         dto.setRole(etudiant.getRole().name());
         dto.setNiveau(etudiant.getNiveau());
+        dto.setDateNaissance(etudiant.getDateNaissance());
+        dto.setPhotoProfil(etudiant.getPhotoProfil());
         return dto;
     }
 
@@ -28,6 +30,8 @@ public class EtudiantMapper {
         etudiant.setPassword(dto.getPassword());
         etudiant.setRole(Role.valueOf(dto.getRole()));
         etudiant.setNiveau(dto.getNiveau());
+        etudiant.setDateNaissance(dto.getDateNaissance());
+        etudiant.setPhotoProfil(dto.getPhotoProfil());
         return etudiant;
     }
 }

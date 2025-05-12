@@ -1,11 +1,9 @@
 package com.fstm.ma.ilisi.appstreaming.model.bo;
 
 import java.io.Serializable;
-
+import java.time.LocalDate;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Entity
@@ -36,4 +34,11 @@ public abstract class Utilisateur implements Serializable {
     @NotNull
     @Column(nullable = false)
     private Role role;
+
+    @PastOrPresent 
+    @Column(nullable = true) 
+    private LocalDate dateNaissance;
+
+    @Column(nullable = true) 
+    private String photoProfil; 
 }

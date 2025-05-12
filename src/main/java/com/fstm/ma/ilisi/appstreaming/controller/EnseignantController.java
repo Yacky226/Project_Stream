@@ -6,6 +6,7 @@ import com.fstm.ma.ilisi.appstreaming.model.dto.CoursDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.UtilisateurDTO;
 import com.fstm.ma.ilisi.appstreaming.repository.EnseignantRepository;
 import com.fstm.ma.ilisi.appstreaming.repository.UtilisateurRepository;
+import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.mapper.CoursMapper;
 import com.fstm.ma.ilisi.appstreaming.mapper.UtilisateurMapper;
 
@@ -61,5 +62,15 @@ public class EnseignantController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(coursList);
+    }
+    @PreAuthorize("hasAuthority('ENSEIGNANT')")
+    @GetMapping("/specialite")
+    public ResponseEntity<String> getNiveau(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+
+        Enseignant enseignant = enseignantRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("enseignant non trouvé avec email : " + email));
+
+        return ResponseEntity.ok(enseignant.getSpecialite());
     }
 }

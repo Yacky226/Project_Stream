@@ -20,7 +20,7 @@ public class SessionStreamingController {
         this.sessionStreamingService = sessionStreamingService;
     }
 
-    // 🔥 Créer une session
+    //  Créer une session
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @PostMapping
     public ResponseEntity<SessionStreamingDTO> creerSession(@Valid @RequestBody SessionStreamingDTO dto) {
