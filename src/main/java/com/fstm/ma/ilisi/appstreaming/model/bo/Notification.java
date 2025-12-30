@@ -32,7 +32,9 @@ public class Notification implements Serializable {
     private boolean lu;
     @NotNull
 	@Column(nullable=false)
-    private LocalDateTime date;
+    private LocalDateTime dateEnvoi;
+    
+  
 
     @ManyToOne
     private Utilisateur destinataire;

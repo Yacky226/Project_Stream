@@ -44,4 +44,15 @@ public class NotificationController {
         notificationService.marquerCommeLue(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/unread-count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getNombreNotificationsNonLues(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        Long count = notificationService.countNotificationsNonLues(utilisateur.getId());
+        return ResponseEntity.ok(count);
+    }
+
 }

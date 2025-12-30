@@ -12,4 +12,6 @@ import com.fstm.ma.ilisi.appstreaming.model.bo.Notification;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByDestinataireId(Long destinataireId);
     List<Notification> findByDestinataireIdAndLuFalse(Long destinataireId);
+    Long countByDestinataireIdAndLuFalse(Long destinataireId);
+
 }

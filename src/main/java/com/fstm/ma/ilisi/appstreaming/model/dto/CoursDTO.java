@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class CoursDTO {
 
-	@NotNull
+
     private Long id;
 
     @NotBlank

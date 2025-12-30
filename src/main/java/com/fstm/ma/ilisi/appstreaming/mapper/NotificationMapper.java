@@ -1,5 +1,7 @@
 package com.fstm.ma.ilisi.appstreaming.mapper;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Component;
 
 import com.fstm.ma.ilisi.appstreaming.model.bo.Notification;
@@ -14,7 +16,7 @@ public class NotificationMapper {
         dto.setId(n.getId());
         dto.setMessage(n.getMessage());
         dto.setLu(n.isLu());
-        dto.setDate(n.getDate());
+        dto.setDate(n.getDateEnvoi());
         dto.setDestinataireId(n.getDestinataire().getId());
         return dto;
     }
@@ -24,8 +26,17 @@ public class NotificationMapper {
         n.setId(dto.getId());
         n.setMessage(dto.getMessage());
         n.setLu(dto.isLu());
-        n.setDate(dto.getDate());
+        n.setDateEnvoi(dto.getDate());
         n.setDestinataire(destinataire);
         return n;
     }
+    public Notification toEntityForCreation(NotificationDTO dto, Utilisateur destinataire) {
+        Notification n = new Notification();
+        n.setMessage(dto.getMessage());
+        n.setLu(false); // par défaut
+        n.setDateEnvoi(LocalDateTime.now());
+        n.setDestinataire(destinataire);
+        return n;
+    }
+
 }

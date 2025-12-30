@@ -3,8 +3,10 @@ package com.fstm.ma.ilisi.appstreaming.model.dto;
 import java.util.List;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class EnseignantDTO extends UtilisateurDTO {
 
     @NotBlank

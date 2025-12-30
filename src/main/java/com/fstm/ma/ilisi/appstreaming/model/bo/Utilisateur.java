@@ -2,6 +2,7 @@ package com.fstm.ma.ilisi.appstreaming.model.bo;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -23,6 +24,10 @@ public abstract class Utilisateur implements Serializable {
 
     @NotBlank
     @Column(nullable = false)
+    private String prenom;
+
+    @NotBlank
+    @Column(nullable = false)
     private String password;
 
     @NotBlank
@@ -35,10 +40,23 @@ public abstract class Utilisateur implements Serializable {
     @Column(nullable = false)
     private Role role;
 
+    @Column(nullable = false)
+    private boolean actif = true;
+
+    @Column(nullable = false)
+    private LocalDateTime dateCreation;
+
     @PastOrPresent 
     @Column(nullable = true) 
     private LocalDate dateNaissance;
 
     @Column(nullable = true) 
-    private String photoProfil; 
+    private String photoProfil;
+
+    @PrePersist
+    protected void onCreate() {
+        if (dateCreation == null) {
+            dateCreation = LocalDateTime.now();
+        }
+    } 
 }

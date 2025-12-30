@@ -31,3 +31,35 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.local
+.env.*.local
+
+### Logs ###
+*.log
+logs/
+
+### Database ###
+*.db
+*.sqlite
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Uploads ###
+Uploads/
+src/main/resources/static/Uploads/
+!.gitkeep
+
+### Coverage Reports ###
+*.exec
+jacoco/
+coverage/
+
+### Generated Sources ###
+target/generated-sources/
+target/generated-test-sources/
+
