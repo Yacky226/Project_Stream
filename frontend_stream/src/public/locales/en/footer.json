@@ -1,0 +1,63 @@
+{
+  "newsletter": {
+    "title": "Stay informed of the latest news",
+    "subtitle": "Receive our latest courses, learning tips and special offers directly in your inbox",
+    "placeholder": "Your email address",
+    "subscribe": "Subscribe",
+    "privacy": "By subscribing, you accept our privacy policy",
+    "thanks": "Thank you for subscribing to our newsletter!",
+    "error": "An error occurred. Please try again."
+  },
+  "brand": {
+    "description": "The first live learning platform that connects students worldwide with the best instructors for an interactive and personalized educational experience."
+  },
+  "trust": {
+    "ssl": "SSL Certification",
+    "iso": "ISO 27001 Certified",
+    "students": "50K+ Students",
+    "support": "24/7 Support"
+  },
+  "courses": {
+    "title": "Courses",
+    "catalog": "Full catalog",
+    "programming": "Programming",
+    "design": "Design",
+    "marketing": "Marketing",
+    "beginner": "Beginner courses",
+    "live": "Live sessions"
+  },
+  "platform": {
+    "title": "Platform",
+    "becomeInstructor": "Become instructor",
+    "business": "Stream Educational Business",
+    "mobileApp": "Mobile app",
+    "helpCenter": "Help center",
+    "blog": "Blog",
+    "careers": "Careers"
+  },
+  "support": {
+    "title": "Support",
+    "contact": "Contact us",
+    "faq": "FAQ",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy",
+    "accessibility": "Accessibility"
+  },
+  "bottom": {
+    "rights": "All rights reserved.",
+    "version": "Version",
+    "lastUpdate": "Last update",
+    "backToTop": "Back to top",
+    "madeWith": "Made with",
+    "by": "by"
+  },
+  "social": {
+    "title": "Follow us",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "github": "GitHub"
+  }
+}

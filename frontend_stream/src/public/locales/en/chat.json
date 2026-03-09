@@ -1,0 +1,61 @@
+{
+  "title": "Chat",
+  "messages": "Messages",
+  "sendMessage": "Send message",
+  "typing": "Typing...",
+  "online": "Online",
+  "offline": "Offline",
+  "away": "Away",
+  "typingIndicator": "{{name}} is typing...",
+  "typingIndicator_plural": "{{count}} people are typing...",
+  "newMessage": "New message",
+  "noMessages": "No messages yet",
+  "startConversation": "Start a conversation",
+  "chatbot": {
+    "title": "AI Assistant",
+    "welcomeMessage": "Hello! How can I help you today?",
+    "placeholder": "Ask me anything...",
+    "thinking": "Thinking...",
+    "error": "Sorry, I encountered an error. Please try again.",
+    "suggestions": {
+      "title": "You can ask me about:",
+      "courses": "Finding courses",
+      "technical": "Technical help",
+      "account": "Account settings",
+      "general": "General questions"
+    },
+    "quickActions": {
+      "findCourse": "Find a course",
+      "technicalHelp": "Technical help",
+      "accountSettings": "Account settings",
+      "contactSupport": "Contact support"
+    },
+    "close": "Close chat",
+    "minimize": "Minimize",
+    "expand": "Expand",
+    "clearHistory": "Clear history",
+    "feedback": {
+      "title": "Was this helpful?",
+      "yes": "Yes",
+      "no": "No",
+      "thanks": "Thank you for your feedback!"
+    }
+  },
+  "liveChat": {
+    "title": "Live Chat",
+    "participantsCount": "{{count}} participant",
+    "participantsCount_plural": "{{count}} participants",
+    "sendToEveryone": "Send to everyone",
+    "privateMessage": "Private message",
+    "muteChat": "Mute chat",
+    "unmuteChat": "Unmute chat",
+    "pinMessage": "Pin message",
+    "unpinMessage": "Unpin message",
+    "deleteMessage": "Delete message",
+    "reportMessage": "Report message",
+    "chatRules": "Chat Rules",
+    "beRespectful": "Be respectful",
+    "noSpam": "No spam",
+    "stayOnTopic": "Stay on topic"
+  }
+}

@@ -1,0 +1,319 @@
+/* Header Component Styles */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  backdrop-filter: blur(8px);
+}
+
+.header__container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+}
+
+/* Logo Section */
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.header__logo:hover {
+  opacity: 0.8;
+}
+
+.header__logo-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-primary);
+}
+
+.header__logo-text {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+/* Navigation */
+.header__nav {
+  display: none;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .header__nav {
+    display: flex;
+  }
+}
+
+.header__nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all 0.2s;
+  background-color: transparent;
+  border: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.header__nav-button:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.header__nav-button:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.header__nav-button--active {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+/* Actions Section */
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header__search-wrapper {
+  position: relative;
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .header__search-wrapper {
+    display: block;
+  }
+}
+
+.header__search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+}
+
+.header__search-input {
+  width: 16rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  transition: all 0.2s;
+}
+
+.header__search-input:focus {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.header__search-input::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+/* Icon Buttons */
+.header__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.header__icon-button:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.header__icon-button:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.header__icon-button--hidden-xs {
+  display: none;
+}
+
+@media (min-width: 475px) {
+  .header__icon-button--hidden-xs {
+    display: inline-flex;
+  }
+}
+
+/* Notification Badge */
+.header__notification-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background-color: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+/* User Avatar */
+.header__user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Mobile Menu Button */
+.header__mobile-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .header__mobile-menu-button {
+    display: none;
+  }
+}
+
+.header__mobile-menu-button:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+/* Mobile Menu */
+.header__mobile-menu {
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.header__mobile-menu--open {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .header__mobile-menu {
+    display: none !important;
+  }
+}
+
+.header__mobile-menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.header__mobile-menu-item:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.header__mobile-menu-item--active {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+/* Auth Buttons */
+.header__auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header__signin-button {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.header__signin-button:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+  border-color: var(--color-accent);
+}
+
+.header__signup-button {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.header__signup-button:hover {
+  opacity: 0.9;
+}
+
+.header__signup-button:focus-visible,
+.header__signin-button:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}

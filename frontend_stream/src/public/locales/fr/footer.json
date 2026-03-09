@@ -1,0 +1,63 @@
+{
+  "newsletter": {
+    "title": "Restez informé des dernières nouveautés",
+    "subtitle": "Recevez nos derniers cours, conseils d'apprentissage et offres spéciales directement dans votre boîte mail",
+    "placeholder": "Votre adresse email",
+    "subscribe": "S'abonner",
+    "privacy": "En vous inscrivant, vous acceptez notre politique de confidentialité",
+    "thanks": "Merci pour votre inscription à notre newsletter !",
+    "error": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "brand": {
+    "description": "La première plateforme d'apprentissage en direct qui connecte les étudiants du monde entier avec les meilleurs instructeurs pour une expérience éducative interactive et personnalisée."
+  },
+  "trust": {
+    "ssl": "Certification SSL",
+    "iso": "Certifié ISO 27001",
+    "students": "50K+ Étudiants",
+    "support": "Support 24/7"
+  },
+  "courses": {
+    "title": "Cours",
+    "catalog": "Catalogue complet",
+    "programming": "Programmation",
+    "design": "Design",
+    "marketing": "Marketing",
+    "beginner": "Cours débutants",
+    "live": "Sessions live"
+  },
+  "platform": {
+    "title": "Plateforme",
+    "becomeInstructor": "Devenir instructeur",
+    "business": "Stream Éducatif Business",
+    "mobileApp": "Application mobile",
+    "helpCenter": "Centre d'aide",
+    "blog": "Blog",
+    "careers": "Carrières"
+  },
+  "support": {
+    "title": "Support",
+    "contact": "Nous contacter",
+    "faq": "FAQ",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "accessibility": "Accessibilité"
+  },
+  "bottom": {
+    "rights": "Tous droits réservés.",
+    "version": "Version",
+    "lastUpdate": "Dernière mise à jour",
+    "backToTop": "Haut de page",
+    "madeWith": "Fait avec",
+    "by": "par"
+  },
+  "social": {
+    "title": "Suivez-nous",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "github": "GitHub"
+  }
+}

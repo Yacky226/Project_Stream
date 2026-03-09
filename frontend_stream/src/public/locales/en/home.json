@@ -1,0 +1,91 @@
+{
+  "hero": {
+    "badge": "New learning experience",
+    "title": "Learn live",
+    "titleHighlight": "with experts",
+    "subtitle": "Join thousands of students in our interactive live courses. Learn from the best instructors worldwide.",
+    "startFree": "Start for free",
+    "watchDemo": "Watch demo",
+    "stats": {
+      "students": "Active students",
+      "courses": "Available courses",
+      "instructors": "Expert instructors",
+      "rating": "Average rating"
+    }
+  },
+  "features": {
+    "badge": "Why choose us",
+    "title": "The future of learning",
+    "subtitle": "A revolutionary platform that transforms your way of learning with cutting-edge technologies and a global community",
+    "liveInteractive": {
+      "title": "Interactive Live Sessions",
+      "description": "Participate in real-time courses with chat, Q&A and screen sharing for an immersive experience"
+    },
+    "aiPersonalized": {
+      "title": "Personalized AI",
+      "description": "Our AI analyzes your learning style and recommends courses adapted to your level and goals"
+    },
+    "certifications": {
+      "title": "Recognized Certifications",
+      "description": "Get certificates valued by companies and boost your professional career"
+    },
+    "support": {
+      "title": "24/7 Support",
+      "description": "A dedicated team supports you at all times to optimize your learning experience"
+    },
+    "multiPlatform": {
+      "title": "Multi-Platform",
+      "description": "Learn wherever you want: computer, tablet or smartphone with automatic synchronization"
+    },
+    "unlimitedAccess": {
+      "title": "Unlimited Access",
+      "description": "Access all replays, resources and course updates without time limit"
+    },
+    "trust": {
+      "title": "They trust us",
+      "secured": "SSL Secured",
+      "gdpr": "GDPR Compliant",
+      "iso": "ISO 27001",
+      "uptime": "99.9% Uptime"
+    }
+  },
+  "courses": {
+    "badge": "Popular courses",
+    "title": "Start your journey",
+    "subtitle": "Discover our most appreciated courses by the community",
+    "viewAll": "View all courses",
+    "free": "Free",
+    "live": "LIVE",
+    "join": "Join",
+    "discover": "Discover",
+    "liveIn": "Live session in {{hours}}h",
+    "duration": "{{hours}}h {{minutes}}m",
+    "enrolled": "{{count}} enrolled"
+  },
+  "cta": {
+    "title": "Ready to transform your career?",
+    "subtitle": "Join over 50,000 students who have already chosen excellence",
+    "startFree": "Start for free",
+    "talkExpert": "Talk to an expert",
+    "trial": "14 days",
+    "trialSub": "Free trial",
+    "noCommitment": "No commitment",
+    "noCommitmentSub": "Free cancellation",
+    "supportIncluded": "Support included",
+    "supportIncludedSub": "24/7 assistance"
+  },
+  "testimonials": {
+    "title": "What our students say",
+    "subtitle": "Discover the experiences of those who have transformed their careers with Stream Educational"
+  },
+  "stats": {
+    "students": "50,000+",
+    "studentsLabel": "Active Students",
+    "courses": "500+",
+    "coursesLabel": "Available Courses",
+    "instructors": "200+",
+    "instructorsLabel": "Expert Instructors",
+    "rating": "4.8/5",
+    "ratingLabel": "Average Rating"
+  }
+}
