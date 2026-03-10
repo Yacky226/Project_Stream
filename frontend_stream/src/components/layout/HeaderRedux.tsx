@@ -9,7 +9,6 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
 import { setTheme } from '../../store/slices/uiSlice';
-import { logoutUser } from '../../store/slices/authSlice';
 import { 
   Moon, 
   Sun, 
@@ -32,7 +31,7 @@ export function HeaderRedux({ onNavigate, currentPath }: HeaderReduxProps) {
   const dispatch = useAppDispatch();
   
   // Redux state
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { theme } = useAppSelector(state => state.ui);
   const unreadNotifications = useAppSelector(state => 
     state.notifications?.notifications?.filter(n => !n.read).length || 0
@@ -47,7 +46,7 @@ export function HeaderRedux({ onNavigate, currentPath }: HeaderReduxProps) {
 
   const handleSignOut = async () => {
     try {
-      await dispatch(logoutUser()).unwrap();
+      await logout();
       onNavigate('/');
     } catch (error) {
       console.error('Logout failed:', error);

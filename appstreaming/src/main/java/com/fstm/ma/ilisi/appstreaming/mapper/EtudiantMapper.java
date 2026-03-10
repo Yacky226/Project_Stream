@@ -13,8 +13,8 @@ public class EtudiantMapper {
         EtudiantDTO dto = new EtudiantDTO();
         dto.setId(etudiant.getId());
         dto.setNom(etudiant.getNom());
+        dto.setPrenom(etudiant.getPrenom());
         dto.setEmail(etudiant.getEmail());
-        dto.setPassword(etudiant.getPassword());
         dto.setRole(etudiant.getRole().name());
         dto.setNiveau(etudiant.getNiveau());
         dto.setDateNaissance(etudiant.getDateNaissance());
@@ -26,6 +26,7 @@ public class EtudiantMapper {
         Etudiant etudiant = new Etudiant();
         etudiant.setId(dto.getId());
         etudiant.setNom(dto.getNom());
+        etudiant.setPrenom(dto.getPrenom());
         etudiant.setEmail(dto.getEmail());
         etudiant.setPassword(dto.getPassword());
         etudiant.setRole(Role.valueOf(dto.getRole()));

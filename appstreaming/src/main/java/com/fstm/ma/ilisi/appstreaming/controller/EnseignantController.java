@@ -3,12 +3,14 @@ package com.fstm.ma.ilisi.appstreaming.controller;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Enseignant;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Utilisateur;
 import com.fstm.ma.ilisi.appstreaming.model.dto.CoursDTO;
+import com.fstm.ma.ilisi.appstreaming.model.dto.TeacherDashboardDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.UtilisateurDTO;
 import com.fstm.ma.ilisi.appstreaming.repository.EnseignantRepository;
 import com.fstm.ma.ilisi.appstreaming.repository.UtilisateurRepository;
 import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.mapper.CoursMapper;
 import com.fstm.ma.ilisi.appstreaming.mapper.UtilisateurMapper;
+import com.fstm.ma.ilisi.appstreaming.service.DashboardAggregationService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,15 +29,18 @@ public class EnseignantController {
     private final EnseignantRepository enseignantRepository;
     private final UtilisateurMapper utilisateurMapper;
     private final CoursMapper coursMapper;
+    private final DashboardAggregationService dashboardAggregationService;
 
     public EnseignantController(UtilisateurRepository utilisateurRepository, 
                                  EnseignantRepository enseignantRepository,
                                  UtilisateurMapper utilisateurMapper,
-                                 CoursMapper coursMapper) {
+                                 CoursMapper coursMapper,
+                                 DashboardAggregationService dashboardAggregationService) {
         this.utilisateurRepository = utilisateurRepository;
         this.enseignantRepository = enseignantRepository;
         this.utilisateurMapper = utilisateurMapper;
         this.coursMapper = coursMapper;
+        this.dashboardAggregationService = dashboardAggregationService;
     }
 
     //  Voir profil enseignant
@@ -72,5 +77,12 @@ public class EnseignantController {
                 .orElseThrow(() -> new ResourceNotFoundException("enseignant non trouvé avec email : " + email));
 
         return ResponseEntity.ok(enseignant.getSpecialite());
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('ENSEIGNANT')")
+    public ResponseEntity<TeacherDashboardDTO> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        return ResponseEntity.ok(dashboardAggregationService.buildTeacherDashboard(email));
     }
 }

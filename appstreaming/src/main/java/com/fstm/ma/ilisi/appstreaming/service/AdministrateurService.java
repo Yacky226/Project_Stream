@@ -1,7 +1,6 @@
 package com.fstm.ma.ilisi.appstreaming.service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,7 @@ import com.fstm.ma.ilisi.appstreaming.model.bo.Cours;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Enseignant;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Etudiant;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Inscription;
+import com.fstm.ma.ilisi.appstreaming.model.bo.Role;
 import com.fstm.ma.ilisi.appstreaming.model.bo.StatutInscription;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Utilisateur;
 import com.fstm.ma.ilisi.appstreaming.model.dto.AdministrateurDTO;
@@ -188,88 +188,28 @@ public class AdministrateurService implements AdministrateurServiceInterface {
  
  @Override
  public List<UserManagementDTO> getAllUsers() {
-     List<UserManagementDTO> users = new ArrayList<>();
-     
-     // Étudiants
-     etudiantRepository.findAll().forEach(etudiant -> {
-         UserManagementDTO dto = new UserManagementDTO();
-         dto.setId(etudiant.getId());
-         dto.setNom(etudiant.getNom());
-         dto.setPrenom(etudiant.getPrenom());
-         dto.setEmail(etudiant.getEmail());
-         dto.setRole("ETUDIANT");
-         dto.setActif(etudiant.isActif());
-         dto.setDateCreation(etudiant.getDateCreation());
-         dto.setNiveau(etudiant.getNiveau());
-         dto.setPhotoProfil(etudiant.getPhotoProfil());
-         dto.setNombreInscriptions(etudiant.getInscriptions() != null ? etudiant.getInscriptions().size() : 0);
-         dto.setNombreCours(etudiant.getInscriptions() != null ? etudiant.getInscriptions().size() : 0);
-         users.add(dto);
-     });
-     
-     // Enseignants
-     enseignantRepository.findAll().forEach(enseignant -> {
-         UserManagementDTO dto = new UserManagementDTO();
-         dto.setId(enseignant.getId());
-         dto.setNom(enseignant.getNom());
-         dto.setPrenom(enseignant.getPrenom());
-         dto.setEmail(enseignant.getEmail());
-         dto.setRole("ENSEIGNANT");
-         dto.setActif(enseignant.isActif());
-         dto.setDateCreation(enseignant.getDateCreation());
-         dto.setSpecialite(enseignant.getSpecialite());
-         dto.setPhotoProfil(enseignant.getPhotoProfil());
-         dto.setNombreCours(enseignant.getCours() != null ? enseignant.getCours().size() : 0);
-         dto.setNombreSessions((int) sessionRepository.findByEnseignantId(enseignant.getId()).size());
-         users.add(dto);
-     });
-     
-     // Administrateurs
-     administrateurRepository.findAll().forEach(admin -> {
-         UserManagementDTO dto = new UserManagementDTO();
-         dto.setId(admin.getId());
-         dto.setNom(admin.getNom());
-         dto.setPrenom(admin.getPrenom());
-         dto.setEmail(admin.getEmail());
-         dto.setRole("ADMINISTRATEUR");
-         dto.setActif(admin.isActif());
-         dto.setDateCreation(admin.getDateCreation());
-         dto.setPhotoProfil(admin.getPhotoProfil());
-         users.add(dto);
-     });
-     
-     return users;
+     return utilisateurRepository.findAll()
+             .stream()
+             .map(this::toUserManagementDTO)
+             .collect(Collectors.toList());
+ }
+
+ @Override
+ public Page<UserManagementDTO> getUsersPage(Pageable pageable, String role, Boolean actif, String search) {
+     Role roleEnum = parseRole(role);
+     String normalizedSearch = normalizeSearch(search);
+
+     return utilisateurRepository
+             .findAllForAdmin(roleEnum, actif, normalizedSearch, pageable)
+             .map(this::toUserManagementDTO);
  }
  
  @Override
  public UserManagementDTO getUserById(Long id) {
      Utilisateur user = utilisateurRepository.findById(id)
              .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
-     
-     UserManagementDTO dto = new UserManagementDTO();
-     dto.setId(user.getId());
-     dto.setNom(user.getNom());
-     dto.setPrenom(user.getPrenom());
-     dto.setEmail(user.getEmail());
-     dto.setActif(user.isActif());
-     dto.setDateCreation(user.getDateCreation());
-     dto.setPhotoProfil(user.getPhotoProfil());
-     
-     if (user instanceof Etudiant) {
-         Etudiant etudiant = (Etudiant) user;
-         dto.setRole("ETUDIANT");
-         dto.setNiveau(etudiant.getNiveau());
-         dto.setNombreInscriptions(etudiant.getInscriptions() != null ? etudiant.getInscriptions().size() : 0);
-     } else if (user instanceof Enseignant) {
-         Enseignant enseignant = (Enseignant) user;
-         dto.setRole("ENSEIGNANT");
-         dto.setSpecialite(enseignant.getSpecialite());
-         dto.setNombreCours(enseignant.getCours() != null ? enseignant.getCours().size() : 0);
-     } else if (user instanceof Administrateur) {
-         dto.setRole("ADMINISTRATEUR");
-     }
-     
-     return dto;
+
+     return toUserManagementDTO(user);
  }
  
  @Override
@@ -483,6 +423,56 @@ public class AdministrateurService implements AdministrateurServiceInterface {
      dto.setLeconsTotal(leconsTotal);
      
      return dto;
+ }
+
+ private UserManagementDTO toUserManagementDTO(Utilisateur user) {
+     UserManagementDTO dto = new UserManagementDTO();
+     dto.setId(user.getId());
+     dto.setNom(user.getNom());
+     dto.setPrenom(user.getPrenom());
+     dto.setEmail(user.getEmail());
+     dto.setActif(user.isActif());
+     dto.setDateCreation(user.getDateCreation());
+     dto.setPhotoProfil(user.getPhotoProfil());
+
+     if (user instanceof Etudiant) {
+         Etudiant etudiant = (Etudiant) user;
+         dto.setRole("ETUDIANT");
+         dto.setNiveau(etudiant.getNiveau());
+         int inscriptionsCount = etudiant.getInscriptions() != null ? etudiant.getInscriptions().size() : 0;
+         dto.setNombreInscriptions(inscriptionsCount);
+         dto.setNombreCours(inscriptionsCount);
+     } else if (user instanceof Enseignant) {
+         Enseignant enseignant = (Enseignant) user;
+         dto.setRole("ENSEIGNANT");
+         dto.setSpecialite(enseignant.getSpecialite());
+         dto.setNombreCours(enseignant.getCours() != null ? enseignant.getCours().size() : 0);
+         dto.setNombreSessions((int) sessionRepository.findByEnseignantId(enseignant.getId()).size());
+     } else if (user instanceof Administrateur) {
+         dto.setRole("ADMINISTRATEUR");
+     }
+
+     return dto;
+ }
+
+ private Role parseRole(String role) {
+     if (role == null || role.isBlank()) {
+         return null;
+     }
+
+     try {
+         return Role.valueOf(role.trim().toUpperCase());
+     } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Role invalide: " + role);
+     }
+ }
+
+ private String normalizeSearch(String search) {
+     if (search == null || search.isBlank()) {
+         return null;
+     }
+
+     return search.trim();
  }
 }
 

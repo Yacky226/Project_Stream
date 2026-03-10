@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
+
 public interface InscriptionMapper {
     
     @Mapping(source = "etudiant.id", target = "etudiantId")

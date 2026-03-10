@@ -1,231 +1,348 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { AlertCircle, Bell, Download, Globe, Loader2, Monitor, Save, Settings, Shield, SlidersHorizontal } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../lib/i18n';
+import { useGetPreferencesQuery, useUpdatePreferencesMutation } from '../../store/api/userApi';
+import type { UserPreferences } from '../../types/user';
+import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
-import { Slider } from '../ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Separator } from '../ui/separator';
-import { Alert, AlertDescription } from '../ui/alert';
-import { 
-  Settings, 
-  Bell, 
-  Eye, 
-  Volume2, 
-  Monitor, 
-  Moon, 
-  Sun, 
-  Globe, 
-  Shield, 
-  Download, 
-  Trash, 
-  AlertTriangle,
-  Check,
-  X,
-  Info
-} from 'lucide-react';
+import { Slider } from '../ui/slider';
+import { Switch } from '../ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface SettingsPageProps {
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string | number) => void;
+}
+
+function applyTheme(theme: UserPreferences['theme']) {
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+    return;
+  }
+
+  if (theme === 'light') {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+    return;
+  }
+
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (prefersDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  localStorage.setItem('theme', 'system');
+}
+
+function createPreferencesExport(preferences: UserPreferences): string {
+  return JSON.stringify(
+    {
+      exportedAt: new Date().toISOString(),
+      preferences,
+    },
+    null,
+    2,
+  );
 }
 
 export function SettingsPage({ onNavigate }: SettingsPageProps) {
-  const { t, setLanguage, getCurrentLanguage } = useTranslation();
-  const [selectedTab, setSelectedTab] = useState('general');
-  const [theme, setTheme] = useState('light');
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    newCourses: true,
-    liveSessions: true,
-    messages: false,
-    newsletter: false,
-    marketing: false
-  });
-  const [privacy, setPrivacy] = useState({
-    profileVisible: true,
-    progressVisible: false,
-    emailVisible: false,
-    analyticsTracking: true,
-    dataSharing: false
-  });
-  const [videoSettings, setVideoSettings] = useState({
-    autoplay: true,
-    quality: 'auto',
-    subtitles: true,
-    volume: [75],
-    playbackSpeed: '1.0'
+  const { t, setLanguage } = useTranslation();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+
+  const {
+    data: remotePreferences,
+    isLoading: preferencesLoading,
+    error: preferencesError,
+  } = useGetPreferencesQuery(undefined, {
+    skip: !isAuthenticated,
   });
 
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+  const [updatePreferences, { isLoading: isSaving }] = useUpdatePreferencesMutation();
+
+  const [selectedTab, setSelectedTab] = useState('general');
+  const [localPreferences, setLocalPreferences] = useState<UserPreferences | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      onNavigate('/auth/signin');
+    }
+  }, [authLoading, isAuthenticated, onNavigate]);
+
+  useEffect(() => {
+    if (!remotePreferences) {
+      return;
+    }
+
+    setLocalPreferences(remotePreferences);
+    applyTheme(remotePreferences.theme);
+    setLanguage(remotePreferences.language);
+    document.documentElement.lang = remotePreferences.language;
+  }, [remotePreferences, setLanguage]);
+
+  const canSave = useMemo(() => {
+    if (!localPreferences || !remotePreferences) {
+      return false;
+    }
+
+    return JSON.stringify(localPreferences) !== JSON.stringify(remotePreferences);
+  }, [localPreferences, remotePreferences]);
+
+  const handlePartialUpdate = <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
+    setLocalPreferences((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  const handleSave = async () => {
+    if (!localPreferences) {
+      return;
+    }
+
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      const saved = await updatePreferences(localPreferences).unwrap();
+
+      applyTheme(saved.theme);
+      setLanguage(saved.language);
+      document.documentElement.lang = saved.language;
+      setLocalPreferences(saved);
+      setSubmitSuccess('Parametres sauvegardes avec succes.');
+    } catch (error) {
+      const payload = error as { data?: { message?: string; error?: string } };
+      setSubmitError(payload?.data?.message || payload?.data?.error || 'Sauvegarde impossible.');
     }
   };
 
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-    document.documentElement.lang = newLanguage;
-  };
-
-  const handleNotificationChange = (key: string, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handlePrivacyChange = (key: string, value: boolean) => {
-    setPrivacy(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleVideoSettingChange = (key: string, value: any) => {
-    setVideoSettings(prev => ({ ...prev, [key]: value }));
-  };
-
   const handleExportData = () => {
-    console.log('Exporting user data...');
-    // Implémenter l'export des données
+    if (!localPreferences) {
+      return;
+    }
+
+    const content = createPreferencesExport(localPreferences);
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `user-preferences-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
   };
 
-  const handleDeleteAccount = () => {
-    console.log('Deleting account...');
-    // Implémenter la suppression du compte
-  };
+  if (authLoading || preferencesLoading || !localPreferences) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="flex min-h-[360px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl mb-2">{t('common.settings')}</h1>
-        <p className="text-muted-foreground">
-          Gérez vos préférences et paramètres de compte
-        </p>
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="mb-2 text-3xl">{t('common.settings')}</h1>
+          <p className="text-muted-foreground">Configuration synchronisee avec les endpoints backend.</p>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving || !canSave}>
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sauvegarde...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Sauvegarder
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Main Content */}
+      {preferencesError && (
+        <Alert className="mb-4" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Le chargement des parametres a echoue.</AlertDescription>
+        </Alert>
+      )}
+      {submitError && (
+        <Alert className="mb-4" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+      {submitSuccess && (
+        <Alert className="mb-4">
+          <AlertDescription>{submitSuccess}</AlertDescription>
+        </Alert>
+      )}
+
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="general">Général</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="privacy">Confidentialité</TabsTrigger>
-          <TabsTrigger value="video">Lecture vidéo</TabsTrigger>
+          <TabsTrigger value="privacy">Confidentialite</TabsTrigger>
           <TabsTrigger value="account">Compte</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
-          {/* Appearance */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Monitor className="w-5 h-5 mr-2" />
-                Apparence
+                <Monitor className="mr-2 h-5 w-5" />
+                Apparence et langue
               </CardTitle>
-              <CardDescription>
-                Personnalisez l'apparence de l'interface
-              </CardDescription>
+              <CardDescription>Parametres globaux de votre interface.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label className="text-base font-medium">Thème</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Choisissez votre thème préféré
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={theme === 'light' ? 'default' : 'outline'}
-                    onClick={() => handleThemeChange('light')}
-                    className="justify-start"
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Theme</Label>
+                  <Select
+                    value={localPreferences.theme}
+                    onValueChange={(value) =>
+                      handlePartialUpdate('theme', value as UserPreferences['theme'])
+                    }
                   >
-                    <Sun className="w-4 h-4 mr-2" />
-                    Clair
-                  </Button>
-                  <Button
-                    variant={theme === 'dark' ? 'default' : 'outline'}
-                    onClick={() => handleThemeChange('dark')}
-                    className="justify-start"
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Clair</SelectItem>
+                      <SelectItem value="dark">Sombre</SelectItem>
+                      <SelectItem value="system">Systeme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Langue</Label>
+                  <Select
+                    value={localPreferences.language}
+                    onValueChange={(value) =>
+                      handlePartialUpdate('language', value as UserPreferences['language'])
+                    }
                   >
-                    <Moon className="w-4 h-4 mr-2" />
-                    Sombre
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fr">Francais</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Langue</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Sélectionnez votre langue préférée
-                </p>
-                <Select value={getCurrentLanguage()} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-[200px]">
-                    <Globe className="w-4 h-4 mr-2" />
+              <div className="space-y-2">
+                <Label>Fuseau horaire</Label>
+                <Select
+                  value={localPreferences.timezone}
+                  onValueChange={(value) => handlePartialUpdate('timezone', value)}
+                >
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Fuseau horaire</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Utilisé pour afficher les dates et heures des cours
-                </p>
-                <Select defaultValue="europe/paris">
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="europe/paris">Europe/Paris (GMT+1)</SelectItem>
-                    <SelectItem value="america/new_york">America/New_York (GMT-5)</SelectItem>
-                    <SelectItem value="asia/tokyo">Asia/Tokyo (GMT+9)</SelectItem>
-                    <SelectItem value="america/los_angeles">America/Los_Angeles (GMT-8)</SelectItem>
-                    <SelectItem value="europe/london">Europe/London (GMT+0)</SelectItem>
+                    <SelectItem value="Europe/Paris">Europe/Paris</SelectItem>
+                    <SelectItem value="Africa/Casablanca">Africa/Casablanca</SelectItem>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="America/New_York">America/New_York</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Interface Preferences */}
           <Card>
             <CardHeader>
-              <CardTitle>Préférences d'interface</CardTitle>
+              <CardTitle className="flex items-center">
+                <SlidersHorizontal className="mr-2 h-5 w-5" />
+                Lecture video
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-base font-medium">Animation d'interface</Label>
-                  <p className="text-sm text-muted-foreground">Activer les animations et transitions</p>
+                  <p className="font-medium">Lecture automatique</p>
+                  <p className="text-sm text-muted-foreground">Demarrer automatiquement la video.</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch
+                  checked={localPreferences.autoplay}
+                  onCheckedChange={(checked) => handlePartialUpdate('autoplay', checked)}
+                />
               </div>
-
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-base font-medium">Barre latérale compacte</Label>
-                  <p className="text-sm text-muted-foreground">Utiliser une navigation plus compacte</p>
+                  <p className="font-medium">Sous-titres</p>
+                  <p className="text-sm text-muted-foreground">Activer les sous-titres par defaut.</p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={localPreferences.subtitles}
+                  onCheckedChange={(checked) => handlePartialUpdate('subtitles', checked)}
+                />
               </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Suggestions automatiques</Label>
-                  <p className="text-sm text-muted-foreground">Afficher des suggestions de cours basées sur vos préférences</p>
+              <Separator />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Qualite streaming</Label>
+                  <Select
+                    value={localPreferences.quality}
+                    onValueChange={(value) =>
+                      handlePartialUpdate('quality', value as UserPreferences['quality'])
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto</SelectItem>
+                      <SelectItem value="720p">720p</SelectItem>
+                      <SelectItem value="1080p">1080p</SelectItem>
+                      <SelectItem value="4K">4K</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Switch defaultChecked />
+                <div className="space-y-2">
+                  <Label>Qualite telechargement</Label>
+                  <Select
+                    value={localPreferences.downloadQuality}
+                    onValueChange={(value) =>
+                      handlePartialUpdate('downloadQuality', value as UserPreferences['downloadQuality'])
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Vitesse de lecture: {localPreferences.playbackSpeed.toFixed(2)}x</Label>
+                </div>
+                <Slider
+                  value={[localPreferences.playbackSpeed]}
+                  min={0.5}
+                  max={2}
+                  step={0.25}
+                  onValueChange={(value) => handlePartialUpdate('playbackSpeed', value[0])}
+                />
               </div>
             </CardContent>
           </Card>
@@ -235,102 +352,42 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Bell className="w-5 h-5 mr-2" />
+                <Bell className="mr-2 h-5 w-5" />
                 Notifications
               </CardTitle>
-              <CardDescription>
-                Gérez vos préférences de notification
-              </CardDescription>
+              <CardDescription>Parametres de notifications backend.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label className="text-base font-medium">Types de notifications</Label>
-                <div className="space-y-4 mt-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Notifications par email</p>
-                      <p className="text-sm text-muted-foreground">Recevoir des notifications importantes par email</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.email}
-                      onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Notifications push</p>
-                      <p className="text-sm text-muted-foreground">Notifications dans le navigateur</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.push}
-                      onCheckedChange={(checked) => handleNotificationChange('push', checked)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Contenu des notifications</Label>
-                <div className="space-y-4 mt-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Nouveaux cours</p>
-                      <p className="text-sm text-muted-foreground">Notifications pour les nouveaux cours publiés</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.newCourses}
-                      onCheckedChange={(checked) => handleNotificationChange('newCourses', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Sessions live</p>
-                      <p className="text-sm text-muted-foreground">Rappels pour les sessions en direct</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.liveSessions}
-                      onCheckedChange={(checked) => handleNotificationChange('liveSessions', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Messages</p>
-                      <p className="text-sm text-muted-foreground">Messages des enseignants et administrateurs</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.messages}
-                      onCheckedChange={(checked) => handleNotificationChange('messages', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Newsletter</p>
-                      <p className="text-sm text-muted-foreground">Newsletter hebdomadaire avec les actualités</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.newsletter}
-                      onCheckedChange={(checked) => handleNotificationChange('newsletter', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Promotions</p>
-                      <p className="text-sm text-muted-foreground">Offres spéciales et promotions</p>
-                    </div>
-                    <Switch 
-                      checked={notifications.marketing}
-                      onCheckedChange={(checked) => handleNotificationChange('marketing', checked)}
-                    />
-                  </div>
-                </div>
-              </div>
+            <CardContent className="space-y-4">
+              <SettingSwitch
+                title="Notifications email"
+                description="Recevoir des notifications par email."
+                checked={localPreferences.emailNotifications}
+                onCheckedChange={(checked) => handlePartialUpdate('emailNotifications', checked)}
+              />
+              <SettingSwitch
+                title="Notifications push"
+                description="Recevoir des notifications web push."
+                checked={localPreferences.pushNotifications}
+                onCheckedChange={(checked) => handlePartialUpdate('pushNotifications', checked)}
+              />
+              <SettingSwitch
+                title="Rappels de cours"
+                description="Rappels avant les sessions/cours."
+                checked={localPreferences.courseReminders}
+                onCheckedChange={(checked) => handlePartialUpdate('courseReminders', checked)}
+              />
+              <SettingSwitch
+                title="Digest hebdomadaire"
+                description="Resume hebdomadaire par email."
+                checked={localPreferences.weeklyDigest}
+                onCheckedChange={(checked) => handlePartialUpdate('weeklyDigest', checked)}
+              />
+              <SettingSwitch
+                title="Emails marketing"
+                description="Promotions et nouveautes."
+                checked={localPreferences.marketingEmails}
+                onCheckedChange={(checked) => handlePartialUpdate('marketingEmails', checked)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -339,185 +396,32 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Confidentialité
+                <Shield className="mr-2 h-5 w-5" />
+                Confidentialite
               </CardTitle>
-              <CardDescription>
-                Contrôlez vos paramètres de confidentialité et données
-              </CardDescription>
+              <CardDescription>Visibilite et recommandations personnelles.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label className="text-base font-medium">Visibilité du profil</Label>
-                <div className="space-y-4 mt-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Profil public</p>
-                      <p className="text-sm text-muted-foreground">Permettre aux autres utilisateurs de voir votre profil</p>
-                    </div>
-                    <Switch 
-                      checked={privacy.profileVisible}
-                      onCheckedChange={(checked) => handlePrivacyChange('profileVisible', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Progrès visible</p>
-                      <p className="text-sm text-muted-foreground">Afficher vos progrès de cours aux autres</p>
-                    </div>
-                    <Switch 
-                      checked={privacy.progressVisible}
-                      onCheckedChange={(checked) => handlePrivacyChange('progressVisible', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Email visible</p>
-                      <p className="text-sm text-muted-foreground">Permettre aux enseignants de voir votre email</p>
-                    </div>
-                    <Switch 
-                      checked={privacy.emailVisible}
-                      onCheckedChange={(checked) => handlePrivacyChange('emailVisible', checked)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Collecte de données</Label>
-                <div className="space-y-4 mt-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Suivi analytique</p>
-                      <p className="text-sm text-muted-foreground">Permettre le suivi pour améliorer l'expérience</p>
-                    </div>
-                    <Switch 
-                      checked={privacy.analyticsTracking}
-                      onCheckedChange={(checked) => handlePrivacyChange('analyticsTracking', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Partage de données</p>
-                      <p className="text-sm text-muted-foreground">Partager des données anonymisées avec des partenaires</p>
-                    </div>
-                    <Switch 
-                      checked={privacy.dataSharing}
-                      onCheckedChange={(checked) => handlePrivacyChange('dataSharing', checked)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Vos données personnelles sont protégées selon le RGPD. Vous pouvez à tout moment demander l'export ou la suppression de vos données.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="video" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Volume2 className="w-5 h-5 mr-2" />
-                Paramètres de lecture vidéo
-              </CardTitle>
-              <CardDescription>
-                Configurez vos préférences pour la lecture des cours vidéo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Lecture automatique</Label>
-                  <p className="text-sm text-muted-foreground">Démarrer automatiquement la lecture des vidéos</p>
-                </div>
-                <Switch 
-                  checked={videoSettings.autoplay}
-                  onCheckedChange={(checked) => handleVideoSettingChange('autoplay', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Sous-titres automatiques</Label>
-                  <p className="text-sm text-muted-foreground">Activer les sous-titres par défaut</p>
-                </div>
-                <Switch 
-                  checked={videoSettings.subtitles}
-                  onCheckedChange={(checked) => handleVideoSettingChange('subtitles', checked)}
-                />
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Qualité vidéo par défaut</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Choisissez la qualité de lecture par défaut
-                </p>
-                <Select 
-                  value={videoSettings.quality} 
-                  onValueChange={(value) => handleVideoSettingChange('quality', value)}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Automatique</SelectItem>
-                    <SelectItem value="1080p">1080p (HD)</SelectItem>
-                    <SelectItem value="720p">720p</SelectItem>
-                    <SelectItem value="480p">480p</SelectItem>
-                    <SelectItem value="360p">360p</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-base font-medium">Vitesse de lecture par défaut</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Vitesse de lecture préférée pour les cours
-                </p>
-                <Select 
-                  value={videoSettings.playbackSpeed} 
-                  onValueChange={(value) => handleVideoSettingChange('playbackSpeed', value)}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.5">0.5x</SelectItem>
-                    <SelectItem value="0.75">0.75x</SelectItem>
-                    <SelectItem value="1.0">1x (Normal)</SelectItem>
-                    <SelectItem value="1.25">1.25x</SelectItem>
-                    <SelectItem value="1.5">1.5x</SelectItem>
-                    <SelectItem value="2.0">2x</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-base font-medium">Volume par défaut</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Volume: {videoSettings.volume[0]}%
-                </p>
-                <Slider
-                  value={videoSettings.volume}
-                  onValueChange={(value) => handleVideoSettingChange('volume', value)}
-                  max={100}
-                  step={5}
-                  className="w-[300px]"
-                />
-              </div>
+            <CardContent className="space-y-4">
+              <SettingSwitch
+                title="Statut en ligne visible"
+                description="Afficher votre presence en ligne."
+                checked={localPreferences.showOnlineStatus}
+                onCheckedChange={(checked) => handlePartialUpdate('showOnlineStatus', checked)}
+              />
+              <SettingSwitch
+                title="Profil visible"
+                description="Permettre la consultation de votre profil."
+                checked={localPreferences.allowProfileViews}
+                onCheckedChange={(checked) => handlePartialUpdate('allowProfileViews', checked)}
+              />
+              <SettingSwitch
+                title="Recommandations personnalisees"
+                description="Utiliser votre activite pour recommander des cours."
+                checked={localPreferences.allowCourseRecommendations}
+                onCheckedChange={(checked) =>
+                  handlePartialUpdate('allowCourseRecommendations', checked)
+                }
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -525,75 +429,70 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
         <TabsContent value="account" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Gestion du compte</CardTitle>
-              <CardDescription>
-                Gérez vos données et votre compte
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label className="text-base font-medium">Exportation des données</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Téléchargez une copie de toutes vos données
-                </p>
-                <Button onClick={handleExportData} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Exporter mes données
-                </Button>
-              </div>
-
-              <Separator />
-
-              <div>
-                <Label className="text-base font-medium">Suppression du compte</Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Supprimer définitivement votre compte et toutes vos données
-                </p>
-                <Alert className="mb-4">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Attention :</strong> Cette action est irréversible. Toutes vos données seront supprimées définitivement.
-                  </AlertDescription>
-                </Alert>
-                <Button 
-                  onClick={handleDeleteAccount} 
-                  variant="destructive"
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Trash className="w-4 h-4 mr-2" />
-                  Supprimer mon compte
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du compte</CardTitle>
+              <CardTitle className="flex items-center">
+                <Settings className="mr-2 h-5 w-5" />
+                Compte
+              </CardTitle>
+              <CardDescription>Informations generales et export.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">ID du compte</p>
-                  <p className="font-mono">user_1234567890</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Date de création</p>
-                  <p>15 septembre 2023</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Dernière connexion</p>
-                  <p>Aujourd'hui à 14:30</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Version des conditions</p>
-                  <p>v2.1 (acceptée le 15/09/2023)</p>
-                </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoCard icon={Globe} label="Langue active" value={localPreferences.language.toUpperCase()} />
+                <InfoCard icon={Monitor} label="Theme actif" value={localPreferences.theme} />
+                <InfoCard icon={Bell} label="Push" value={localPreferences.pushNotifications ? 'Active' : 'Inactive'} />
+                <InfoCard icon={Shield} label="Profil" value={user?.email || 'N/A'} />
               </div>
+              <Separator />
+              <Button variant="outline" onClick={handleExportData}>
+                <Download className="mr-2 h-4 w-4" />
+                Exporter mes parametres
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function SettingSwitch({
+  title,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+      <div>
+        <p className="font-medium">{title}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="mb-1 text-xs text-muted-foreground">
+        <Icon className="mr-1 inline h-4 w-4" />
+        {label}
+      </p>
+      <p className="font-medium">{value}</p>
     </div>
   );
 }

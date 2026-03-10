@@ -23,6 +23,10 @@ public interface InscriptionRepository extends JpaRepository<Inscription, Long> 
     // Optimisation : Charge les inscriptions avec étudiant
     @EntityGraph(attributePaths = {"etudiant"})
     List<Inscription> findByCoursId(Long coursId);
+
+    // Chargement groupé pour dashboard enseignant (évite N appels par cours)
+    @EntityGraph(attributePaths = {"etudiant", "cours", "cours.enseignant"})
+    List<Inscription> findByCoursIdIn(java.util.Collection<Long> coursIds);
     
     List<Inscription> findByEtudiantIdAndStatut(Long etudiantId, StatutInscription statut);
     

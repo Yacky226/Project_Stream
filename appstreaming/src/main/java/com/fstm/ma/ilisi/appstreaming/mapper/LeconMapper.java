@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 import java.util.List;
 
 @Mapper(componentModel = "spring", uses = {RessourceMapper.class})
+
 public interface LeconMapper {
     
     @Mapping(source = "section.id", target = "sectionId")

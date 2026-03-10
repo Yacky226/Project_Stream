@@ -3,7 +3,8 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useI18n } from '../../hooks/useI18n';
-import { useAuth, mockCourses, type Course } from '../../lib/auth';
+import { mockCourses, type Course } from '../../lib/auth';
+import { useAuth } from '../../hooks/useAuth';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { 
   Play, 
@@ -32,12 +33,10 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate }: HomePageProps) {
   const { t } = useI18n();
-  const { getCurrentUser } = useAuth();
-  const [user, setUser] = useState(getCurrentUser());
+  const { user } = useAuth();
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    setUser(getCurrentUser());
     setFeaturedCourses(mockCourses.slice(0, 3));
   }, []);
 
@@ -416,43 +415,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
       </section>
-
-      {/* Test Login Section (Development only) */}
-      {!user && (
-        <section className="py-16 bg-muted/50">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h3 className="text-2xl mb-6">🚀 Accès Rapide pour Tests</h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => onNavigate('/auth/signin?demo=student')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-3"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Espace Étudiant
-                </Button>
-                <Button 
-                  onClick={() => onNavigate('/auth/signin?demo=teacher')}
-                  className="bg-green-600 hover:bg-green-700 text-white py-3"
-                >
-                  <Monitor className="w-4 h-4 mr-2" />
-                  Espace Enseignant
-                </Button>
-                <Button 
-                  onClick={() => onNavigate('/auth/signin?demo=admin')}
-                  className="bg-purple-600 hover:bg-purple-700 text-white py-3"
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  Espace Admin
-                </Button>
-              </div>
-              <p className="text-muted-foreground mt-4">
-                Utilisez student@demo.com, teacher@demo.com ou admin@demo.com avec le mot de passe : demo123
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 relative overflow-hidden">

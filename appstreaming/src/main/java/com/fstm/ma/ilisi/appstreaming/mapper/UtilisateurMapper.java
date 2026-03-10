@@ -12,8 +12,8 @@ public class UtilisateurMapper {
         UtilisateurDTO dto = new UtilisateurDTO();
         dto.setId(utilisateur.getId());
         dto.setNom(utilisateur.getNom());
+        dto.setPrenom(utilisateur.getPrenom());
         dto.setEmail(utilisateur.getEmail());
-        dto.setPassword(utilisateur.getPassword());
         dto.setRole(utilisateur.getRole().name());
         dto.setDateNaissance(utilisateur.getDateNaissance());
         dto.setPhotoProfil(utilisateur.getPhotoProfil());
@@ -22,6 +22,7 @@ public class UtilisateurMapper {
 
     public void updateEntityFromDTO(UtilisateurDTO dto, Utilisateur utilisateur) {
         utilisateur.setNom(dto.getNom());
+        utilisateur.setPrenom(dto.getPrenom());
         utilisateur.setEmail(dto.getEmail());
         utilisateur.setPassword(dto.getPassword());
         utilisateur.setRole(Role.valueOf(dto.getRole()));

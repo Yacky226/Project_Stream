@@ -6,6 +6,7 @@
 import { configUtils, config } from './config';
 import { mockDataService } from './mockData';
 import { apiService } from './api';
+import { buildApiUrl } from './api-base-url';
 
 export class AppService {
   private static instance: AppService;
@@ -62,14 +63,16 @@ export class AppService {
    * Initialise les services de base
    */
   private async initializeServices(): Promise<void> {
-    // Service de données mock
-    this.services.set('mockData', mockDataService);
-    
     // Service API
     this.services.set('api', apiService);
 
     // Service de configuration
     this.services.set('config', config);
+
+    // Ne garder le service mock que si le mode mock est actif
+    if (configUtils.shouldUseMockData()) {
+      this.services.set('mockData', mockDataService);
+    }
 
     configUtils.debug('Core services initialized');
   }
@@ -211,7 +214,10 @@ export class AppService {
     });
 
     // Vérification des services
-    const requiredServices = ['mockData', 'api', 'config'];
+    const requiredServices = ['api', 'config'];
+    if (configUtils.shouldUseMockData()) {
+      requiredServices.push('mockData');
+    }
     const missingServices = requiredServices.filter(service => !this.services.has(service));
     
     checks.push({
@@ -225,10 +231,13 @@ export class AppService {
     if (configUtils.isBackendEnabled()) {
       try {
         // Test de connectivité simple
-        const response = await fetch(config.BACKEND.SPRING_BOOT_URL + '/health', {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(buildApiUrl('/actuator/health'), {
           method: 'GET',
-          timeout: 5000
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         
         checks.push({
           name: 'Backend Connectivity',

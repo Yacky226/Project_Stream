@@ -4,12 +4,14 @@ import com.fstm.ma.ilisi.appstreaming.model.dto.AdministrateurDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.CourseManagementDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.DashboardStatsDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.EnseignantDTO;
+import com.fstm.ma.ilisi.appstreaming.model.dto.EtudiantDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.InscriptionManagementDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.PageResponse;
 import com.fstm.ma.ilisi.appstreaming.model.dto.UserManagementDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.UtilisateurDTO;
 import com.fstm.ma.ilisi.appstreaming.service.AdministrateurService;
 import com.fstm.ma.ilisi.appstreaming.service.EnseignantService;
+import com.fstm.ma.ilisi.appstreaming.service.EtudiantService;
 import com.fstm.ma.ilisi.appstreaming.repository.UtilisateurRepository;
 import com.fstm.ma.ilisi.appstreaming.mapper.UtilisateurMapper;
 
@@ -17,30 +19,45 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
 public class AdministrateurController {
+    private static final Set<String> USER_SORT_FIELDS = Set.of(
+            "id",
+            "nom",
+            "prenom",
+            "email",
+            "role",
+            "actif",
+            "dateCreation"
+    );
 
     private final AdministrateurService administrateurService;
     private final EnseignantService enseignantService;
+    private final EtudiantService etudiantService;
     private final UtilisateurRepository utilisateurRepository;
     private final UtilisateurMapper utilisateurMapper;
 
     public AdministrateurController(AdministrateurService administrateurService,
                                      EnseignantService enseignantService,
+                                     EtudiantService etudiantService,
                                      UtilisateurRepository utilisateurRepository,
                                      UtilisateurMapper utilisateurMapper) {
         this.administrateurService = administrateurService;
         this.enseignantService = enseignantService;
+        this.etudiantService = etudiantService;
         this.utilisateurRepository = utilisateurRepository;
         this.utilisateurMapper = utilisateurMapper;
     }
@@ -59,6 +76,13 @@ public class AdministrateurController {
     @PreAuthorize("hasAuthority('ADMINISTRATEUR')")
     public ResponseEntity<EnseignantDTO> ajouterEnseignant(@Valid @RequestBody EnseignantDTO dto) {
         return ResponseEntity.ok(enseignantService.ajouterEnseignant(dto));
+    }
+
+    @PostMapping("/ajouter-etudiant")
+    @PreAuthorize("hasAuthority('ADMINISTRATEUR')")
+    public ResponseEntity<EtudiantDTO> ajouterEtudiant(@Valid @RequestBody EtudiantDTO dto) {
+        dto.setRole("ETUDIANT");
+        return ResponseEntity.ok(etudiantService.ajouterEtudiant(dto));
     }
 
     //  Voir tous les utilisateurs (avec pagination optionnelle)
@@ -105,8 +129,37 @@ public class AdministrateurController {
     
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ADMINISTRATEUR')")
-    public ResponseEntity<List<UserManagementDTO>> getAllUsers() {
-        return ResponseEntity.ok(administrateurService.getAllUsers());
+    public ResponseEntity<PageResponse<UserManagementDTO>> getAllUsers(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size,
+            @RequestParam(required = false, defaultValue = "dateCreation") String sortBy,
+            @RequestParam(required = false, defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean actif,
+            @RequestParam(required = false) String search) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        String safeSortBy = USER_SORT_FIELDS.contains(sortBy) ? sortBy : "dateCreation";
+        Sort sort = sortDir.equalsIgnoreCase("ASC")
+                ? Sort.by(safeSortBy).ascending()
+                : Sort.by(safeSortBy).descending();
+        Pageable pageable = PageRequest.of(safePage, safeSize, sort);
+
+        final Page<UserManagementDTO> usersPage;
+        try {
+            usersPage = administrateurService.getUsersPage(pageable, role, actif, search);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
+
+        PageResponse<UserManagementDTO> response = new PageResponse<>(
+                usersPage.getContent(),
+                usersPage.getNumber(),
+                usersPage.getSize(),
+                usersPage.getTotalElements()
+        );
+
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/users/{id}")

@@ -1,265 +1,244 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '../../types/auth';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import type { FetchArgs } from '@reduxjs/toolkit/query';
+import { baseQueryWithAuth, multipartBaseQuery } from './apiClient';
+import type {
+  AuthResponse,
+  BackendAuthResponse,
+  LoginCredentials,
+  PasswordReset,
+  RegisterData,
+  RegisterTeacherData,
+  User,
+} from '../../types/auth';
+import {
+  buildDisplayName,
+  normalizeAuthResponse,
+} from '../../types/auth';
+import type { BackendProfileResponse } from '../../types/user';
+import { normalizeUserProfile } from '../../types/user';
+
+const LOGIN_ENDPOINT = '/api/auth/login';
+const REGISTER_STUDENT_ENDPOINT = '/api/auth/register-etudiant';
+const REGISTER_TEACHER_ENDPOINT = '/api/auth/register-enseignant';
+const PROFILE_ENDPOINT = '/api/utilisateurs/profil';
+
+async function enrichUserProfile(
+  auth: AuthResponse,
+  executeQuery: (args: string | FetchArgs) => Promise<{ data?: unknown; error?: unknown }>,
+): Promise<AuthResponse> {
+  const profileResult = await executeQuery({
+    url: PROFILE_ENDPOINT,
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${auth.token}`,
+    },
+  });
+
+  if (!profileResult.data || (profileResult as { error?: unknown }).error) {
+    return auth;
+  }
+
+  const backendProfile = profileResult.data as BackendProfileResponse;
+  if (!backendProfile?.data) {
+    return auth;
+  }
+
+  return {
+    ...auth,
+    user: normalizeUserProfile(backendProfile.data),
+  };
+}
 
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NODE_ENV === 'production' 
-      ? '/api/v1/auth' 
-      : 'http://localhost:8080/api/v1/auth',
-    
-    prepareHeaders: (headers) => {
-      headers.set('content-type', 'application/json');
-      headers.set('accept', 'application/json');
-      return headers;
-    },
-  }),
-  
+  baseQuery: baseQueryWithAuth,
   tagTypes: ['Auth', 'User'],
-  
   endpoints: (builder) => ({
-    // Login
     login: builder.mutation<AuthResponse, LoginCredentials>({
       queryFn: async (credentials, api, extraOptions, baseQuery) => {
-        // Always use development mode for now (no backend available)
-        console.log('Login attempt:', credentials.email);
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Simulate different responses based on email
-        if (credentials.email === 'error@test.com') {
-          return {
-            error: {
-              status: 401,
-              data: { message: 'Invalid credentials' }
-            }
-          };
+        const loginResult = await baseQuery({
+          url: LOGIN_ENDPOINT,
+          method: 'POST',
+          body: {
+            email: credentials.email,
+            password: credentials.password,
+          },
+        });
+
+        if (loginResult.error || !loginResult.data) {
+          return { error: loginResult.error };
         }
-        
-        if (credentials.email === 'blocked@test.com') {
-          return {
-            error: {
-              status: 429,
-              data: { message: 'Account temporarily blocked' }
-            }
-          };
-        }
-        
-        // Default success response
-        return {
-          data: {
-            user: {
-              id: '1',
-              email: credentials.email,
-              firstName: 'Test',
-              lastName: 'User',
-              role: credentials.email.includes('teacher') ? 'teacher' : 
-                    credentials.email.includes('admin') ? 'admin' : 'student',
-              avatar: null,
-              emailVerified: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            token: 'dev-jwt-token-' + Date.now(),
-            refreshToken: 'dev-refresh-token-' + Date.now(),
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-          }
-        };
+
+        const normalized = normalizeAuthResponse(
+          loginResult.data as BackendAuthResponse,
+        );
+
+        const withProfile = await enrichUserProfile(normalized, (args) =>
+          baseQuery(args),
+        );
+
+        return { data: withProfile };
       },
-      
-      invalidatesTags: ['Auth'],
-    }),
-    
-    // Register
-    register: builder.mutation<AuthResponse, RegisterData>({
-      queryFn: async (userData, api, extraOptions, baseQuery) => {
-        console.log('Register attempt:', userData.email);
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        if (userData.email === 'existing@test.com') {
-          return {
-            error: {
-              status: 409,
-              data: { message: 'Email already exists' }
-            }
-          };
-        }
-        
-        return {
-          data: {
-            user: {
-              id: '2',
-              email: userData.email,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              role: userData.role || 'student',
-              avatar: null,
-              emailVerified: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            token: 'dev-jwt-token-' + Date.now(),
-            refreshToken: 'dev-refresh-token-' + Date.now(),
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000),
-          }
-        };
-      },
-      
-      invalidatesTags: ['Auth'],
-    }),
-    
-    // Refresh token
-    refreshToken: builder.mutation<AuthResponse, { refreshToken: string }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Refresh token');
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        return {
-          data: {
-            token: 'dev-jwt-token-refreshed-' + Date.now(),
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000),
-          }
-        };
-      },
-    }),
-    
-    // Logout
-    logout: builder.mutation<void, { token: string }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Logout');
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return { data: undefined };
-      },
-      
       invalidatesTags: ['Auth', 'User'],
     }),
-    
-    // Verify email
-    verifyEmail: builder.mutation<{ success: boolean }, { token: string }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Verify email:', data.token);
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        if (data.token === 'invalid-token') {
-          return {
-            error: {
-              status: 400,
-              data: { message: 'Invalid or expired token' }
-            }
-          };
+
+    register: builder.mutation<AuthResponse, RegisterData>({
+      queryFn: async (userData, api, extraOptions, baseQuery) => {
+        const firstName = userData.firstName.trim();
+        const lastName = userData.lastName.trim();
+        const dto = {
+          prenom: firstName,
+          nom: lastName,
+          email: userData.email,
+          password: userData.password,
+          role: 'ETUDIANT',
+          niveau: userData.niveau || 'DEBUTANT',
+          dateNaissance: userData.dateNaissance || null,
+        };
+
+        const formData = new FormData();
+        formData.append('dto', JSON.stringify(dto));
+
+        const registerResult = await multipartBaseQuery(
+          {
+            url: REGISTER_STUDENT_ENDPOINT,
+            method: 'POST',
+            body: formData,
+          },
+          api,
+          extraOptions,
+        );
+
+        if (registerResult.error) {
+          return { error: registerResult.error };
         }
-        
-        return { data: { success: true } };
+
+        const loginResult = await baseQuery({
+          url: LOGIN_ENDPOINT,
+          method: 'POST',
+          body: {
+            email: userData.email,
+            password: userData.password,
+          },
+        });
+
+        if (loginResult.error || !loginResult.data) {
+          return { error: loginResult.error };
+        }
+
+        const normalized = normalizeAuthResponse(
+          loginResult.data as BackendAuthResponse,
+          {
+            firstName,
+            lastName,
+            nom: buildDisplayName(firstName, lastName),
+          },
+        );
+
+        const withProfile = await enrichUserProfile(normalized, (args) =>
+          baseQuery(args),
+        );
+
+        return { data: withProfile };
+      },
+      invalidatesTags: ['Auth', 'User'],
+    }),
+
+    registerTeacher: builder.mutation<{ success: boolean }, RegisterTeacherData>({
+      queryFn: async (userData, api, extraOptions) => {
+        const normalizedNom = userData.nom.trim().replace(/\s+/g, ' ');
+        const hasMultipleParts = normalizedNom.includes(' ');
+        const [fallbackPrenom, ...fallbackNomParts] = normalizedNom.split(' ');
+        const prenom = userData.prenom?.trim() || fallbackPrenom || 'Prof';
+        const nom = hasMultipleParts
+          ? fallbackNomParts.join(' ').trim() || fallbackPrenom
+          : normalizedNom;
+
+        const formData = new FormData();
+        formData.append(
+          'dto',
+          JSON.stringify({
+            prenom,
+            nom,
+            email: userData.email,
+            password: userData.password,
+            role: 'ENSEIGNANT',
+            specialite: userData.specialite,
+            dateNaissance: userData.dateNaissance || null,
+          }),
+        );
+
+        const result = await multipartBaseQuery(
+          {
+            url: REGISTER_TEACHER_ENDPOINT,
+            method: 'POST',
+            body: formData,
+          },
+          api,
+          extraOptions,
+        );
+
+        if (result.error) {
+          return { error: result.error };
+        }
+
+        return { data: result.data as { success: boolean } };
+      },
+      invalidatesTags: ['Auth'],
+    }),
+
+    refreshToken: builder.mutation<AuthResponse, { refreshToken: string }>({
+      queryFn: async (payload, api, extraOptions, baseQuery) => {
+        const refreshResult = await baseQuery({
+          url: '/api/auth/refresh-token',
+          method: 'POST',
+          body: { refreshToken: payload.refreshToken },
+        });
+
+        if (refreshResult.error || !refreshResult.data) {
+          return { error: refreshResult.error };
+        }
+
+        const normalized = normalizeAuthResponse(
+          refreshResult.data as BackendAuthResponse,
+        );
+
+        return { data: normalized };
       },
     }),
-    
-    // Forgot password
+
+    logout: builder.mutation<void, { refreshToken?: string | null }>({
+      query: (data) => ({
+        url: '/api/auth/logout',
+        method: 'POST',
+        body: data.refreshToken ? { refreshToken: data.refreshToken } : {},
+      }),
+      invalidatesTags: ['Auth', 'User'],
+    }),
+
     forgotPassword: builder.mutation<{ message: string }, { email: string }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Forgot password:', data.email);
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        return {
-          data: {
-            message: 'Password reset email sent successfully'
-          }
-        };
-      },
+      query: (data) => ({
+        url: '/api/auth/forgot-password',
+        method: 'POST',
+        body: { email: data.email },
+      }),
     }),
-    
-    // Reset password
-    resetPassword: builder.mutation<{ success: boolean }, { token: string; password: string }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Reset password');
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        if (data.token === 'expired-token') {
-          return {
-            error: {
-              status: 400,
-              data: { message: 'Reset token expired' }
-            }
-          };
-        }
-        
-        return { data: { success: true } };
-      },
+
+    resetPassword: builder.mutation<{ message: string }, PasswordReset>({
+      query: (data) => ({
+        url: '/api/auth/reset-password',
+        method: 'POST',
+        body: {
+          token: data.token,
+          newPassword: data.newPassword || data.password,
+        },
+      }),
     }),
-    
-    // Change password (authenticated)
-    changePassword: builder.mutation<{ success: boolean }, { 
-      currentPassword: string; 
-      newPassword: string;
-    }>({
-      queryFn: async (data, api, extraOptions, baseQuery) => {
-        console.log('Change password');
-        
-        await new Promise(resolve => setTimeout(resolve, 600));
-        
-        if (data.currentPassword === 'wrong-password') {
-          return {
-            error: {
-              status: 400,
-              data: { message: 'Current password is incorrect' }
-            }
-          };
-        }
-        
-        return { data: { success: true } };
-      },
-    }),
-    
-    // Get current user
+
     getCurrentUser: builder.query<User, void>({
-      queryFn: async (_, api, extraOptions, baseQuery) => {
-        console.log('Get current user');
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Import authStorage dynamically to avoid circular dependencies
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          return {
-            error: {
-              status: 401,
-              data: { message: 'No token provided' }
-            }
-          };
-        }
-        
-        // Get user from localStorage with correct key
-        const userStr = localStorage.getItem('auth_user');
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            return { data: user };
-          } catch (e) {
-            console.error('Failed to parse user from localStorage:', e);
-          }
-        }
-        
-        return {
-          data: {
-            id: '1',
-            email: 'test@example.com',
-            firstName: 'Test',
-            lastName: 'User',
-            role: 'student',
-            avatar: null,
-            emailVerified: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-        };
-      },
-      
+      query: () => PROFILE_ENDPOINT,
+      transformResponse: (response: BackendProfileResponse): User =>
+        normalizeUserProfile(response.data),
       providesTags: ['User'],
     }),
   }),
@@ -268,11 +247,10 @@ export const authApi = createApi({
 export const {
   useLoginMutation,
   useRegisterMutation,
+  useRegisterTeacherMutation,
   useRefreshTokenMutation,
   useLogoutMutation,
-  useVerifyEmailMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
-  useChangePasswordMutation,
   useGetCurrentUserQuery,
 } = authApi;

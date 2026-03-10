@@ -18,49 +18,55 @@ public class PasswordResetService {
   private final UtilisateurRepository userRepo;
   private final PasswordEncoder encoder;
   private final EmailService emailService;
-  
-  public PasswordResetService(PasswordResetTokenRepository tokenRepo,UtilisateurRepository userRepo,
-		  PasswordEncoder encoder,EmailService emailService) {
-	  this.tokenRepo=tokenRepo;
-	  this.userRepo=userRepo;
-	  this.encoder=encoder;
-	  this.emailService=emailService;
-	  
+
+  public PasswordResetService(
+      PasswordResetTokenRepository tokenRepo,
+      UtilisateurRepository userRepo,
+      PasswordEncoder encoder,
+      EmailService emailService) {
+    this.tokenRepo = tokenRepo;
+    this.userRepo = userRepo;
+    this.encoder = encoder;
+    this.emailService = emailService;
   }
 
   public void createPasswordResetToken(String email) {
-    Utilisateur user = userRepo.findByEmail(email)
-      .orElseThrow(() -> new ResourceNotFoundException("Email non trouvé"));
-    
- // Vérifier si un token existe déjà pour cet utilisateur
+    // Prevent email enumeration by returning success for unknown accounts.
+    Utilisateur user = userRepo.findByEmail(email).orElse(null);
+    if (user == null) {
+      return;
+    }
+
     PasswordResetToken existingToken = tokenRepo.findByUtilisateurId(user.getId());
     if (existingToken != null) {
-        // Supprimer le token existant
-    	tokenRepo.delete(existingToken);
+      tokenRepo.delete(existingToken);
     }
+
     String token = UUID.randomUUID().toString();
     PasswordResetToken prt = new PasswordResetToken();
     prt.setToken(token);
     prt.setUtilisateur(user);
     prt.setExpiryDate(calculateExpiryDateInMinutes(5));
     tokenRepo.save(prt);
+
     emailService.sendPasswordResetMail(user.getEmail(), token);
   }
 
   public void resetPassword(String token, String newPassword) {
     PasswordResetToken prt = tokenRepo.findByToken(token)
       .orElseThrow(() -> new ResourceNotFoundException("Token invalide"));
+
     if (prt.getExpiryDate().isBefore(LocalDateTime.now())) {
-      throw new RuntimeException("Token expiré");
+      throw new RuntimeException("Token expire");
     }
+
     Utilisateur user = prt.getUtilisateur();
     user.setPassword(encoder.encode(newPassword));
     userRepo.save(user);
     tokenRepo.delete(prt);
   }
+
   public LocalDateTime calculateExpiryDateInMinutes(int minutes) {
-	    return LocalDateTime.now().plusMinutes(minutes);
-	}
-
+    return LocalDateTime.now().plusMinutes(minutes);
+  }
 }
-

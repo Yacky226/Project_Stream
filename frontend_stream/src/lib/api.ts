@@ -4,7 +4,8 @@
  */
 
 import { config, configUtils } from './config';
-import { integrationService, buildEndpointUrl } from './integration';
+import { integrationService } from './integration';
+import { API_BASE_URL } from './api-base-url';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -81,7 +82,7 @@ class ApiService {
   private initialized = false;
 
   constructor() {
-    this.baseUrl = config.API_URL;
+    this.baseUrl = API_BASE_URL;
     this.authToken = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
   }
 

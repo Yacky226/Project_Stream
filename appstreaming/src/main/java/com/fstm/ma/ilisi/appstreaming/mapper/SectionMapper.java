@@ -4,10 +4,12 @@ import com.fstm.ma.ilisi.appstreaming.model.bo.Section;
 import com.fstm.ma.ilisi.appstreaming.model.dto.SectionDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring", uses = {LeconMapper.class})
+@Component
 public interface SectionMapper {
     
     @Mapping(source = "cours.id", target = "coursId")

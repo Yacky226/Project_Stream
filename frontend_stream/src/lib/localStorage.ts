@@ -39,6 +39,8 @@ export const authStorage = {
     storage.setItem('auth_token', data.token);
     if (data.refreshToken) {
       storage.setItem('auth_refresh_token', data.refreshToken);
+    } else {
+      storage.removeItem('auth_refresh_token');
     }
     storage.setItem('auth_user', JSON.stringify(data.user));
   },

@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react';
 // Lazy load all page components for better performance
 const HomePage = lazy(() => import('../components/pages/HomePage').then(m => ({ default: m.HomePage })));
 const AuthPageRedux = lazy(() => import('../components/pages/AuthPageRedux').then(m => ({ default: m.AuthPageRedux })));
+const ResetPasswordPage = lazy(() => import('../components/pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
 const CourseCatalog = lazy(() => import('../components/pages/CourseCatalog').then(m => ({ default: m.CourseCatalog })));
 const CourseDetail = lazy(() => import('../components/pages/CourseDetail').then(m => ({ default: m.CourseDetail })));
 const StudentDashboard = lazy(() => import('../components/pages/StudentDashboard').then(m => ({ default: m.StudentDashboard })));
@@ -31,7 +32,6 @@ const PrivacyPage = lazy(() => import('../components/pages/PrivacyPage').then(m 
 const HelpPage = lazy(() => import('../components/pages/HelpPage').then(m => ({ default: m.HelpPage })));
 const BusinessPage = lazy(() => import('../components/pages/BusinessPage').then(m => ({ default: m.BusinessPage })));
 const AccessibilityPage = lazy(() => import('../components/pages/AccessibilityPage').then(m => ({ default: m.AccessibilityPage })));
-const TeacherSignupPage = lazy(() => import('../components/pages/TeacherSignupPage').then(m => ({ default: m.TeacherSignupPage })));
 const BlogPage = lazy(() => import('../components/pages/BlogPage').then(m => ({ default: m.BlogPage })));
 const LiveStreamingDemoPage = lazy(() => import('../components/pages/LiveStreamingDemoPage').then(m => ({ default: m.LiveStreamingDemoPage })));
 const MobileAppPage = lazy(() => import('../components/pages/MobileAppPage').then(m => ({ default: m.MobileAppPage })));
@@ -106,13 +106,32 @@ export const routes: RouteConfig[] = [
     path: '/auth/signup',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" {...props} />),
     title: 'Inscription',
-    description: 'Créez votre compte'
+    description: 'Créez votre compte étudiant ou enseignant'
+  },
+  {
+    path: '/auth/signup/student',
+    component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="student" {...props} />),
+    title: 'Inscription étudiant',
+    description: 'Créez votre compte étudiant'
+  },
+  {
+    path: '/auth/signup/teacher',
+    component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
+    title: 'Inscription enseignant',
+    description: 'Créez votre compte enseignant'
   },
   {
     path: '/auth/forgot',
     component: withSuspense((props: any) => <AuthPageRedux mode="forgot" {...props} />),
     title: 'Mot de passe oublié',
     description: 'Réinitialisez votre mot de passe'
+  },
+  
+  {
+    path: '/reset-password',
+    component: withSuspense(ResetPasswordPage),
+    title: 'Nouveau mot de passe',
+    description: 'Definir un nouveau mot de passe'
   },
   
   // Dashboard routes
@@ -178,9 +197,9 @@ export const routes: RouteConfig[] = [
   // Teacher routes
   {
     path: '/teacher/signup',
-    component: withSuspense(TeacherSignupPage),
+    component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
     title: 'Devenir enseignant',
-    description: 'Rejoignez notre équipe d\'enseignants'
+    description: 'Créez votre compte enseignant'
   },
   {
     path: '/teacher/live-sessions',

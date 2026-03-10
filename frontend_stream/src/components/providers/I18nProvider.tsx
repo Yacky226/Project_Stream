@@ -33,7 +33,10 @@ export function I18nProvider({ children }: I18nProviderProps) {
           console.log('[i18n] Initializing with bundled resources...');
           
           // Initialize i18next with bundled resources
-          await i18n.init(i18nConfig);
+          await i18n.init({
+            ...i18nConfig,
+            load: 'languageOnly'
+          });
           
           isInitialized = true;
           console.log('[i18n] Initialization complete');

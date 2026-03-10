@@ -1,16 +1,26 @@
+export type UserRole = 'student' | 'teacher' | 'admin';
+
+export type BackendUserRole =
+  | 'ETUDIANT'
+  | 'ENSEIGNANT'
+  | 'ADMINISTRATEUR'
+  | string;
+
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'teacher' | 'admin';
+  role: UserRole;
   avatar?: string | null;
-  emailVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  emailVerified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   timezone?: string;
-  lastLoginAt?: Date;
+  lastLoginAt?: string;
   isActive?: boolean;
+  nom?: string;
+  dateNaissance?: string | null;
 }
 
 export interface LoginCredentials {
@@ -24,15 +34,37 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  role?: 'student' | 'teacher';
+  role?: UserRole;
+  niveau?: string;
   timezone?: string;
   acceptTerms: boolean;
   acceptPrivacy: boolean;
   marketingOptIn?: boolean;
+  dateNaissance?: string;
+}
+
+export interface RegisterStudentData {
+  prenom: string;
+  nom: string;
+  email: string;
+  password: string;
+  role: 'ETUDIANT';
+  niveau: string;
+  dateNaissance?: string;
+}
+
+export interface RegisterTeacherData {
+  prenom?: string;
+  nom: string;
+  email: string;
+  password: string;
+  role: 'ENSEIGNANT';
+  specialite: string;
+  dateNaissance?: string;
 }
 
 export interface AuthResponse {
-  user?: User;
+  user: User;
   token: string;
   refreshToken?: string;
   expiresAt: number;
@@ -51,18 +83,15 @@ export interface PasswordResetRequest {
 
 export interface PasswordReset {
   token: string;
-  password: string;
-  confirmPassword: string;
+  password?: string;
+  newPassword?: string;
+  confirmPassword?: string;
 }
 
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
   confirmNewPassword: string;
-}
-
-export interface EmailVerification {
-  token: string;
 }
 
 export interface AuthState {
@@ -74,4 +103,89 @@ export interface AuthState {
   error: string | null;
 }
 
-export type UserRole = 'student' | 'teacher' | 'admin';
+export interface BackendAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  email: string;
+  role: BackendUserRole;
+  userId: number;
+}
+
+export interface BackendAuthRequest {
+  email: string;
+  password: string;
+}
+
+const BACKEND_ROLE_MAP: Record<string, UserRole> = {
+  ETUDIANT: 'student',
+  ENSEIGNANT: 'teacher',
+  ADMINISTRATEUR: 'admin',
+};
+
+const FRONTEND_ROLE_MAP: Record<UserRole, string> = {
+  student: 'ETUDIANT',
+  teacher: 'ENSEIGNANT',
+  admin: 'ADMINISTRATEUR',
+};
+
+export function mapBackendRole(backendRole: BackendUserRole): UserRole {
+  return BACKEND_ROLE_MAP[String(backendRole)] || 'student';
+}
+
+export function mapFrontendRole(frontendRole: UserRole): string {
+  return FRONTEND_ROLE_MAP[frontendRole] || 'ETUDIANT';
+}
+
+export function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const normalized = fullName.trim().replace(/\s+/g, ' ');
+  if (!normalized) {
+    return { firstName: '', lastName: '' };
+  }
+
+  const [firstName, ...rest] = normalized.split(' ');
+  return {
+    firstName,
+    lastName: rest.join(' '),
+  };
+}
+
+export function buildDisplayName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
+}
+
+export function normalizeAuthResponse(
+  backend: BackendAuthResponse,
+  profileOverride?: Partial<User>,
+): AuthResponse {
+  const emailPrefix = backend.email.split('@')[0] || '';
+  const guessed = splitFullName(emailPrefix.replace(/[._-]/g, ' ').trim());
+  const fallbackFirstName = guessed.firstName || 'Utilisateur';
+  const fallbackLastName = guessed.lastName || '';
+
+  const firstName = profileOverride?.firstName || fallbackFirstName;
+  const lastName = profileOverride?.lastName || fallbackLastName;
+
+  return {
+    user: {
+      id: String(backend.userId),
+      email: backend.email,
+      role: mapBackendRole(backend.role),
+      firstName,
+      lastName,
+      nom: profileOverride?.nom || buildDisplayName(firstName, lastName),
+      avatar: profileOverride?.avatar ?? null,
+      emailVerified: profileOverride?.emailVerified ?? true,
+      createdAt: profileOverride?.createdAt,
+      updatedAt: profileOverride?.updatedAt,
+      timezone: profileOverride?.timezone,
+      lastLoginAt: profileOverride?.lastLoginAt,
+      isActive: profileOverride?.isActive ?? true,
+      dateNaissance: profileOverride?.dateNaissance,
+    },
+    token: backend.accessToken,
+    refreshToken: backend.refreshToken,
+    expiresAt: Date.now() + backend.expiresIn * 1000,
+  };
+}

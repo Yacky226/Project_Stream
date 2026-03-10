@@ -29,9 +29,6 @@ public class NotificationService implements NotificationServiceInterface {
         this.utilisateurRepository = utilisateurRepository;
     }
 
-    /**
-     * Récupère toutes les notifications d'un utilisateur
-     */
     @Override
     public List<NotificationDTO> getNotificationsUtilisateur(Long utilisateurId) {
         return notificationRepository.findByDestinataireId(utilisateurId)
@@ -40,32 +37,41 @@ public class NotificationService implements NotificationServiceInterface {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Marque une notification comme lue
-     */
     @Override
-    public void marquerCommeLue(Long notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvée"));
+    public void marquerCommeLue(Long notificationId, Long utilisateurId) {
+        Notification notification = notificationRepository.findByIdAndDestinataireId(notificationId, utilisateurId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvee"));
         notification.setLu(true);
         notificationRepository.save(notification);
     }
 
-    /**
-     * Compte les notifications non lues d’un utilisateur
-     */
+    @Override
+    public void marquerToutesCommeLues(Long utilisateurId) {
+        List<Notification> notifications = notificationRepository.findByDestinataireIdAndLuFalse(utilisateurId);
+        if (notifications.isEmpty()) {
+            return;
+        }
+
+        notifications.forEach(notification -> notification.setLu(true));
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    public void supprimerNotification(Long notificationId, Long utilisateurId) {
+        Notification notification = notificationRepository.findByIdAndDestinataireId(notificationId, utilisateurId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvee"));
+        notificationRepository.delete(notification);
+    }
+
     @Override
     public Long countNotificationsNonLues(Long utilisateurId) {
         return notificationRepository.countByDestinataireIdAndLuFalse(utilisateurId);
     }
 
-    /**
-     * Crée et envoie une nouvelle notification à un utilisateur
-     */
     @Override
     public void envoyerNotification(Long destinataireId, String message) {
         Utilisateur destinataire = utilisateurRepository.findById(destinataireId)
-                .orElseThrow(() -> new ResourceNotFoundException("Destinataire non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("Destinataire non trouve"));
 
         Notification notification = new Notification();
         notification.setDestinataire(destinataire);

@@ -1,237 +1,259 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from './redux';
-import { 
+import {
   clearError,
   updateLastActivity,
   checkBlockStatus,
-  loginSuccess,
-  loginFailure,
-  incrementLoginAttempts,
-  logout as logoutAction
+  setAuthError,
+  logout as logoutAction,
 } from '../store/slices/authSlice';
-import { 
-  useLoginMutation, 
-  useRegisterMutation, 
+import {
+  useLoginMutation,
+  useRegisterMutation,
+  useRegisterTeacherMutation,
   useLogoutMutation,
-  useRefreshTokenMutation 
+  useRefreshTokenMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
 } from '../store/api/authApi';
-import { LoginCredentials, RegisterData, AuthResponse } from '../types/auth';
-import { authStorage } from '../lib/localStorage';
+import type {
+  LoginCredentials,
+  RegisterData,
+  RegisterTeacherData,
+  UserRole,
+} from '../types/auth';
+import { selectAuthState } from '../store/selectors/authSelectors';
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const payload = error as {
+    data?: { message?: string; error?: string };
+    error?: string;
+    message?: string;
+  };
+
+  return (
+    payload.data?.message ||
+    payload.data?.error ||
+    payload.error ||
+    payload.message ||
+    fallback
+  );
+}
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
-  const auth = useAppSelector((state) => state.auth);
-  
-  // RTK Query mutations
-  const [loginMutation, { isLoading: isLoginLoading }] = useLoginMutation();
-  const [registerMutation, { isLoading: isRegisterLoading }] = useRegisterMutation();
+  const auth = useAppSelector(selectAuthState);
+
+  const [loginMutation, loginState] = useLoginMutation();
+  const [registerMutation, registerState] = useRegisterMutation();
+  const [registerTeacherMutation, registerTeacherState] = useRegisterTeacherMutation();
   const [logoutMutation] = useLogoutMutation();
   const [refreshTokenMutation] = useRefreshTokenMutation();
-  
-  const isLoading = isLoginLoading || isRegisterLoading || auth.isLoading;
-  
-  // Auto-refresh token before expiry
+  const [forgotPasswordMutation, forgotPasswordState] = useForgotPasswordMutation();
+  const [resetPasswordMutation, resetPasswordState] = useResetPasswordMutation();
+
+  const isLoading =
+    auth.isLoading ||
+    loginState.isLoading ||
+    registerState.isLoading ||
+    registerTeacherState.isLoading ||
+    forgotPasswordState.isLoading ||
+    resetPasswordState.isLoading;
+
   useEffect(() => {
-    if (auth.isAuthenticated && auth.sessionExpiry && auth.refreshToken) {
-      const refreshBuffer = 5 * 60 * 1000; // 5 minutes before expiry
-      const timeUntilRefresh = auth.sessionExpiry - Date.now() - refreshBuffer;
-      
-      if (timeUntilRefresh > 0) {
-        const timer = setTimeout(() => {
-          refreshTokenMutation({ refreshToken: auth.refreshToken! })
-            .unwrap()
-            .then((response: AuthResponse) => {
-              // Update token in localStorage using authStorage
-              const currentAuth = authStorage.loadAuthData();
-              if (currentAuth) {
-                authStorage.saveAuthData({
-                  token: response.token,
-                  refreshToken: response.refreshToken || currentAuth.refreshToken,
-                  user: currentAuth.user
-                });
-              }
-            })
-            .catch((error) => {
-              console.error('Token refresh failed:', error);
-              dispatch(logoutAction());
-            });
-        }, timeUntilRefresh);
-        
-        return () => clearTimeout(timer);
-      } else if (timeUntilRefresh <= 0) {
-        // Token already expired or about to expire
-        refreshTokenMutation({ refreshToken: auth.refreshToken })
-          .unwrap()
-          .then((response: AuthResponse) => {
-            // Update token in localStorage using authStorage
-            const currentAuth = authStorage.loadAuthData();
-            if (currentAuth) {
-              authStorage.saveAuthData({
-                token: response.token,
-                refreshToken: response.refreshToken || currentAuth.refreshToken,
-                user: currentAuth.user
-              });
-            }
-          })
-          .catch((error) => {
-            console.error('Token refresh failed:', error);
-            dispatch(logoutAction());
-          });
-      }
+    if (!auth.isAuthenticated || !auth.sessionExpiry || !auth.refreshToken) {
+      return;
     }
-  }, [auth.isAuthenticated, auth.sessionExpiry, auth.refreshToken, dispatch, refreshTokenMutation]);
-  
-  // Check block status periodically
+
+    const refreshBuffer = 5 * 60 * 1000;
+    const timeUntilRefresh = auth.sessionExpiry - Date.now() - refreshBuffer;
+
+    const triggerRefresh = () => {
+      refreshTokenMutation({ refreshToken: auth.refreshToken as string })
+        .unwrap()
+        .catch(() => {
+          dispatch(logoutAction());
+        });
+    };
+
+    if (timeUntilRefresh <= 0) {
+      triggerRefresh();
+      return;
+    }
+
+    const timer = setTimeout(triggerRefresh, timeUntilRefresh);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, auth.refreshToken, auth.sessionExpiry, dispatch, refreshTokenMutation]);
+
   useEffect(() => {
-    if (auth.isBlocked) {
-      const interval = setInterval(() => {
-        dispatch(checkBlockStatus());
-      }, 60000); // Check every minute
-      
-      return () => clearInterval(interval);
+    if (!auth.isBlocked) {
+      return;
     }
+
+    const interval = setInterval(() => {
+      dispatch(checkBlockStatus());
+    }, 60_000);
+
+    return () => clearInterval(interval);
   }, [auth.isBlocked, dispatch]);
-  
-  // Update last activity on user interaction
+
   useEffect(() => {
     const updateActivity = () => {
       if (auth.isAuthenticated) {
         dispatch(updateLastActivity());
       }
     };
-    
+
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    
-    events.forEach(event => {
+    events.forEach((event) => {
       document.addEventListener(event, updateActivity, { passive: true });
     });
-    
+
     return () => {
-      events.forEach(event => {
+      events.forEach((event) => {
         document.removeEventListener(event, updateActivity);
       });
     };
   }, [auth.isAuthenticated, dispatch]);
-  
-  // Actions
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    try {
-      const result = await loginMutation(credentials).unwrap();
-      
-      // Store in localStorage using authStorage
-      authStorage.saveAuthData({
-        token: result.token,
-        refreshToken: result.refreshToken,
-        user: result.user
-      });
-      
-      // Update Redux state
-      dispatch(loginSuccess({
-        user: result.user,
-        token: result.token,
-        refreshToken: result.refreshToken
-      }));
-      
-      return result;
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Login failed';
-      dispatch(loginFailure(errorMessage));
-      throw error;
-    }
-  }, [loginMutation, dispatch]);
-  
-  const register = useCallback(async (userData: RegisterData) => {
-    try {
-      const result = await registerMutation(userData).unwrap();
-      
-      // Store in localStorage using authStorage
-      authStorage.saveAuthData({
-        token: result.token,
-        refreshToken: result.refreshToken,
-        user: result.user
-      });
-      
-      // Update Redux state
-      dispatch(loginSuccess({
-        user: result.user,
-        token: result.token,
-        refreshToken: result.refreshToken
-      }));
-      
-      return result;
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Registration failed';
-      dispatch(loginFailure(errorMessage));
-      throw error;
-    }
-  }, [registerMutation, dispatch]);
-  
+
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      try {
+        return await loginMutation(credentials).unwrap();
+      } catch (error) {
+        dispatch(setAuthError(extractErrorMessage(error, 'Echec de la connexion')));
+        throw error;
+      }
+    },
+    [dispatch, loginMutation],
+  );
+
+  const register = useCallback(
+    async (userData: RegisterData) => {
+      try {
+        return await registerMutation(userData).unwrap();
+      } catch (error) {
+        dispatch(setAuthError(extractErrorMessage(error, "Echec de l'inscription")));
+        throw error;
+      }
+    },
+    [dispatch, registerMutation],
+  );
+
+  const forgotPassword = useCallback(
+    async (email: string) => {
+      try {
+        const result = await forgotPasswordMutation({ email }).unwrap();
+        return result;
+      } catch (error) {
+        dispatch(setAuthError(extractErrorMessage(error, "Echec de l'envoi de l'email")));
+        throw error;
+      }
+    },
+    [dispatch, forgotPasswordMutation],
+  );
+
+  const registerTeacher = useCallback(
+    async (teacherData: RegisterTeacherData) => {
+      try {
+        return await registerTeacherMutation(teacherData).unwrap();
+      } catch (error) {
+        dispatch(
+          setAuthError(
+            extractErrorMessage(
+              error,
+              "Echec de l'inscription enseignant",
+            ),
+          ),
+        );
+        throw error;
+      }
+    },
+    [dispatch, registerTeacherMutation],
+  );
+
+  const resetPassword = useCallback(
+    async (token: string, newPassword: string) => {
+      try {
+        const result = await resetPasswordMutation({
+          token,
+          newPassword,
+        }).unwrap();
+        return result;
+      } catch (error) {
+        dispatch(setAuthError(extractErrorMessage(error, "Echec de la reinitialisation")));
+        throw error;
+      }
+    },
+    [dispatch, resetPasswordMutation],
+  );
+
   const logout = useCallback(async () => {
     try {
-      if (auth.token) {
-        await logoutMutation({ token: auth.token }).unwrap();
-      }
-    } catch (error) {
-      console.warn('Logout API call failed:', error);
+      await logoutMutation({ refreshToken: auth.refreshToken }).unwrap();
+    } catch {
+      // keep client logout even if server logout fails
     } finally {
-      // Clear localStorage using authStorage
-      authStorage.clearAuthData();
-      
-      // Clear Redux state
       dispatch(logoutAction());
     }
-  }, [auth.token, logoutMutation, dispatch]);
-  
+  }, [auth.refreshToken, dispatch, logoutMutation]);
+
   const refreshToken = useCallback(async () => {
     if (!auth.refreshToken) {
       throw new Error('No refresh token available');
     }
-    
-    try {
-      const result = await refreshTokenMutation({ 
-        refreshToken: auth.refreshToken 
-      }).unwrap();
-      
-      // Update localStorage - just update the token, keep the user
-      const currentAuth = authStorage.loadAuthData();
-      if (currentAuth) {
-        authStorage.saveAuthData({
-          token: result.token,
-          refreshToken: result.refreshToken || currentAuth.refreshToken,
-          user: currentAuth.user
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      dispatch(logoutAction());
-      throw error;
-    }
-  }, [auth.refreshToken, refreshTokenMutation, dispatch]);
-  
+
+    const result = await refreshTokenMutation({
+      refreshToken: auth.refreshToken,
+    }).unwrap();
+
+    return result;
+  }, [auth.refreshToken, refreshTokenMutation]);
+
   const clearAuthError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
-  
-  // Computed values
-  const isExpiringSoon = auth.sessionExpiry 
-    ? auth.sessionExpiry - Date.now() < 10 * 60 * 1000 // 10 minutes
+
+  const getCurrentUser = useCallback(() => auth.user, [auth.user]);
+
+  const hasRole = useCallback(
+    (requiredRole: UserRole) => {
+      if (!auth.user) {
+        return false;
+      }
+
+      const order: Record<UserRole, number> = {
+        student: 0,
+        teacher: 1,
+        admin: 2,
+      };
+
+      return order[auth.user.role] >= order[requiredRole];
+    },
+    [auth.user],
+  );
+
+  const isExpiringSoon = auth.sessionExpiry
+    ? auth.sessionExpiry - Date.now() < 10 * 60 * 1000
     : false;
-  
-  const timeUntilExpiry = auth.sessionExpiry 
+
+  const timeUntilExpiry = auth.sessionExpiry
     ? Math.max(0, auth.sessionExpiry - Date.now())
     : 0;
-  
+
   const canAttemptLogin = !auth.isBlocked || (
-    auth.blockExpiry && Date.now() > auth.blockExpiry
+    !!auth.blockExpiry && Date.now() > auth.blockExpiry
   );
-  
+
   const timeUntilUnblock = auth.isBlocked && auth.blockExpiry
     ? Math.max(0, auth.blockExpiry - Date.now())
     : 0;
-  
+
   return {
-    // State
     user: auth.user,
     token: auth.token,
     isAuthenticated: auth.isAuthenticated,
@@ -239,18 +261,19 @@ export const useAuth = () => {
     error: auth.error,
     loginAttempts: auth.loginAttempts,
     isBlocked: auth.isBlocked,
-    
-    // Computed
     isExpiringSoon,
     timeUntilExpiry,
     canAttemptLogin,
     timeUntilUnblock,
-    
-    // Actions
     login,
     register,
+    registerTeacher,
+    forgotPassword,
+    resetPassword,
     logout,
     refreshToken,
     clearError: clearAuthError,
+    getCurrentUser,
+    hasRole,
   };
 };

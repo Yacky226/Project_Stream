@@ -1,81 +1,77 @@
-import { User } from './auth';
+import {
+  User,
+  mapBackendRole,
+  splitFullName,
+  buildDisplayName,
+} from './auth';
+
+export interface BackendUtilisateurDTO {
+  id: number;
+  nom: string;
+  prenom?: string;
+  email: string;
+  role: string;
+  dateNaissance?: string | null;
+  photoProfil?: string | null;
+}
+
+export interface BackendEtudiantDTO extends BackendUtilisateurDTO {
+  niveau: string;
+}
+
+export interface BackendEnseignantDTO extends BackendUtilisateurDTO {
+  specialite: string;
+  coursIds?: number[];
+}
+
+export interface BackendProfileResponse {
+  success: boolean;
+  data: BackendUtilisateurDTO;
+}
 
 export interface UserProfile extends User {
   bio?: string;
-  website?: string;
   location?: string;
-  dateOfBirth?: Date;
   phoneNumber?: string;
-  linkedinUrl?: string;
-  githubUrl?: string;
-  twitterUrl?: string;
-  
-  // Professional information
-  jobTitle?: string;
-  company?: string;
-  experience?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  skills?: string[];
-  interests?: string[];
-  
-  // Settings
-  isPublic: boolean;
-  allowMessages: boolean;
-  showEmail: boolean;
-  showProgress: boolean;
+  niveau?: string;
+  specialite?: string;
+  coursIds?: number[];
 }
 
 export interface UserPreferences {
-  // Language and localization
   language: 'fr' | 'en';
   timezone: string;
-  
-  // Theme
   theme: 'light' | 'dark' | 'system';
-  
-  // Notifications
   emailNotifications: boolean;
   pushNotifications: boolean;
   marketingEmails: boolean;
   courseReminders: boolean;
   weeklyDigest: boolean;
-  
-  // Learning preferences
   autoplay: boolean;
   playbackSpeed: number;
   subtitles: boolean;
   quality: 'auto' | '720p' | '1080p' | '4K';
   downloadQuality: 'low' | 'medium' | 'high';
-  
-  // Privacy
   showOnlineStatus: boolean;
   allowProfileViews: boolean;
   allowCourseRecommendations: boolean;
 }
 
 export interface UserStats {
-  // Learning progress
   totalCoursesEnrolled: number;
   totalCoursesCompleted: number;
   totalLessonsWatched: number;
-  totalTimeSpent: number; // in minutes
-  
-  // Achievements
+  totalTimeSpent: number;
   certificatesEarned: number;
   badgesEarned: number;
   streakDays: number;
   longestStreak: number;
-  
-  // Engagement
   forumPosts: number;
   questionsAsked: number;
   questionsAnswered: number;
   helpfulVotes: number;
-  
-  // Progress rates
   averageCompletionRate: number;
   averageQuizScore: number;
-  
-  // Recent activity
   lastActivityAt: Date;
   currentStreak: number;
   weeklyGoal: number;
@@ -84,21 +80,18 @@ export interface UserStats {
 
 export interface UserActivity {
   id: string;
-  type: 'course_started' | 'lesson_completed' | 'quiz_passed' | 'certificate_earned' | 'forum_post' | 'achievement_unlocked';
+  type:
+    | 'course_started'
+    | 'lesson_completed'
+    | 'quiz_passed'
+    | 'certificate_earned'
+    | 'forum_post'
+    | 'achievement_unlocked';
   title: string;
   description: string;
   timestamp: Date;
-  relatedId?: string; // course ID, lesson ID, etc.
+  relatedId?: string;
   metadata?: Record<string, any>;
-}
-
-export interface UserBadge {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  earnedAt: Date;
-  category: 'learning' | 'community' | 'achievement' | 'special';
 }
 
 export interface UserCertificate {
@@ -118,73 +111,47 @@ export interface UserProgress {
   completedLessons: string[];
   totalLessons: number;
   completionPercentage: number;
-  timeSpent: number; // in minutes
+  timeSpent: number;
   lastAccessedAt: Date;
   currentLessonId?: string;
-  
-  // Quiz progress
   quizzesTaken: number;
   quizzesPassed: number;
   averageQuizScore: number;
-  
-  // Engagement
   notesCount: number;
   bookmarksCount: number;
   forumParticipation: number;
 }
 
-export interface UserEnrollment {
-  id: string;
-  courseId: string;
-  enrolledAt: Date;
-  completedAt?: Date;
-  progress: number;
-  isFavorite: boolean;
-  lastAccessedAt: Date;
-  accessType: 'free' | 'paid' | 'trial';
-  paymentId?: string;
+export function normalizeUserProfile(dto: BackendUtilisateurDTO): UserProfile {
+  const names = splitFullName(dto.nom || '');
+  const firstName = dto.prenom?.trim() || names.firstName || 'Utilisateur';
+  const lastName = dto.nom?.trim() || names.lastName || '';
+
+  return {
+    id: String(dto.id),
+    email: dto.email,
+    firstName,
+    lastName,
+    nom: dto.nom || buildDisplayName(firstName, lastName),
+    role: mapBackendRole(dto.role),
+    avatar: dto.photoProfil || null,
+    dateNaissance: dto.dateNaissance || null,
+    emailVerified: true,
+    isActive: true,
+  };
 }
 
-export interface UserSubscription {
-  id: string;
-  planId: string;
-  planName: string;
-  status: 'active' | 'cancelled' | 'expired' | 'trial';
-  startDate: Date;
-  endDate: Date;
-  autoRenew: boolean;
-  paymentMethod: string;
-  nextBillingDate?: Date;
+export function normalizeStudentProfile(dto: BackendEtudiantDTO): UserProfile {
+  return {
+    ...normalizeUserProfile(dto),
+    niveau: dto.niveau,
+  };
 }
 
-export interface UserDevice {
-  id: string;
-  name: string;
-  type: 'web' | 'mobile' | 'tablet' | 'desktop';
-  platform: string;
-  lastUsedAt: Date;
-  isActive: boolean;
-  pushToken?: string;
-}
-
-export interface UserSession {
-  id: string;
-  deviceId: string;
-  ipAddress: string;
-  location?: string;
-  userAgent: string;
-  createdAt: Date;
-  lastActiveAt: Date;
-  isActive: boolean;
-}
-
-export interface UserInvitation {
-  id: string;
-  email: string;
-  role: 'student' | 'teacher';
-  invitedBy: string;
-  invitedAt: Date;
-  acceptedAt?: Date;
-  expiresAt: Date;
-  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+export function normalizeTeacherProfile(dto: BackendEnseignantDTO): UserProfile {
+  return {
+    ...normalizeUserProfile(dto),
+    specialite: dto.specialite,
+    coursIds: dto.coursIds,
+  };
 }

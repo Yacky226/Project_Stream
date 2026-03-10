@@ -16,6 +16,8 @@ import { authApi } from './api/authApi';
 import { coursesApi } from './api/coursesApi';
 import { streamingApi } from './api/streamingApi';
 import { userApi } from './api/userApi';
+import { adminUserApi } from './api/adminUserApi';
+import { dashboardApi } from './api/dashboardApi';
 
 // Import middleware
 import { authMiddleware } from './middleware/authMiddleware';
@@ -39,6 +41,8 @@ export const store = configureStore({
     [coursesApi.reducerPath]: coursesApi.reducer,
     [streamingApi.reducerPath]: streamingApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
+    [adminUserApi.reducerPath]: adminUserApi.reducer,
+    [dashboardApi.reducerPath]: dashboardApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -61,6 +65,8 @@ export const store = configureStore({
       coursesApi.middleware,
       streamingApi.middleware,
       userApi.middleware,
+      adminUserApi.middleware,
+      dashboardApi.middleware,
       // Custom middleware
       authMiddleware.middleware,
       errorMiddleware,

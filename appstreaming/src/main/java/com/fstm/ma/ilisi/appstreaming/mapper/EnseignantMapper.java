@@ -19,8 +19,8 @@ public class EnseignantMapper {
 	    EnseignantDTO dto = new EnseignantDTO();
 	    dto.setId(enseignant.getId());
 	    dto.setNom(enseignant.getNom());
+	    dto.setPrenom(enseignant.getPrenom());
 	    dto.setEmail(enseignant.getEmail());
-	    dto.setPassword(enseignant.getPassword());
 	    dto.setRole(enseignant.getRole().name());
 	    dto.setSpecialite(enseignant.getSpecialite());
 
@@ -41,6 +41,7 @@ public class EnseignantMapper {
         Enseignant enseignant = new Enseignant();
         enseignant.setId(dto.getId());
         enseignant.setNom(dto.getNom());
+        enseignant.setPrenom(dto.getPrenom());
         enseignant.setEmail(dto.getEmail());
         enseignant.setPassword(dto.getPassword());
         enseignant.setRole(Role.valueOf(dto.getRole()));

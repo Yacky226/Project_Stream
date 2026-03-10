@@ -19,6 +19,10 @@ public interface SessionStreamingRepository extends JpaRepository<SessionStreami
     // Optimisation : Charge les sessions avec cours et enseignant
     @EntityGraph(attributePaths = {"cours", "enseignant"})
     List<SessionStreaming> findByCoursId(Long coursId);
+
+    // Chargement groupé pour dashboards (évite N appels par cours)
+    @EntityGraph(attributePaths = {"cours", "enseignant"})
+    List<SessionStreaming> findByCoursIdIn(java.util.Collection<Long> coursIds);
     
     // Version paginée
     @EntityGraph(attributePaths = {"cours", "enseignant"})

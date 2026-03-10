@@ -1,6 +1,8 @@
 package com.fstm.ma.ilisi.appstreaming.service;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.fstm.ma.ilisi.appstreaming.model.dto.AdministrateurDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.CourseManagementDTO;
@@ -19,6 +21,7 @@ public interface AdministrateurServiceInterface {
 	 
 	 // Gestion des utilisateurs
 	 List<UserManagementDTO> getAllUsers();
+	 Page<UserManagementDTO> getUsersPage(Pageable pageable, String role, Boolean actif, String search);
 	 UserManagementDTO getUserById(Long id);
 	 UserManagementDTO updateUser(Long id, UserManagementDTO dto);
 	 void toggleUserStatus(Long id, boolean actif);
