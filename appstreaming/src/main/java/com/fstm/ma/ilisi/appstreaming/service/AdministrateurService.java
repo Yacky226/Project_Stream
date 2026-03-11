@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.Hibernate;
 
 import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.mapper.UtilisateurMapper;
@@ -426,33 +427,44 @@ public class AdministrateurService implements AdministrateurServiceInterface {
  }
 
  private UserManagementDTO toUserManagementDTO(Utilisateur user) {
+     Utilisateur resolvedUser = resolveUtilisateur(user);
      UserManagementDTO dto = new UserManagementDTO();
-     dto.setId(user.getId());
-     dto.setNom(user.getNom());
-     dto.setPrenom(user.getPrenom());
-     dto.setEmail(user.getEmail());
-     dto.setActif(user.isActif());
-     dto.setDateCreation(user.getDateCreation());
-     dto.setPhotoProfil(user.getPhotoProfil());
+     dto.setId(resolvedUser.getId());
+     dto.setNom(resolvedUser.getNom());
+     dto.setPrenom(resolvedUser.getPrenom());
+     dto.setEmail(resolvedUser.getEmail());
+     dto.setActif(resolvedUser.isActif());
+     dto.setDateCreation(resolvedUser.getDateCreation());
+     dto.setPhotoProfil(resolvedUser.getPhotoProfil());
 
-     if (user instanceof Etudiant) {
-         Etudiant etudiant = (Etudiant) user;
+     if (resolvedUser instanceof Etudiant) {
+         Etudiant etudiant = (Etudiant) resolvedUser;
          dto.setRole("ETUDIANT");
          dto.setNiveau(etudiant.getNiveau());
          int inscriptionsCount = etudiant.getInscriptions() != null ? etudiant.getInscriptions().size() : 0;
          dto.setNombreInscriptions(inscriptionsCount);
          dto.setNombreCours(inscriptionsCount);
-     } else if (user instanceof Enseignant) {
-         Enseignant enseignant = (Enseignant) user;
+     } else if (resolvedUser instanceof Enseignant) {
+         Enseignant enseignant = (Enseignant) resolvedUser;
          dto.setRole("ENSEIGNANT");
          dto.setSpecialite(enseignant.getSpecialite());
          dto.setNombreCours(enseignant.getCours() != null ? enseignant.getCours().size() : 0);
          dto.setNombreSessions((int) sessionRepository.findByEnseignantId(enseignant.getId()).size());
-     } else if (user instanceof Administrateur) {
+     } else if (resolvedUser instanceof Administrateur) {
          dto.setRole("ADMINISTRATEUR");
+     } else {
+         dto.setRole(resolvedUser.getRole().name());
      }
 
      return dto;
+ }
+
+ private Utilisateur resolveUtilisateur(Utilisateur user) {
+     Object unproxied = Hibernate.unproxy(user);
+     if (unproxied instanceof Utilisateur resolved) {
+         return resolved;
+     }
+     return user;
  }
 
  private Role parseRole(String role) {

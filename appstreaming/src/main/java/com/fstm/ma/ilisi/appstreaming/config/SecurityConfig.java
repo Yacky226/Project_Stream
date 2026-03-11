@@ -69,8 +69,8 @@ public class SecurityConfig {
                     "/api/auth/forgot-password",
                     "/api/auth/reset-password",
                     "/api/Uploads/photos/**",
-                    "/api/sessions/active",
-                    "/api/sessions/{id}/url",
+                    "/api/sessions/actives",
+                    "/api/sessions/*/url",
                     "/api/webhook/antmedia",  // Le webhook sera sécurisé par WebhookSecurityFilter
                     "/hls/**",
                     "/ws-stream/**"
@@ -78,8 +78,8 @@ public class SecurityConfig {
                 
                 // Enseignants
                 .requestMatchers(
-                    "/api/sessions/start",
-                    "/api/sessions/{id}/stop"
+                    "/api/sessions/*/start",
+                    "/api/sessions/*/stop"
                 ).hasAuthority("ENSEIGNANT")
                 
                 // Admin
@@ -119,6 +119,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://domaine.com"
         ));

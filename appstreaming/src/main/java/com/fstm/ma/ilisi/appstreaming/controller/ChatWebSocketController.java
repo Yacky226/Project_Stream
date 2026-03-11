@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +50,16 @@ class ChatRestController {
     @PreAuthorize("isAuthenticated()")
     public List<ChatMessageDTO> getChatHistory(@PathVariable Long sessionId) {
         return chatService.getMessagesBySession(sessionId);
+    }
+
+    /**
+     * Envoyer un message via REST (fallback quand WebSocket indisponible)
+     */
+    @PostMapping("/messages")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ChatMessageDTO> sendMessage(@RequestBody ChatMessageDTO message) {
+        ChatMessageDTO saved = chatService.saveMessage(message);
+        return ResponseEntity.status(201).body(saved);
     }
     
     /**

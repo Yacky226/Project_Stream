@@ -3,12 +3,15 @@ package com.fstm.ma.ilisi.appstreaming.controller;
 import com.fstm.ma.ilisi.appstreaming.model.dto.CoursDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.CoursDetailsDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.PageResponse;
+import com.fstm.ma.ilisi.appstreaming.repository.EtudiantRepository;
 import com.fstm.ma.ilisi.appstreaming.service.CoursService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
@@ -21,9 +24,11 @@ import java.util.List;
 public class CoursController {
 
     private final CoursService coursService;
+    private final EtudiantRepository etudiantRepository;
 
-    public CoursController(CoursService coursService) {
+    public CoursController(CoursService coursService, EtudiantRepository etudiantRepository) {
         this.coursService = coursService;
+        this.etudiantRepository = etudiantRepository;
     }
 
     //  Créer un cours
@@ -84,7 +89,14 @@ public class CoursController {
     @GetMapping("/{id}/details")
     public ResponseEntity<CoursDetailsDTO> getCoursDetails(
             @PathVariable Long id,
-            @RequestParam(required = false) Long etudiantId) {
-        return ResponseEntity.ok(coursService.getCoursDetailsById(id, etudiantId));
+            @RequestParam(required = false) Long etudiantId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long resolvedEtudiantId = etudiantId;
+        if (resolvedEtudiantId == null && userDetails != null) {
+            resolvedEtudiantId = etudiantRepository.findByEmail(userDetails.getUsername())
+                    .map(etudiant -> etudiant.getId())
+                    .orElse(null);
+        }
+        return ResponseEntity.ok(coursService.getCoursDetailsById(id, resolvedEtudiantId));
     }
 }

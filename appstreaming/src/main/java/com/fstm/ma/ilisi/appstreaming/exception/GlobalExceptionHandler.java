@@ -122,6 +122,14 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(EnrollmentRequiredException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<ApiResponse<Object>> handleEnrollmentRequired(EnrollmentRequiredException ex) {
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(StreamOperationException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ResponseEntity<ApiResponse<Object>> handleStreamOperationException(StreamOperationException ex) {

@@ -3,6 +3,7 @@ import { AlertCircle, Edit, Loader2, Save, Shield, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
 import { updateProfile as updateAuthProfile } from '../../store/slices/authSlice';
+import { getUserRoleLabel, normalizeUserRole } from '../../lib/roleUtils';
 import {
   useGetAdminDashboardQuery,
   useGetStudentDashboardQuery,
@@ -62,18 +63,6 @@ function toInputDate(value?: string | null): string {
   return '';
 }
 
-function getRoleLabel(role?: string): string {
-  switch (role) {
-    case 'teacher':
-      return 'Enseignant';
-    case 'admin':
-      return 'Administrateur';
-    case 'student':
-    default:
-      return 'Etudiant';
-  }
-}
-
 function getInitials(firstName?: string, lastName?: string): string {
   return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.trim() || 'U';
 }
@@ -87,29 +76,30 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     isLoading: profileLoading,
     error: profileError,
   } = useGetProfileQuery(undefined, { skip: !isAuthenticated });
+  const currentRole = normalizeUserRole(profile?.role);
 
   const { data: studentLevel } = useGetStudentLevelQuery(undefined, {
-    skip: !profile || profile.role !== 'student',
+    skip: !profile || currentRole !== 'student' || Boolean(profile.niveau),
   });
   const { data: teacherSpecialty } = useGetTeacherSpecialtyQuery(undefined, {
-    skip: !profile || profile.role !== 'teacher',
+    skip: !profile || currentRole !== 'teacher' || Boolean(profile.specialite),
   });
   const { data: studentDashboard, isFetching: studentStatsLoading } = useGetStudentDashboardQuery(
     undefined,
     {
-      skip: !profile || profile.role !== 'student',
+      skip: !profile || currentRole !== 'student',
     },
   );
   const { data: teacherDashboard, isFetching: teacherStatsLoading } = useGetTeacherDashboardQuery(
     undefined,
     {
-      skip: !profile || profile.role !== 'teacher',
+      skip: !profile || currentRole !== 'teacher',
     },
   );
   const { data: adminDashboard, isFetching: adminStatsLoading } = useGetAdminDashboardQuery(
     undefined,
     {
-      skip: !profile || profile.role !== 'admin',
+      skip: !profile || currentRole !== 'admin',
     },
   );
 
@@ -149,17 +139,17 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       return null;
     }
 
-    if (profile.role === 'student') {
+    if (currentRole === 'student') {
       return {
         label: 'Niveau',
-        value: studentLevel || 'Non renseigne',
+        value: profile.niveau || studentLevel || 'Non renseigne',
       };
     }
 
-    if (profile.role === 'teacher') {
+    if (currentRole === 'teacher') {
       return {
         label: 'Specialite',
-        value: teacherSpecialty || 'Non renseignee',
+        value: profile.specialite || teacherSpecialty || 'Non renseignee',
       };
     }
 
@@ -167,14 +157,14 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       label: 'Acces',
       value: 'Administration',
     };
-  }, [profile, studentLevel, teacherSpecialty]);
+  }, [profile, currentRole, studentLevel, teacherSpecialty]);
 
   const roleStats = useMemo<RoleStat[]>(() => {
     if (!profile) {
       return [];
     }
 
-    if (profile.role === 'student' && studentDashboard) {
+    if (currentRole === 'student' && studentDashboard) {
       return [
         {
           label: 'Cours inscrits',
@@ -194,7 +184,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       ];
     }
 
-    if (profile.role === 'teacher' && teacherDashboard) {
+    if (currentRole === 'teacher' && teacherDashboard) {
       return [
         {
           label: 'Cours geres',
@@ -214,7 +204,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
       ];
     }
 
-    if (profile.role === 'admin' && adminDashboard) {
+    if (currentRole === 'admin' && adminDashboard) {
       return [
         {
           label: 'Utilisateurs',
@@ -235,24 +225,24 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
     }
 
     return [];
-  }, [profile, studentDashboard, teacherDashboard, adminDashboard]);
+  }, [profile, currentRole, studentDashboard, teacherDashboard, adminDashboard]);
 
   const roleStatsLoading = useMemo(() => {
     if (!profile) {
       return false;
     }
 
-    if (profile.role === 'student') {
+    if (currentRole === 'student') {
       return studentStatsLoading;
     }
-    if (profile.role === 'teacher') {
+    if (currentRole === 'teacher') {
       return teacherStatsLoading;
     }
-    if (profile.role === 'admin') {
+    if (currentRole === 'admin') {
       return adminStatsLoading;
     }
     return false;
-  }, [profile, studentStatsLoading, teacherStatsLoading, adminStatsLoading]);
+  }, [currentRole, studentStatsLoading, teacherStatsLoading, adminStatsLoading]);
 
   const handleSave = async () => {
     setSubmitError(null);
@@ -343,7 +333,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               </h2>
               <p className="text-sm text-muted-foreground">{profile.email}</p>
               <div className="mt-2 flex items-center gap-2">
-                <Badge>{getRoleLabel(profile.role)}</Badge>
+                <Badge>{getUserRoleLabel(profile.role)}</Badge>
                 {roleMeta && (
                   <Badge variant="outline">
                     {roleMeta.label}: {roleMeta.value}
@@ -442,7 +432,7 @@ export function ProfilePage({ onNavigate }: ProfilePageProps) {
               <p className="mb-1 text-xs text-muted-foreground">Type de compte</p>
               <p className="font-medium">
                 <User className="mr-1 inline h-4 w-4" />
-                {getRoleLabel(profile.role)}
+                {getUserRoleLabel(profile.role)}
               </p>
             </div>
             <div className="rounded-lg border p-3">

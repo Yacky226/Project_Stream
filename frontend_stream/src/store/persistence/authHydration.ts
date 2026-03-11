@@ -1,4 +1,5 @@
 import type { User } from '../../types/auth';
+import { mapBackendRole } from '../../types/auth';
 
 export interface StoredAuthData {
   token: string;
@@ -53,8 +54,13 @@ export function hydrateAuthState(stored: StoredAuthData): HydratedAuthState | nu
     return null;
   }
 
+  const normalizedUser: User = {
+    ...stored.user,
+    role: mapBackendRole((stored.user as { role?: string }).role || ''),
+  };
+
   return {
-    user: stored.user,
+    user: normalizedUser,
     token: stored.token,
     refreshToken: stored.refreshToken || undefined,
     isAuthenticated: true,

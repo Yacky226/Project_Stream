@@ -9,6 +9,7 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
 import { setTheme } from '../../store/slices/uiSlice';
+import { getUserRoleLabel, normalizeUserRole } from '../../lib/roleUtils';
 import { 
   Moon, 
   Sun, 
@@ -33,6 +34,7 @@ export function HeaderRedux({ onNavigate, currentPath }: HeaderReduxProps) {
   // Redux state
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { theme } = useAppSelector(state => state.ui);
+  const normalizedUserRole = normalizeUserRole(user?.role);
   const unreadNotifications = useAppSelector(state => 
     state.notifications?.notifications?.filter(n => !n.read).length || 0
   );
@@ -61,12 +63,12 @@ export function HeaderRedux({ onNavigate, currentPath }: HeaderReduxProps) {
     { path: '/live-sessions', label: t('navigation:liveSessions') },
   ];
 
-  if (user?.role === 'teacher') {
+  if (normalizedUserRole === 'teacher') {
     navigationItems.push(
       { path: '/teacher/dashboard', label: t('navigation:teacherDashboard') },
       { path: '/teacher/live-sessions', label: t('course:liveSessions') }
     );
-  } else if (user?.role === 'admin') {
+  } else if (normalizedUserRole === 'admin') {
     navigationItems.push({ path: '/admin', label: t('navigation:admin') });
   }
 
@@ -178,16 +180,16 @@ export function HeaderRedux({ onNavigate, currentPath }: HeaderReduxProps) {
                       {user.email}
                     </p>
                     <Badge variant="secondary" className="w-fit">
-                      {t(`auth:${user.role}`)}
+                      {getUserRoleLabel(user.role)}
                     </Badge>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 
                 <DropdownMenuItem onClick={() => {
-                  if (user.role === 'teacher') {
+                  if (normalizedUserRole === 'teacher') {
                     onNavigate('/teacher/dashboard');
-                  } else if (user.role === 'admin') {
+                  } else if (normalizedUserRole === 'admin') {
                     onNavigate('/admin');
                   } else {
                     onNavigate('/dashboard');

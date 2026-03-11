@@ -1,3 +1,5 @@
+import { mapBackendRole } from './auth';
+
 export type AdminUserRole = 'student' | 'teacher' | 'admin';
 export type AdminUserStatus = 'active' | 'inactive';
 
@@ -107,15 +109,7 @@ export interface CreateStudentPayload {
 }
 
 export function mapAdminRole(role: string): AdminUserRole {
-  switch (role) {
-    case 'ENSEIGNANT':
-      return 'teacher';
-    case 'ADMINISTRATEUR':
-      return 'admin';
-    case 'ETUDIANT':
-    default:
-      return 'student';
-  }
+  return mapBackendRole(role) as AdminUserRole;
 }
 
 export function mapBackendAdminUser(dto: BackendAdminUser): AdminUser {

@@ -17,7 +17,7 @@ public interface CoursRepository extends JpaRepository<Cours, Long> {
     List<Cours> findByEnseignantId(Long enseignantId);
     
     // Optimisation N+1 : Charge le cours avec sections et inscriptions en une seule requête
-    @EntityGraph(attributePaths = {"sections", "inscriptions", "enseignant"})
+    @EntityGraph(attributePaths = {"enseignant"})
     @Query("SELECT c FROM Cours c WHERE c.id = :id")
     Optional<Cours> findByIdWithDetails(Long id);
     

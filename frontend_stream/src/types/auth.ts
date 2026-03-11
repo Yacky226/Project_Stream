@@ -13,6 +13,9 @@ export interface User {
   lastName: string;
   role: UserRole;
   avatar?: string | null;
+  specialite?: string;
+  niveau?: string;
+  coursIds?: number[];
   emailVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -120,8 +123,11 @@ export interface BackendAuthRequest {
 
 const BACKEND_ROLE_MAP: Record<string, UserRole> = {
   ETUDIANT: 'student',
+  STUDENT: 'student',
   ENSEIGNANT: 'teacher',
+  TEACHER: 'teacher',
   ADMINISTRATEUR: 'admin',
+  ADMIN: 'admin',
 };
 
 const FRONTEND_ROLE_MAP: Record<UserRole, string> = {
@@ -131,7 +137,14 @@ const FRONTEND_ROLE_MAP: Record<UserRole, string> = {
 };
 
 export function mapBackendRole(backendRole: BackendUserRole): UserRole {
-  return BACKEND_ROLE_MAP[String(backendRole)] || 'student';
+  const raw = String(backendRole || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const normalized = raw.startsWith('ROLE_') ? raw.slice(5) : raw;
+  return BACKEND_ROLE_MAP[normalized] || 'student';
 }
 
 export function mapFrontendRole(frontendRole: UserRole): string {

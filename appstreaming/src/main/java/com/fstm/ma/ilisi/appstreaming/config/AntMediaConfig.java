@@ -6,10 +6,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.URI;
+
 @Configuration
 public class AntMediaConfig {
 
-    @Value("${antmedia.server.base-url}") 
+    @Value("${antmedia.server.base-url}")
     private String baseUrl;
 
     @Value("${antmedia.server.app}")
@@ -23,27 +25,63 @@ public class AntMediaConfig {
         return appName;
     }
 
+    private String normalizeBaseUrl() {
+        return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    }
+
+    private URI baseUri() {
+        return URI.create(normalizeBaseUrl());
+    }
+
     public String getStreamCreateUrl() {
-        return baseUrl + "/" + appName + "/rest/v2/broadcasts/create";
+        return normalizeBaseUrl() + "/" + appName + "/rest/v2/broadcasts/create";
     }
 
     public String getStreamStopUrl(String streamId) {
-        return baseUrl + "/" + appName + "/rest/v2/broadcasts/" + streamId + "/stop";
+        return normalizeBaseUrl() + "/" + appName + "/rest/v2/broadcasts/" + streamId + "/stop";
     }
 
     public String getPlaybackUrl(String streamId) {
-        // Pour lecture HLS (HTTP Live Streaming) — lecture côté <video>
-        return baseUrl.replace(":5080", ":5443") + "/" + appName + "/streams/" + streamId + ".m3u8";
+        return normalizeBaseUrl() + "/" + appName + "/streams/" + streamId + ".m3u8";
+    }
+
+    public String getPlayerUrl(String streamId) {
+        return normalizeBaseUrl() + "/" + appName + "/play.html?id=" + streamId + "&playOrder=webrtc,hls";
     }
 
     public String getWsUrl() {
-        // Pour publier/recevoir avec WebRTC JS
-        return "wss://" + baseUrl.replace("http://", "").replace(":5080", ":5443") + "/" + appName + "/websocket";
+        URI uri = baseUri();
+        String scheme = "https".equalsIgnoreCase(uri.getScheme()) ? "wss" : "ws";
+        String host = uri.getHost();
+        int port = uri.getPort();
+        String authority = port > 0 ? host + ":" + port : host;
+        return scheme + "://" + authority + "/" + appName + "/websocket";
     }
 
     public String getBroadcastDetailsUrl(String streamId) {
-        // Pour récupérer les détails d'un broadcast (incluant le VOD)
-        return baseUrl + "/" + appName + "/rest/v2/broadcasts/" + streamId;
+        return normalizeBaseUrl() + "/" + appName + "/rest/v2/broadcasts/" + streamId;
+    }
+
+    public String resolveVodUrl(String vodPath, String streamId) {
+        if (vodPath == null || vodPath.isBlank()) {
+            return normalizeBaseUrl() + "/" + appName + "/streams/" + streamId + ".mp4";
+        }
+
+        String normalizedPath = vodPath.trim();
+        if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")) {
+            return normalizedPath;
+        }
+
+        normalizedPath = normalizedPath.replaceFirst("^/+", "");
+        if (normalizedPath.startsWith(appName + "/")) {
+            return normalizeBaseUrl() + "/" + normalizedPath;
+        }
+
+        if (normalizedPath.startsWith("streams/")) {
+            return normalizeBaseUrl() + "/" + appName + "/" + normalizedPath;
+        }
+
+        return normalizeBaseUrl() + "/" + appName + "/streams/" + normalizedPath;
     }
 
     @Bean

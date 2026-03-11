@@ -1,12 +1,16 @@
 package com.fstm.ma.ilisi.appstreaming.controller;
 
+import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.model.dto.InscriptionDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.ProgressionLeconDTO;
+import com.fstm.ma.ilisi.appstreaming.repository.EtudiantRepository;
 import com.fstm.ma.ilisi.appstreaming.service.InscriptionServiceInterface;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,10 +22,23 @@ import java.util.List;
 public class InscriptionController {
     
     private final InscriptionServiceInterface inscriptionService;
+    private final EtudiantRepository etudiantRepository;
     
     @PostMapping
     @PreAuthorize("hasAuthority('ETUDIANT')")
     public ResponseEntity<InscriptionDTO> inscrireEtudiant(@RequestParam Long etudiantId, @RequestParam Long coursId) {
+        InscriptionDTO inscription = inscriptionService.inscrireEtudiant(etudiantId, coursId);
+        return new ResponseEntity<>(inscription, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/me")
+    @PreAuthorize("hasAuthority('ETUDIANT')")
+    public ResponseEntity<InscriptionDTO> inscrireEtudiantConnecte(
+            @RequestParam Long coursId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long etudiantId = etudiantRepository.findByEmail(userDetails.getUsername())
+                .map(etudiant -> etudiant.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Etudiant introuvable"));
         InscriptionDTO inscription = inscriptionService.inscrireEtudiant(etudiantId, coursId);
         return new ResponseEntity<>(inscription, HttpStatus.CREATED);
     }

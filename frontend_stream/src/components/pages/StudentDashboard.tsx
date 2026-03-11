@@ -1,6 +1,9 @@
+import { useMemo, useState } from 'react';
 import { AlertCircle, BookOpen, Calendar, CheckCircle2, Clock, Loader2, RefreshCcw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetStudentDashboardQuery } from '../../store/api/dashboardApi';
+import { useGetCoursesQuery } from '../../store/api/liveApi';
+import { useEnrollCourseMutation } from '../../store/api/userApi';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -34,6 +37,33 @@ function extractErrorMessage(error: unknown): string {
     payload.message ||
     'Impossible de charger le dashboard etudiant.'
   );
+}
+
+function extractActionErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const payload = error as {
+    data?: string | { message?: string; error?: string };
+    error?: string;
+    message?: string;
+  };
+
+  if (typeof payload.data === 'string' && payload.data.trim()) {
+    return payload.data;
+  }
+
+  if (payload.data && typeof payload.data === 'object') {
+    if (payload.data.message) {
+      return payload.data.message;
+    }
+    if (payload.data.error) {
+      return payload.data.error;
+    }
+  }
+
+  return payload.error || payload.message || fallback;
 }
 
 function formatDate(value: string | null): string {
@@ -72,6 +102,8 @@ function enrollmentStatusVariant(status: string): 'default' | 'secondary' | 'des
 export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const shouldLoad = Boolean(isAuthenticated && user?.role === 'student' && user?.id);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
+  const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
 
   const {
     data,
@@ -80,6 +112,43 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
     error,
     refetch,
   } = useGetStudentDashboardQuery(undefined, { skip: !shouldLoad });
+  const {
+    data: catalogCourses = [],
+    isLoading: isLoadingCatalog,
+    refetch: refetchCatalog,
+  } = useGetCoursesQuery(undefined, { skip: !shouldLoad });
+  const [enrollCourse, { isLoading: isEnrollingCourse }] = useEnrollCourseMutation();
+
+  const enrolledCourseIds = useMemo(
+    () => new Set((data?.courses || []).map((course) => String(course.id))),
+    [data?.courses],
+  );
+
+  const availableCourses = useMemo(
+    () => catalogCourses.filter((course) => !enrolledCourseIds.has(String(course.id))),
+    [catalogCourses, enrolledCourseIds],
+  );
+
+  const handleEnrollCourse = async (courseId: string) => {
+    if (!user) {
+      onNavigate('/auth/signin');
+      return;
+    }
+
+    setEnrollError(null);
+    setEnrollingCourseId(courseId);
+    try {
+      await enrollCourse({
+        coursId: courseId,
+      }).unwrap();
+      await refetch();
+      await refetchCatalog();
+    } catch (error) {
+      setEnrollError(extractActionErrorMessage(error, 'Inscription impossible pour le moment.'));
+    } finally {
+      setEnrollingCourseId(null);
+    }
+  };
 
   if (!authLoading && !isAuthenticated) {
     return (
@@ -142,6 +211,13 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
           <AlertDescription>{extractErrorMessage(error)}</AlertDescription>
         </Alert>
       )}
+
+      {enrollError ? (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{enrollError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {!isLoading && data && (
         <div className="space-y-8">
@@ -217,6 +293,77 @@ export function StudentDashboard({ onNavigate }: StudentDashboardProps) {
                       <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                         <p>Inscrit le: {formatDate(course.enrolledAt)}</p>
                         <p>Prochaine session: {formatDate(course.scheduledAt)}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionHeader
+              title="Cours disponibles"
+              description="Inscription directe depuis votre dashboard"
+              action={
+                <Button variant="outline" size="sm" onClick={() => onNavigate('/catalog')}>
+                  Voir le catalogue complet
+                </Button>
+              }
+            />
+
+            {isLoadingCatalog ? (
+              <div className="flex min-h-[160px] items-center justify-center rounded-lg border bg-muted/20">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : availableCourses.length === 0 ? (
+              <Card>
+                <CardContent className="p-8">
+                  <EmptyState
+                    icon={BookOpen}
+                    title="Aucun nouveau cours disponible"
+                    description="Vous etes deja inscrit aux cours actuellement visibles."
+                    action={{
+                      label: 'Parcourir le catalogue',
+                      onClick: () => onNavigate('/catalog'),
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {availableCourses.slice(0, 6).map((course) => (
+                  <Card key={course.id}>
+                    <CardHeader className="space-y-2 pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <CardTitle className="text-lg">{course.title}</CardTitle>
+                          <CardDescription>{course.category}</CardDescription>
+                        </div>
+                        <Badge variant="outline">Nouveau</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {course.description || 'Description non disponible.'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Prochaine date: {formatDate(course.scheduledAt || null)}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" onClick={() => onNavigate(`/courses/${course.id}`)}>
+                          Voir details
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={isEnrollingCourse && enrollingCourseId === course.id}
+                          onClick={() => handleEnrollCourse(course.id)}
+                        >
+                          {isEnrollingCourse && enrollingCourseId === course.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          S inscrire
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

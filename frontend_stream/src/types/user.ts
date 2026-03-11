@@ -13,6 +13,9 @@ export interface BackendUtilisateurDTO {
   role: string;
   dateNaissance?: string | null;
   photoProfil?: string | null;
+  specialite?: string;
+  niveau?: string;
+  coursIds?: number[];
 }
 
 export interface BackendEtudiantDTO extends BackendUtilisateurDTO {
@@ -136,6 +139,9 @@ export function normalizeUserProfile(dto: BackendUtilisateurDTO): UserProfile {
     role: mapBackendRole(dto.role),
     avatar: dto.photoProfil || null,
     dateNaissance: dto.dateNaissance || null,
+    specialite: dto.specialite,
+    niveau: dto.niveau,
+    coursIds: dto.coursIds,
     emailVerified: true,
     isActive: true,
   };

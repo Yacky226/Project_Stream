@@ -100,6 +100,10 @@ export function TeacherDashboard({ onNavigate }: TeacherDashboardProps) {
         description="Suivi des cours, inscriptions et sessions live en temps reel."
         actions={
           <>
+            <Button onClick={() => onNavigate('/teacher/live-sessions')}>
+              <BookOpen className="mr-2 h-4 w-4" />
+              Creer un cours
+            </Button>
             <Button variant="outline" onClick={() => onNavigate('/teacher/live-sessions')}>
               <Radio className="mr-2 h-4 w-4" />
               Sessions live

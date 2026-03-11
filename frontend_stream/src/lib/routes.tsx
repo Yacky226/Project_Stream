@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+﻿import { lazy, Suspense } from 'react';
 import { LoadingSpinner } from '../components/ui/loading-spinner';
 import { Bell } from 'lucide-react';
 
@@ -79,14 +79,14 @@ export const routes: RouteConfig[] = [
     path: '/',
     component: withSuspense(HomePage),
     exact: true,
-    title: 'Accueil - Stream Éducatif',
-    description: 'Plateforme de streaming éducatif en direct'
+    title: 'Accueil - Stream Ã‰ducatif',
+    description: 'Plateforme de streaming Ã©ducatif en direct'
   },
   {
     path: '/catalog',
     component: withSuspense(CourseCatalog),
     title: 'Catalogue des cours',
-    description: 'Découvrez tous nos cours disponibles'
+    description: 'DÃ©couvrez tous nos cours disponibles'
   },
   {
     path: '/search',
@@ -100,31 +100,31 @@ export const routes: RouteConfig[] = [
     path: '/auth/signin',
     component: withSuspense((props: any) => <AuthPageRedux mode="signin" {...props} />),
     title: 'Connexion',
-    description: 'Connectez-vous à votre compte'
+    description: 'Connectez-vous Ã  votre compte'
   },
   {
     path: '/auth/signup',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" {...props} />),
     title: 'Inscription',
-    description: 'Créez votre compte étudiant ou enseignant'
+    description: 'CrÃ©ez votre compte Ã©tudiant ou enseignant'
   },
   {
     path: '/auth/signup/student',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="student" {...props} />),
-    title: 'Inscription étudiant',
-    description: 'Créez votre compte étudiant'
+    title: 'Inscription Ã©tudiant',
+    description: 'CrÃ©ez votre compte Ã©tudiant'
   },
   {
     path: '/auth/signup/teacher',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
     title: 'Inscription enseignant',
-    description: 'Créez votre compte enseignant'
+    description: 'CrÃ©ez votre compte enseignant'
   },
   {
     path: '/auth/forgot',
     component: withSuspense((props: any) => <AuthPageRedux mode="forgot" {...props} />),
-    title: 'Mot de passe oublié',
-    description: 'Réinitialisez votre mot de passe'
+    title: 'Mot de passe oubliÃ©',
+    description: 'RÃ©initialisez votre mot de passe'
   },
   
   {
@@ -140,8 +140,8 @@ export const routes: RouteConfig[] = [
     component: withSuspense(StudentDashboard),
     requireAuth: true,
     allowedRoles: ['student'],
-    title: 'Tableau de bord étudiant',
-    description: 'Gérez vos cours et votre progression'
+    title: 'Tableau de bord Ã©tudiant',
+    description: 'GÃ©rez vos cours et votre progression'
   },
   {
     path: '/teacher/dashboard',
@@ -149,7 +149,7 @@ export const routes: RouteConfig[] = [
     requireAuth: true,
     allowedRoles: ['teacher'],
     title: 'Tableau de bord enseignant',
-    description: 'Gérez vos cours et vos étudiants'
+    description: 'GÃ©rez vos cours et vos Ã©tudiants'
   },
   {
     path: '/admin',
@@ -166,14 +166,14 @@ export const routes: RouteConfig[] = [
     component: withSuspense(ProfilePage),
     requireAuth: true,
     title: 'Mon profil',
-    description: 'Gérez votre profil utilisateur'
+    description: 'GÃ©rez votre profil utilisateur'
   },
   {
     path: '/settings',
     component: withSuspense(SettingsPage),
     requireAuth: true,
-    title: 'Paramètres',
-    description: 'Configurez vos préférences'
+    title: 'ParamÃ¨tres',
+    description: 'Configurez vos prÃ©fÃ©rences'
   },
   {
     path: '/notifications',
@@ -181,11 +181,11 @@ export const routes: RouteConfig[] = [
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl mb-2">Notifications</h1>
-          <p className="text-muted-foreground">Gérez vos notifications</p>
+          <p className="text-muted-foreground">GÃ©rez vos notifications</p>
         </div>
         <div className="p-8 text-center text-muted-foreground">
           <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Votre centre de notifications sera bientôt disponible.</p>
+          <p>Votre centre de notifications sera bientÃ´t disponible.</p>
         </div>
       </div>
     )),
@@ -199,23 +199,23 @@ export const routes: RouteConfig[] = [
     path: '/teacher/signup',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
     title: 'Devenir enseignant',
-    description: 'Créez votre compte enseignant'
+    description: 'CrÃ©ez votre compte enseignant'
   },
   {
     path: '/teacher/live-sessions',
     component: withSuspense((props: any) => (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl mb-2">Gestion des Sessions Live</h1>
-          <p className="text-muted-foreground">Créez et gérez vos sessions de streaming</p>
+          <h1 className="text-3xl mb-2">Cours et Sessions Live</h1>
+          <p className="text-muted-foreground">Creer vos cours puis programmer plusieurs sessions live par cours</p>
         </div>
         <SimpleLiveManager courseId="all" {...props} />
       </div>
     )),
     requireAuth: true,
     allowedRoles: ['teacher'],
-    title: 'Gestion des sessions live',
-    description: 'Gérez vos sessions de streaming'
+    title: 'Cours et Sessions Live',
+    description: 'Creez les cours et gerez plusieurs sessions live'
   },
   
   // Live streaming routes
@@ -228,8 +228,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/demo/streaming',
     component: withSuspense(LiveStreamingDemoPage),
-    title: 'Démo streaming',
-    description: 'Démonstration du système de streaming'
+    title: 'DÃ©mo streaming',
+    description: 'DÃ©monstration du systÃ¨me de streaming'
   },
   
   // Course category routes
@@ -254,7 +254,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/courses/beginner',
     component: withSuspense(BeginnerCoursesPage),
-    title: 'Cours pour débutants',
+    title: 'Cours pour dÃ©butants',
     description: 'Courses parfaits pour commencer'
   },
   
@@ -263,13 +263,13 @@ export const routes: RouteConfig[] = [
     path: '/contact',
     component: withSuspense(ContactPage),
     title: 'Contact',
-    description: 'Contactez notre équipe'
+    description: 'Contactez notre Ã©quipe'
   },
   {
     path: '/faq',
     component: withSuspense(FAQPage),
-    title: 'Questions fréquentes',
-    description: 'Trouvez des réponses à vos questions'
+    title: 'Questions frÃ©quentes',
+    description: 'Trouvez des rÃ©ponses Ã  vos questions'
   },
   {
     path: '/terms',
@@ -280,8 +280,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/privacy',
     component: withSuspense(PrivacyPage),
-    title: 'Politique de confidentialité',
-    description: 'Notre politique de confidentialité'
+    title: 'Politique de confidentialitÃ©',
+    description: 'Notre politique de confidentialitÃ©'
   },
   {
     path: '/help',
@@ -298,26 +298,26 @@ export const routes: RouteConfig[] = [
   {
     path: '/accessibility',
     component: withSuspense(AccessibilityPage),
-    title: 'Accessibilité',
-    description: 'Notre engagement pour l\'accessibilité'
+    title: 'AccessibilitÃ©',
+    description: 'Notre engagement pour l\'accessibilitÃ©'
   },
   {
     path: '/blog',
     component: withSuspense(BlogPage),
     title: 'Blog',
-    description: 'Articles et actualités'
+    description: 'Articles et actualitÃ©s'
   },
   {
     path: '/mobile-app',
     component: withSuspense(MobileAppPage),
     title: 'Application mobile',
-    description: 'Téléchargez notre application'
+    description: 'TÃ©lÃ©chargez notre application'
   },
   {
     path: '/careers',
     component: withSuspense(CareersPage),
-    title: 'Carrières',
-    description: 'Rejoignez notre équipe'
+    title: 'CarriÃ¨res',
+    description: 'Rejoignez notre Ã©quipe'
   },
   
   // Debug routes (development only)
@@ -333,13 +333,13 @@ export const routes: RouteConfig[] = [
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl mb-2">Debug Streaming Services</h1>
-          <p className="text-muted-foreground">Diagnostics et état des connexions</p>
+          <p className="text-muted-foreground">Diagnostics et Ã©tat des connexions</p>
         </div>
         <StreamingDebugPanel />
       </div>
     )),
     title: 'Debug Streaming',
-    description: 'Diagnostics du système de streaming'
+    description: 'Diagnostics du systÃ¨me de streaming'
   }
 ];
 
@@ -349,8 +349,8 @@ export const dynamicRoutes = [
     pattern: /^\/courses\/([^\/]+)$/,
     component: withSuspense(CourseDetail),
     getProps: (match: RegExpMatchArray) => ({ courseId: match[1] }),
-    title: 'Détail du cours',
-    description: 'Informations détaillées sur le cours'
+    title: 'DÃ©tail du cours',
+    description: 'Informations dÃ©taillÃ©es sur le cours'
   },
   {
     pattern: /^\/courses\/([^\/]+)\/session\/([^\/]+)$/,
@@ -373,8 +373,8 @@ export const dynamicRoutes = [
     }),
     requireAuth: true,
     allowedRoles: ['teacher'],
-    title: 'Studio live avancé',
-    description: 'Interface avancée de streaming pour enseignants'
+    title: 'Studio live avancÃ©',
+    description: 'Interface avancÃ©e de streaming pour enseignants'
   },
   {
     pattern: /^\/teacher\/live\/([^\/]+)(?:\/([^\/]+))?$/,
@@ -396,8 +396,8 @@ export const dynamicRoutes = [
       sessionId: match[2] || 'current',
       userRole: 'student'
     }),
-    title: 'Session live avancée',
-    description: 'Interface avancée de visionnage pour étudiants'
+    title: 'Session live avancÃ©e',
+    description: 'Interface avancÃ©e de visionnage pour Ã©tudiants'
   },
   {
     pattern: /^\/courses\/([^\/]+)\/live(?:\/([^\/]+))?$/,
@@ -447,8 +447,8 @@ export function matchRoute(path: string) {
     component: withSuspense(NotFoundPage),
     props: {},
     config: {
-      title: 'Page non trouvée',
-      description: 'La page demandée n\'existe pas'
+      title: 'Page non trouvÃ©e',
+      description: 'La page demandÃ©e n\'existe pas'
     }
   };
 }
@@ -474,7 +474,8 @@ export function canAccessRoute(
 export function getRouteMeta(path: string) {
   const routeMatch = matchRoute(path);
   return {
-    title: routeMatch.config.title || 'Stream Éducatif',
-    description: routeMatch.config.description || 'Plateforme de streaming éducatif'
+    title: routeMatch.config.title || 'Stream Ã‰ducatif',
+    description: routeMatch.config.description || 'Plateforme de streaming Ã©ducatif'
   };
 }
+

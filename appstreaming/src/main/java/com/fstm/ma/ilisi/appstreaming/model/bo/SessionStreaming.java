@@ -12,7 +12,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -36,8 +35,7 @@ public class SessionStreaming implements Serializable {
     @Column(nullable = false)
     private boolean estEnDirect;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column
     private String videoUrl; // URL de lecture HLS
 
     @NotNull

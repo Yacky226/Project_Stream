@@ -289,7 +289,7 @@ export function AuthPageRedux({
   const isSignup = mode === 'signup';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-12 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 to-muted/30 px-4 py-12">
       <div className="mx-auto w-full max-w-2xl">
         <Card className="border-0 bg-background/95 shadow-2xl backdrop-blur">
           <CardHeader className="space-y-2 text-center">

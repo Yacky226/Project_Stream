@@ -3,9 +3,10 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useI18n } from '../../hooks/useI18n';
-import { mockCourses, type Course } from '../../lib/auth';
 import { useAuth } from '../../hooks/useAuth';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { useGetActiveSessionsQuery, useGetCoursesQuery } from '../../store/api/liveApi';
+import { mapCoursesToCardModels, type CourseCardModel } from '../../lib/coursePresentation';
 import { 
   Play, 
   Clock, 
@@ -34,11 +35,16 @@ interface HomePageProps {
 export function HomePage({ onNavigate }: HomePageProps) {
   const { t } = useI18n();
   const { user } = useAuth();
-  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+  const { data: courses = [] } = useGetCoursesQuery();
+  const { data: activeSessions = [] } = useGetActiveSessionsQuery();
+  const [featuredCourses, setFeaturedCourses] = useState<CourseCardModel[]>([]);
 
   useEffect(() => {
-    setFeaturedCourses(mockCourses.slice(0, 3));
-  }, []);
+    const normalized = mapCoursesToCardModels(courses, activeSessions)
+      .sort((a, b) => b.studentCount - a.studentCount)
+      .slice(0, 3);
+    setFeaturedCourses(normalized);
+  }, [courses, activeSessions]);
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -46,7 +52,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const CourseCard = ({ course }: { course: Course }) => (
+  const CourseCard = ({ course }: { course: CourseCardModel }) => (
     <Card className="group overflow-hidden hover:shadow-2xl transition-all duration-500 border-0 bg-gradient-to-br from-card to-muted/30 cursor-pointer transform hover:-translate-y-2"
           onClick={() => onNavigate(`/courses/${course.id}`)}>
       <div className="relative overflow-hidden">

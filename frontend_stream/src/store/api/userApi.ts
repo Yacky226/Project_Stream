@@ -31,7 +31,6 @@ interface NotificationsQueryResult {
 }
 
 interface EnrollCoursePayload {
-  etudiantId: string | number;
   coursId: string | number;
 }
 
@@ -164,10 +163,9 @@ export const userApi = createApi({
 
     enrollCourse: builder.mutation<{ courseId: string }, EnrollCoursePayload>({
       query: (data) => ({
-        url: '/api/inscriptions',
+        url: '/api/inscriptions/me',
         method: 'POST',
         params: {
-          etudiantId: data.etudiantId,
           coursId: data.coursId,
         },
       }),

@@ -3,12 +3,15 @@ package com.fstm.ma.ilisi.appstreaming.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
+import com.fstm.ma.ilisi.appstreaming.exception.EnrollmentRequiredException;
 import com.fstm.ma.ilisi.appstreaming.mapper.SessionStreamingMapper;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Cours;
 import com.fstm.ma.ilisi.appstreaming.model.bo.Enseignant;
@@ -27,6 +30,10 @@ import com.fstm.ma.ilisi.appstreaming.repository.SessionStreamingRepository;
 @Service
 @Transactional
 public class SessionStreamingService implements SessionStreamingServiceInterface {
+
+    private static final Logger log = LoggerFactory.getLogger(SessionStreamingService.class);
+    private static final int VOD_FETCH_MAX_ATTEMPTS = 4;
+    private static final long VOD_FETCH_RETRY_DELAY_MS = 3000L;
 
     private final SessionStreamingRepository sessionRepository;
     private final CoursRepository coursRepository;
@@ -61,11 +68,23 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
                 .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
 
         SessionStreaming session = sessionMapper.toEntity(dto, cours, enseignant);
+        // Creation endpoint must always create a new DB row.
+        session.setId(null);
         session.setStatus(StreamStatus.CREATED);
-        
-        // Créer le stream dans Ant Media Server
-        SessionStreaming savedSession = streamingService.createStream(session);
-        
+
+        SessionStreaming createdSession = streamingService.createStream(session);
+        SessionStreaming savedSession = sessionRepository.saveAndFlush(createdSession);
+
+        if (savedSession.getId() == null) {
+            throw new IllegalStateException("La session n'a pas ete persistée correctement (ID nul)");
+        }
+
+        log.info("Session streaming creee: id={}, coursId={}, enseignantId={}, streamKey={}",
+                savedSession.getId(),
+                savedSession.getCours() != null ? savedSession.getCours().getId() : null,
+                savedSession.getEnseignant() != null ? savedSession.getEnseignant().getId() : null,
+                savedSession.getStreamKey());
+
         return sessionMapper.toDTO(savedSession);
     }
 
@@ -73,13 +92,10 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     public SessionStreamingDTO demarrerStream(Long sessionId) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
-        
-        session.startStream(); // Met à jour le statut et la date
+
+        session.startStream();
         sessionRepository.save(session);
-        
-        // Envoyer notification aux étudiants
-        // notificationService.notifyNewStream(session);
-        
+
         return sessionMapper.toDTO(session);
     }
 
@@ -87,12 +103,15 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     public SessionStreamingDTO arreterStream(Long sessionId) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
-        
+
         streamingService.endStream(session.getStreamKey());
         session.endStream();
-        sessionRepository.save(session);
-        
-        return sessionMapper.toDTO(session);
+        SessionStreaming saved = sessionRepository.save(session);
+
+        // En fin de live, tentative automatique de lier le replay pour visionnage futur.
+        tryAttachVod(saved, VOD_FETCH_MAX_ATTEMPTS, VOD_FETCH_RETRY_DELAY_MS);
+
+        return sessionMapper.toDTO(saved);
     }
 
     @Override
@@ -127,6 +146,23 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
                 .stream()
                 .map(sessionMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SessionStreamingDTO> getSessionsParEnseignant(Long enseignantId) {
+        return sessionRepository.findByEnseignantId(enseignantId)
+                .stream()
+                .map(sessionMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SessionStreamingDTO> getMesSessionsEnseignant(String emailEnseignant) {
+        Enseignant enseignant = enseignantRepository.findByEmail(emailEnseignant)
+                .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
+        return getSessionsParEnseignant(enseignant.getId());
     }
 
     @Override
@@ -171,11 +207,11 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     public void supprimerSession(Long id) {
         SessionStreaming session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
-        
+
         if (session.isLive()) {
             streamingService.endStream(session.getStreamKey());
         }
-        
+
         sessionRepository.delete(session);
     }
 
@@ -184,12 +220,14 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     public String getStreamUrl(Long sessionId) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
-        
+
         if (session.isLive()) {
             return session.getVideoUrl();
-        } else if (session.getRecordingUrl() != null) {
+        }
+        if (session.getRecordingUrl() != null) {
             return session.getRecordingUrl();
         }
+
         throw new IllegalStateException("Aucun stream disponible pour cette session");
     }
 
@@ -199,16 +237,49 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
 
         if (session.getStatus() != StreamStatus.ENDED) {
-            throw new IllegalStateException("Le stream doit être terminé pour récupérer le VOD");
+            throw new IllegalStateException("Le stream doit etre termine pour recuperer le VOD");
         }
 
-        String vodUrl = streamingService.getVodUrl(session.getStreamKey());
-        if (vodUrl != null) {
-            session.setRecordingUrl(vodUrl);
-            sessionRepository.save(session);
-        } else {
-            throw new IllegalStateException("VOD pas encore disponible sur Ant Media");
+        boolean attached = tryAttachVod(session, 1, 0);
+        if (attached) {
+            return;
         }
+
+        throw new IllegalStateException("VOD pas encore disponible sur Ant Media");
+    }
+
+    private boolean tryAttachVod(SessionStreaming session, int maxAttempts, long retryDelayMs) {
+        if (!session.isRecordingEnabled()) {
+            log.info("Enregistrement desactive pour la session {}", session.getId());
+            return false;
+        }
+        if (session.getStreamKey() == null || session.getStreamKey().isBlank()) {
+            log.warn("Impossible de recuperer le VOD: streamKey absent pour session {}", session.getId());
+            return false;
+        }
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            String vodUrl = streamingService.getVodUrl(session.getStreamKey());
+            if (vodUrl != null && !vodUrl.isBlank()) {
+                session.setRecordingUrl(vodUrl);
+                sessionRepository.save(session);
+                log.info("Replay sauvegarde pour session {}: {}", session.getId(), vodUrl);
+                return true;
+            }
+
+            if (attempt < maxAttempts && retryDelayMs > 0) {
+                try {
+                    Thread.sleep(retryDelayMs);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Interruption lors de la tentative de recuperation VOD pour session {}", session.getId());
+                    return false;
+                }
+            }
+        }
+
+        log.warn("VOD indisponible apres {} tentative(s) pour session {}", maxAttempts, session.getId());
+        return false;
     }
 
     @Override
@@ -218,19 +289,25 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
 
         Etudiant etudiant = etudiantRepository.findById(etudiantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Étudiant introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Etudiant introuvable"));
 
-        // Vérification stricte : l'étudiant doit être inscrit au cours
         Inscription inscription = inscriptionRepository
                 .findByEtudiantAndCours(etudiant, session.getCours())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Vous devez être inscrit au cours pour accéder à cette session"));
+                .orElseThrow(() -> new EnrollmentRequiredException(
+                        "Vous devez etre inscrit au cours pour acceder a cette session"));
 
-        // Vérifier que l'inscription est active
         if (inscription.getStatut() != StatutInscription.ACTIF) {
-            throw new IllegalStateException("Votre inscription n'est pas active");
+            throw new EnrollmentRequiredException("Votre inscription n'est pas active");
         }
 
         return sessionMapper.toDTO(session);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SessionStreamingDTO joinSession(Long sessionId, String emailEtudiant) {
+        Etudiant etudiant = etudiantRepository.findByEmail(emailEtudiant)
+                .orElseThrow(() -> new ResourceNotFoundException("Etudiant introuvable"));
+        return joinSession(sessionId, etudiant.getId());
     }
 }

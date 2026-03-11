@@ -1,7 +1,6 @@
 package com.fstm.ma.ilisi.appstreaming.service;
 
 import com.fstm.ma.ilisi.appstreaming.config.AntMediaConfig;
-import com.fstm.ma.ilisi.appstreaming.exception.StreamOperationException;
 import com.fstm.ma.ilisi.appstreaming.model.bo.SessionStreaming;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -35,13 +34,13 @@ public class StreamingService implements StreamingServiceInterface {
 
     /**
      * Crée un nouveau stream dans Ant Media Server.
+     * Si Ant Media est injoignable, la session est créée avec un streamKey uniquement.
      */
-    @CircuitBreaker(name = SERVICE_NAME)
+    @CircuitBreaker(name = SERVICE_NAME, fallbackMethod = "createStreamFallback")
     @Retry(name = SERVICE_NAME)
     public SessionStreaming createStream(SessionStreaming session) {
+        String streamId = "stream_" + UUID.randomUUID();
         try {
-            String streamId = "stream_" + UUID.randomUUID();
-
             // Construction du corps JSON pour Ant Media
             JSONObject payload = new JSONObject()
                     .put("name", session.getCours().getTitre())
@@ -72,7 +71,10 @@ public class StreamingService implements StreamingServiceInterface {
                 log.info("Réponse Ant Media - Statut: {}, Body: {}", statusCode, responseBody);
 
                 if (statusCode != 200) {
-                    throw new StreamOperationException("Échec de la création du stream : " + statusCode + " - " + responseBody);
+                    log.warn("Ant Media returned non-200 status: {} - {}", statusCode, responseBody);
+                    // Fallback: save session with streamKey only
+                    session.setStreamKey(streamId);
+                    return session;
                 }
 
                 // Si tout va bien, configurer la session
@@ -82,9 +84,22 @@ public class StreamingService implements StreamingServiceInterface {
             }
 
         } catch (Exception e) {
-            log.error("Erreur lors de la création du stream", e);
-            throw new StreamOperationException("Erreur lors de la création du stream", e);
+            log.warn("Ant Media unreachable, session created with streamKey only: {}", streamId, e);
+            session.setStreamKey(streamId);
+            // videoUrl left null — will be available when Ant Media becomes reachable and teacher publishes
+            return session;
         }
+    }
+
+    /**
+     * Fallback method for circuit breaker when Ant Media is consistently unreachable.
+     */
+    @SuppressWarnings("unused")
+    private SessionStreaming createStreamFallback(SessionStreaming session, Throwable t) {
+        String streamId = "stream_" + UUID.randomUUID();
+        log.warn("Circuit breaker open for Ant Media. Creating session with streamKey only: {}", streamId, t);
+        session.setStreamKey(streamId);
+        return session;
     }
 
     /**
@@ -99,7 +114,6 @@ public class StreamingService implements StreamingServiceInterface {
             httpClient.execute(request);
         } catch (Exception e) {
             log.error("Erreur lors de l'arrêt du stream: {}", streamKey, e);
-            throw new StreamOperationException("Erreur lors de l'arrêt du stream", e);
         }
     }
 
@@ -134,12 +148,10 @@ public class StreamingService implements StreamingServiceInterface {
                 JSONObject broadcast = new JSONObject(responseBody.toString());
 
                 // Vérifier si le MP4 est disponible
-                if (broadcast.has("mp4Enabled") && broadcast.getInt("mp4Enabled") == 1) {
-                    // Construction de l'URL du VOD
+                int mp4Enabled = broadcast.optInt("mp4Enabled", 0);
+                if (mp4Enabled == 1) {
                     String vodPath = broadcast.optString("vodPath", null);
-                    if (vodPath != null && !vodPath.isEmpty()) {
-                        return antMediaConfig.getPlaybackUrl(streamId).replace(".m3u8", ".mp4");
-                    }
+                    return antMediaConfig.resolveVodUrl(vodPath, streamId);
                 }
 
                 return null;
