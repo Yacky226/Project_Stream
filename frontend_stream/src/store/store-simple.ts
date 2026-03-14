@@ -30,7 +30,7 @@ export const simpleStore = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['notifications/addNotification', 'notifications/simulateNotification'],
+        ignoredActions: ['notifications/addNotification'],
         ignoredPaths: [
           'auth.user.createdAt',
           'auth.user.updatedAt',

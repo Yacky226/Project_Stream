@@ -22,7 +22,6 @@ const NotFoundPage = lazy(() => import('../components/pages/NotFoundPage').then(
 const SimpleLiveStudio = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveStudio })));
 const SimpleLiveViewer = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveViewer })));
 const SimpleLiveManager = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveManager })));
-const AdvancedLiveSession = lazy(() => import('../components/live/AdvancedLiveSession').then(m => ({ default: m.AdvancedLiveSession })));
 
 // Static pages
 const ContactPage = lazy(() => import('../components/pages/ContactPage').then(m => ({ default: m.ContactPage })));
@@ -33,7 +32,6 @@ const HelpPage = lazy(() => import('../components/pages/HelpPage').then(m => ({ 
 const BusinessPage = lazy(() => import('../components/pages/BusinessPage').then(m => ({ default: m.BusinessPage })));
 const AccessibilityPage = lazy(() => import('../components/pages/AccessibilityPage').then(m => ({ default: m.AccessibilityPage })));
 const BlogPage = lazy(() => import('../components/pages/BlogPage').then(m => ({ default: m.BlogPage })));
-const LiveStreamingDemoPage = lazy(() => import('../components/pages/LiveStreamingDemoPage').then(m => ({ default: m.LiveStreamingDemoPage })));
 const MobileAppPage = lazy(() => import('../components/pages/MobileAppPage').then(m => ({ default: m.MobileAppPage })));
 const CareersPage = lazy(() => import('../components/pages/CareersPage').then(m => ({ default: m.CareersPage })));
 const ProgrammingCoursesPage = lazy(() => import('../components/pages/ProgrammingCoursesPage').then(m => ({ default: m.ProgrammingCoursesPage })));
@@ -41,10 +39,6 @@ const DesignCoursesPage = lazy(() => import('../components/pages/DesignCoursesPa
 const MarketingCoursesPage = lazy(() => import('../components/pages/MarketingCoursesPage').then(m => ({ default: m.MarketingCoursesPage })));
 const BeginnerCoursesPage = lazy(() => import('../components/pages/BeginnerCoursesPage').then(m => ({ default: m.BeginnerCoursesPage })));
 const LiveSessionsPage = lazy(() => import('../components/pages/LiveSessionsPage').then(m => ({ default: m.LiveSessionsPage })));
-
-// Debug components
-const ReduxDemo = lazy(() => import('../components/demo/ReduxDemo').then(m => ({ default: m.ReduxDemo })));
-const StreamingDebugPanel = lazy(() => import('../components/live/StreamingServiceProvider').then(m => ({ default: m.StreamingDebugPanel })));
 
 // Route configuration interface
 export interface RouteConfig {
@@ -55,6 +49,29 @@ export interface RouteConfig {
   allowedRoles?: string[];
   title?: string;
   description?: string;
+}
+
+interface DynamicRouteConfig {
+  pattern: RegExp;
+  component: React.ComponentType<any>;
+  getProps?: (match: RegExpMatchArray) => Record<string, unknown>;
+  requireAuth?: boolean;
+  allowedRoles?: string[];
+  title?: string;
+  description?: string;
+}
+
+export interface RouteAccessConfig {
+  requireAuth?: boolean;
+  allowedRoles?: string[];
+  title?: string;
+  description?: string;
+}
+
+interface MatchedRoute {
+  component: React.ComponentType<any>;
+  props: Record<string, unknown>;
+  config: RouteAccessConfig;
 }
 
 // Loading component wrapper
@@ -225,12 +242,6 @@ export const routes: RouteConfig[] = [
     title: 'Sessions en direct',
     description: 'Sessions de cours en direct'
   },
-  {
-    path: '/demo/streaming',
-    component: withSuspense(LiveStreamingDemoPage),
-    title: 'DÃ©mo streaming',
-    description: 'DÃ©monstration du systÃ¨me de streaming'
-  },
   
   // Course category routes
   {
@@ -320,31 +331,10 @@ export const routes: RouteConfig[] = [
     description: 'Rejoignez notre Ã©quipe'
   },
   
-  // Debug routes (development only)
-  {
-    path: '/debug/redux',
-    component: withSuspense(ReduxDemo),
-    title: 'Debug Redux',
-    description: 'Interface de debug Redux'
-  },
-  {
-    path: '/debug/streaming',
-    component: withSuspense((props: any) => (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl mb-2">Debug Streaming Services</h1>
-          <p className="text-muted-foreground">Diagnostics et Ã©tat des connexions</p>
-        </div>
-        <StreamingDebugPanel />
-      </div>
-    )),
-    title: 'Debug Streaming',
-    description: 'Diagnostics du systÃ¨me de streaming'
-  }
 ];
 
 // Dynamic route patterns
-export const dynamicRoutes = [
+export const dynamicRoutes: DynamicRouteConfig[] = [
   {
     pattern: /^\/courses\/([^\/]+)$/,
     component: withSuspense(CourseDetail),
@@ -364,19 +354,6 @@ export const dynamicRoutes = [
     description: 'Session de cours en direct'
   },
   {
-    pattern: /^\/teacher\/live\/advanced\/([^\/]+)(?:\/([^\/]+))?$/,
-    component: withSuspense(AdvancedLiveSession),
-    getProps: (match: RegExpMatchArray) => ({ 
-      courseId: match[1], 
-      sessionId: match[2],
-      userRole: 'teacher'
-    }),
-    requireAuth: true,
-    allowedRoles: ['teacher'],
-    title: 'Studio live avancÃ©',
-    description: 'Interface avancÃ©e de streaming pour enseignants'
-  },
-  {
     pattern: /^\/teacher\/live\/([^\/]+)(?:\/([^\/]+))?$/,
     component: withSuspense(SimpleLiveStudio),
     getProps: (match: RegExpMatchArray) => ({ 
@@ -387,17 +364,6 @@ export const dynamicRoutes = [
     allowedRoles: ['teacher'],
     title: 'Studio live',
     description: 'Interface de streaming pour enseignants'
-  },
-  {
-    pattern: /^\/courses\/([^\/]+)\/live\/advanced(?:\/([^\/]+))?$/,
-    component: withSuspense(AdvancedLiveSession),
-    getProps: (match: RegExpMatchArray) => ({ 
-      courseId: match[1], 
-      sessionId: match[2] || 'current',
-      userRole: 'student'
-    }),
-    title: 'Session live avancÃ©e',
-    description: 'Interface avancÃ©e de visionnage pour Ã©tudiants'
   },
   {
     pattern: /^\/courses\/([^\/]+)\/live(?:\/([^\/]+))?$/,
@@ -419,14 +385,19 @@ export const dynamicRoutes = [
 ];
 
 // Route matcher utility
-export function matchRoute(path: string) {
+export function matchRoute(path: string): MatchedRoute {
   // Check static routes first
   const staticRoute = routes.find(route => route.path === path);
   if (staticRoute) {
     return {
       component: staticRoute.component,
       props: {},
-      config: staticRoute
+      config: {
+        requireAuth: staticRoute.requireAuth,
+        allowedRoles: staticRoute.allowedRoles,
+        title: staticRoute.title,
+        description: staticRoute.description,
+      },
     };
   }
   
@@ -437,7 +408,12 @@ export function matchRoute(path: string) {
       return {
         component: route.component,
         props: route.getProps ? route.getProps(match) : {},
-        config: route
+        config: {
+          requireAuth: route.requireAuth,
+          allowedRoles: route.allowedRoles,
+          title: route.title,
+          description: route.description,
+        },
       };
     }
   }
@@ -447,6 +423,8 @@ export function matchRoute(path: string) {
     component: withSuspense(NotFoundPage),
     props: {},
     config: {
+      requireAuth: false,
+      allowedRoles: undefined,
       title: 'Page non trouvÃ©e',
       description: 'La page demandÃ©e n\'existe pas'
     }
@@ -455,7 +433,7 @@ export function matchRoute(path: string) {
 
 // Utility to check if user can access route
 export function canAccessRoute(
-  route: RouteConfig | any, 
+  route: RouteAccessConfig, 
   isAuthenticated: boolean, 
   userRole?: string
 ): boolean {

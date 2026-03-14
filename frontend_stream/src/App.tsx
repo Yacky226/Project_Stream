@@ -5,16 +5,13 @@ import { Chatbot } from './components/chatbot/Chatbot';
 import { ChatButton } from './components/chatbot/ChatButton';
 import { useRouter } from './lib/router';
 import { ErrorBoundary } from './lib/error-boundary';
-import { StreamingServiceProvider } from './components/live/StreamingServiceProvider';
 import { ReduxProvider } from './components/providers/ReduxProvider';
 import { I18nProvider } from './components/providers/I18nProvider';
 import { useAppDispatch, useAppSelector } from './hooks/redux';
 import { setCurrentPath, updateScreenInfo, setTheme } from './store/slices/uiSlice';
 import { ReduxDebug } from './components/debug/ReduxDebug';
-import { DataModeIndicator } from './components/debug/DataModeIndicator';
 import { matchRoute, canAccessRoute, getRouteMeta } from './lib/routes';
 import { configUtils } from './lib/config';
-import { appService } from './lib/appService';
 import { LoadingSpinner } from './components/ui/loading-spinner';
 
 function AppContent() {
@@ -22,24 +19,7 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const { theme } = useAppSelector(state => state.ui);
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
-  const [isAppInitialized, setIsAppInitialized] = useState(false);
   const hasRedirected = useRef(false);
-
-  // Initialize app services (only once)
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        await appService.initialize();
-        setIsAppInitialized(true);
-        configUtils.log('Application services initialized');
-      } catch (error) {
-        configUtils.error('Failed to initialize application:', error);
-        setIsAppInitialized(true); // Continue anyway
-      }
-    };
-
-    initializeApp();
-  }, []);
 
   // Initialize theme (only once on mount)
   useEffect(() => {
@@ -131,18 +111,6 @@ function AppContent() {
   }, [theme]);
 
   const renderPage = () => {
-    // Show loading spinner while app is initializing
-    if (!isAppInitialized) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <LoadingSpinner size="lg" className="mb-4" />
-            <p className="text-muted-foreground">Initialisation de l'application...</p>
-          </div>
-        </div>
-      );
-    }
-
     try {
       // Match route using the new route system
       const routeMatch = matchRoute(currentPath);
@@ -216,30 +184,27 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
-      <StreamingServiceProvider>
-        <div className="min-h-screen bg-background flex flex-col">
-          <HeaderRedux onNavigate={navigate} currentPath={currentPath} />
-          <main className="flex-1 overflow-x-hidden">
-            {renderPage()}
-          </main>
-          <Footer onNavigate={navigate} />
-          
-          {/* Chatbot - Available for authenticated users */}
-          {isAuthenticated && (
-            <>
-              <Chatbot onNavigate={navigate} currentPath={currentPath} />
-              <ChatButton />
-            </>
-          )}
-          
-          {configUtils.isDevelopment() && (
-            <>
-              <ReduxDebug />
-              <DataModeIndicator />
-            </>
-          )}
-        </div>
-      </StreamingServiceProvider>
+      <div className="min-h-screen bg-background flex flex-col">
+        <HeaderRedux onNavigate={navigate} currentPath={currentPath} />
+        <main className="flex-1 overflow-x-hidden">
+          {renderPage()}
+        </main>
+        <Footer onNavigate={navigate} />
+        
+        {/* Chatbot - Available for authenticated users */}
+        {isAuthenticated && (
+          <>
+            <Chatbot onNavigate={navigate} currentPath={currentPath} />
+            <ChatButton />
+          </>
+        )}
+        
+        {configUtils.isDevelopment() && (
+          <>
+            <ReduxDebug />
+          </>
+        )}
+      </div>
     </ErrorBoundary>
   );
 }

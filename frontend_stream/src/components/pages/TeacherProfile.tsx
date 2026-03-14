@@ -52,7 +52,7 @@ export function TeacherProfile({ teacherId, onNavigate }: TeacherProfileProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isFollowing, setIsFollowing] = useState(false);
   
-  // Enhanced mock teacher data
+  // Static teacher showcase data (to be replaced by API profile details endpoint if needed)
   const teacher = {
     id: teacherId,
     name: 'Sarah Martin',

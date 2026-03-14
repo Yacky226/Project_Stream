@@ -309,30 +309,6 @@ const notificationsSlice = createSlice({
       state.error = null;
     },
     
-    // Utility actions
-    simulateNotification: (state, action: PayloadAction<{
-      type: string;
-      title: string;
-      message: string;
-      priority: 'low' | 'normal' | 'high';
-    }>) => {
-      const notification: Notification = {
-        id: Date.now().toString(),
-        type: action.payload.type,
-        title: action.payload.title,
-        message: action.payload.message,
-        read: false,
-        createdAt: new Date(),
-        priority: action.payload.priority,
-        data: {},
-      };
-      
-      notificationsSlice.caseReducers.addNotification(state, {
-        payload: notification,
-        type: 'notifications/addNotification',
-      });
-    },
-    
     // Quiet hours
     setQuietHours: (state, action: PayloadAction<{
       enabled: boolean;
@@ -465,7 +441,6 @@ export const {
   setOffset,
   setHasMore,
   clearError,
-  simulateNotification,
   setQuietHours,
   toggleDoNotDisturb,
   resetNotificationsState,

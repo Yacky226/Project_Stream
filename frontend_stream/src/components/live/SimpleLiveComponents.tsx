@@ -10,6 +10,7 @@ import {
   Loader2,
   MessageSquare,
   Mic,
+  Monitor,
   Play,
   Radio,
   Square,
@@ -91,6 +92,13 @@ type MutationLikeError =
 type AntMediaWebRtcAdaptor = {
   publish: (streamId: string) => void;
   stop: (streamId: string) => void;
+  switchDesktopCapture?: (streamId: string) => void | Promise<void>;
+  switchDesktopCaptureWithCamera?: (streamId: string) => void | Promise<void>;
+  switchVideoCameraCapture?: (
+    streamId: string,
+    deviceId?: string,
+    onEndedCallback?: () => void,
+  ) => void | Promise<void>;
   closeWebSocket?: () => void;
   closePeerConnection?: (streamId: string) => void;
 };
@@ -466,6 +474,7 @@ function SessionPublisherCard({
     'idle',
   );
   const [publisherError, setPublisherError] = useState<string | null>(null);
+  const [captureMode, setCaptureMode] = useState<'camera' | 'screen'>('camera');
 
   const effectiveVideoUrl = session?.videoUrl || streamUrl || null;
   const streamKey = session?.streamKey || extractStreamKeyFromVideoUrl(effectiveVideoUrl);
@@ -476,11 +485,13 @@ function SessionPublisherCard({
     if (!session) {
       setPublisherState('idle');
       setPublisherError(null);
+      setCaptureMode('camera');
       return;
     }
     if (!sessionIsLive) {
       setPublisherState('idle');
       setPublisherError(null);
+      setCaptureMode('camera');
       return;
     }
     if (!streamKey) {
@@ -529,6 +540,9 @@ function SessionPublisherCard({
             } else if (info === 'publish_finished') {
               hasPublishedRef.current = false;
               setPublisherState('ready');
+              setCaptureMode('camera');
+            } else if (info === 'screen_share_stopped') {
+              setCaptureMode('camera');
             }
           },
           callbackError: (error: string, message: unknown) => {
@@ -608,8 +622,63 @@ function SessionPublisherCard({
       adaptorRef.current.stop(streamKey);
       hasPublishedRef.current = false;
       setPublisherState('ready');
+      setCaptureMode('camera');
     } catch (error) {
       setPublisherError(getErrorMessage(error, 'Echec de l arret de publication'));
+    }
+  };
+
+  const handleShareScreen = async () => {
+    if (!streamKey) {
+      setPublisherError('Stream key indisponible.');
+      return;
+    }
+    if (!sessionIsLive) {
+      setPublisherError('Demarrez d abord la session live.');
+      return;
+    }
+    if ((publisherState !== 'ready' && publisherState !== 'publishing') || !adaptorRef.current) {
+      setPublisherError('Publisher non initialise. Attendez le badge "Camera prete".');
+      return;
+    }
+
+    const adaptor = adaptorRef.current;
+    if (!adaptor.switchDesktopCapture) {
+      setPublisherError('Le SDK Ant Media charge ne supporte pas le partage d ecran.');
+      return;
+    }
+
+    setPublisherError(null);
+    try {
+      await Promise.resolve(adaptor.switchDesktopCapture(streamKey));
+      setCaptureMode('screen');
+    } catch (error) {
+      setPublisherError(getErrorMessage(error, 'Echec du partage d ecran'));
+    }
+  };
+
+  const handleSwitchToCamera = async () => {
+    if (!streamKey) {
+      setPublisherError('Stream key indisponible.');
+      return;
+    }
+    if ((publisherState !== 'ready' && publisherState !== 'publishing') || !adaptorRef.current) {
+      setPublisherError('Publisher non initialise. Attendez le badge "Camera prete".');
+      return;
+    }
+
+    const adaptor = adaptorRef.current;
+    if (!adaptor.switchVideoCameraCapture) {
+      setPublisherError('Le SDK Ant Media charge ne supporte pas le retour camera.');
+      return;
+    }
+
+    setPublisherError(null);
+    try {
+      await Promise.resolve(adaptor.switchVideoCameraCapture(streamKey));
+      setCaptureMode('camera');
+    } catch (error) {
+      setPublisherError(getErrorMessage(error, 'Echec du retour camera'));
     }
   };
 
@@ -620,10 +689,10 @@ function SessionPublisherCard({
           <div>
             <CardTitle className="flex items-center gap-2 text-base font-semibold md:text-lg">
               <Video className="h-4 w-4 text-emerald-300" />
-              Publication camera
+              Publication camera / ecran
             </CardTitle>
             <CardDescription className="mt-1 text-slate-300">
-              Demarrez votre camera/micro pour envoyer le flux vers Ant Media.
+              Diffusez votre webcam ou partagez votre ecran vers Ant Media.
             </CardDescription>
           </div>
 
@@ -635,6 +704,11 @@ function SessionPublisherCard({
             ) : null}
             {publisherState === 'publishing' ? <Badge variant="destructive">Diffusion en cours</Badge> : null}
             {publisherState === 'ready' ? <Badge variant="secondary">Camera prete</Badge> : null}
+            {publisherState === 'publishing' ? (
+              <Badge variant="outline" className="border-slate-600 text-slate-200">
+                Source: {captureMode === 'screen' ? 'Ecran' : 'Camera'}
+              </Badge>
+            ) : null}
             {publisherState === 'loading' ? (
               <Badge variant="outline" className="border-slate-600 text-slate-200">
                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -649,7 +723,11 @@ function SessionPublisherCard({
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-800 bg-black">
           <video id={localVideoId} autoPlay muted playsInline className="h-full w-full object-cover" />
           <div className="absolute left-3 top-3 rounded-full bg-black/65 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-200">
-            {publisherState === 'publishing' ? 'Camera en direct' : 'Apercu enseignant'}
+            {publisherState === 'publishing'
+              ? captureMode === 'screen'
+                ? 'Ecran en direct'
+                : 'Camera en direct'
+              : 'Apercu enseignant'}
           </div>
         </div>
 
@@ -660,7 +738,8 @@ function SessionPublisherCard({
               <li>1. Cliquez sur "Demarrer".</li>
               <li>2. Attendez le badge "Camera prete".</li>
               <li>3. Cliquez sur "Start Publishing".</li>
-              <li>4. Autorisez camera + micro dans le navigateur.</li>
+              <li>4. Cliquez sur "Partager ecran" pour projeter votre ecran.</li>
+              <li>5. Autorisez camera/micro ou partage ecran dans le navigateur.</li>
             </ol>
           </div>
 
@@ -681,6 +760,30 @@ function SessionPublisherCard({
               disabled={!streamKey || publisherState !== 'publishing'}
             >
               Stop Publishing
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+              onClick={() => {
+                void handleShareScreen();
+              }}
+              disabled={!streamKey || (publisherState !== 'ready' && publisherState !== 'publishing')}
+            >
+              <Monitor className="mr-2 h-4 w-4" />
+              Partager ecran
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+              onClick={() => {
+                void handleSwitchToCamera();
+              }}
+              disabled={!streamKey || (publisherState !== 'ready' && publisherState !== 'publishing')}
+            >
+              <Video className="mr-2 h-4 w-4" />
+              Retour camera
             </Button>
             {streamKey ? (
               <Button
@@ -1168,6 +1271,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
   );
   const [recordingEnabled, setRecordingEnabled] = useState(true);
   const [resolution, setResolution] = useState('720p');
+  const [creationTab, setCreationTab] = useState<'session' | 'course'>('session');
 
   useEffect(() => {
     if (fixedCourseId) {
@@ -1238,6 +1342,13 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
     (session) => session.isLive || session.status === 'LIVE',
   ).length;
   const replayCount = teacherSessions.filter((session) => Boolean(session.recordingUrl)).length;
+  const plannedCount = teacherSessions.filter(
+    (session) => !session.isLive && session.status !== 'LIVE',
+  ).length;
+  const activeSession =
+    sessions.find((session) => session.isLive || session.status === 'LIVE') || null;
+  const nextSession =
+    sessions.find((session) => !session.isLive && session.status !== 'LIVE') || null;
 
   const handleCreateCourse = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1266,6 +1377,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
 
       await refetchCourses();
       setCourseSelection(createdCourse.id);
+      setCreationTab('session');
       setCourseTitle('');
       setCourseDescription('');
       setCourseCategory('Programmation');
@@ -1335,6 +1447,15 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
 
   const focusSessionFormForCourse = (targetCourseId: string) => {
     setCourseSelection(targetCourseId);
+    setCreationTab('session');
+    if (typeof window !== 'undefined') {
+      const sessionForm = window.document.getElementById('session-create-form');
+      sessionForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const focusSessionForm = () => {
+    setCreationTab('session');
     if (typeof window !== 'undefined') {
       const sessionForm = window.document.getElementById('session-create-form');
       sessionForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1352,205 +1473,375 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-indigo-600 via-blue-700 to-emerald-600 text-white shadow-lg">
-        <CardContent className="grid gap-6 p-6 md:grid-cols-[1.2fr_1fr]">
-          <div className="space-y-3">
-            <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.08em]">
-              Studio enseignant
-            </div>
-            <h2 className="text-2xl font-semibold md:text-3xl">Cours + sessions live sur une seule page</h2>
-            <p className="max-w-2xl text-sm text-white/80">
-              Creez un cours, puis planifiez plusieurs sessions live rattachees a ce cours. Vous gardez ensuite les replays pour le visionnage a froid.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Badge className="bg-white/15 text-white hover:bg-white/20">
-                <BookOpen className="mr-1 h-3 w-3" />
-                {teacherCourses.length} cours
-              </Badge>
-              <Badge className="bg-white/20 text-white hover:bg-white/25">
-                <Radio className="mr-1 h-3 w-3" />
-                {liveCount} en direct
-              </Badge>
-              <Badge className="bg-white/20 text-white hover:bg-white/25">
-                <Video className="mr-1 h-3 w-3" />
-                {replayCount} replay(s)
-              </Badge>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-              <p className="text-xs text-white/80">Cours</p>
-              <p className="text-xl font-semibold">{teacherCourses.length}</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-              <p className="text-xs text-white/80">Sessions</p>
-              <p className="text-xl font-semibold">{teacherSessions.length}</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-              <p className="text-xs text-white/80">Replays</p>
-              <p className="text-xl font-semibold">{replayCount}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_1fr]">
-        <Card className="border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Creer un cours
-            </CardTitle>
-            <CardDescription>Un cours peut contenir plusieurs sessions live</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleCreateCourse}>
-              <div className="space-y-2">
-                <Label htmlFor="course-title">Titre du cours</Label>
-                <Input
-                  id="course-title"
-                  value={courseTitle}
-                  onChange={(event) => setCourseTitle(event.target.value)}
-                  placeholder="Ex: React avance pour projets reels"
-                  required
-                />
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-10 pt-5 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+      <div className="container mx-auto max-w-[1440px] space-y-6 px-4">
+        <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
+          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.15fr_0.85fr] lg:p-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs uppercase tracking-[0.14em] text-slate-300">
+                Live Control Room
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="course-category">Categorie</Label>
-                <Select value={courseCategory} onValueChange={setCourseCategory}>
-                  <SelectTrigger id="course-category">
-                    <SelectValue placeholder="Choisir une categorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Programmation">Programmation</SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Business">Business</SelectItem>
-                    <SelectItem value="Data">Data</SelectItem>
-                  </SelectContent>
-                </Select>
+                <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                  Creez et lancez vos lives comme une salle de reunion moderne
+                </h2>
+                <p className="max-w-2xl text-sm text-slate-300">
+                  Planifiez vos sessions, ouvrez le studio en un clic, puis conservez les replays pour le
+                  visionnage a froid.
+                </p>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course-start-at">Date de lancement</Label>
-                <Input
-                  id="course-start-at"
-                  type="datetime-local"
-                  value={courseStartAt}
-                  onChange={(event) => setCourseStartAt(event.target.value)}
-                  required
-                />
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Badge className="border-0 bg-slate-800 text-slate-100">
+                  <BookOpen className="mr-1 h-3 w-3" />
+                  {teacherCourses.length} cours
+                </Badge>
+                <Badge className="border-0 bg-emerald-500/20 text-emerald-200">
+                  <Radio className="mr-1 h-3 w-3" />
+                  {liveCount} en direct
+                </Badge>
+                <Badge className="border-0 bg-sky-500/20 text-sky-200">{plannedCount} planifiees</Badge>
+                <Badge className="border-0 bg-violet-500/20 text-violet-200">
+                  <Tv className="mr-1 h-3 w-3" />
+                  {replayCount} replay(s)
+                </Badge>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course-description">Description</Label>
-                <Textarea
-                  id="course-description"
-                  value={courseDescription}
-                  onChange={(event) => setCourseDescription(event.target.value)}
-                  placeholder="Objectifs, prerequis, plan du cours..."
-                  rows={4}
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isCreatingCourse}>
-                  {isCreatingCourse ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Creer le cours
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button className="rounded-full bg-sky-500 px-5 text-slate-950 hover:bg-sky-400" onClick={focusSessionForm}>
+                  <Video className="mr-2 h-4 w-4" />
+                  Nouvelle session
                 </Button>
+                {activeSession ? (
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                    onClick={() => onNavigate(`/teacher/live/${activeSession.courseId}/${activeSession.id}`)}
+                  >
+                    Reprendre le live en cours
+                  </Button>
+                ) : null}
+                {!activeSession && nextSession ? (
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                    onClick={() => onNavigate(`/teacher/live/${nextSession.courseId}/${nextSession.id}`)}
+                  >
+                    Ouvrir la prochaine session
+                  </Button>
+                ) : null}
               </div>
-            </form>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Sessions</p>
+                  <p className="mt-2 text-2xl font-semibold">{teacherSessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-emerald-600/50 bg-emerald-500/10 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-emerald-200">Live actif</p>
+                  <p className="mt-2 text-2xl font-semibold text-emerald-100">{liveCount}</p>
+                </div>
+                <div className="rounded-2xl border border-sky-600/50 bg-sky-500/10 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-sky-200">Replays</p>
+                  <p className="mt-2 text-2xl font-semibold text-sky-100">{replayCount}</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 text-sm text-slate-200">
+                <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Lancement rapide</p>
+                <p className="mt-3">
+                  En cours:{' '}
+                  <span className="font-medium text-emerald-300">
+                    {activeSession ? `Session #${activeSession.id}` : 'Aucun live actif'}
+                  </span>
+                </p>
+                <p className="mt-1">
+                  Prochaine:{' '}
+                  <span className="font-medium text-sky-300">
+                    {nextSession ? formatSessionDate(nextSession.scheduledAt) : 'Aucune session planifiee'}
+                  </span>
+                </p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Ouvrez le studio, cliquez sur Demarrer puis lancez la camera via Start Publishing.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card id="session-create-form" className="border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5" />
-              Nouvelle session live
-            </CardTitle>
-            <CardDescription>Creer une session connectee a Ant Media</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={handleCreateSession}>
-              {isLoadingCourses ? (
-                <div className="flex items-center rounded-md border p-3 text-sm text-muted-foreground">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Chargement des cours...
-                </div>
-              ) : null}
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-xl">
+            <CardHeader className="border-b border-slate-800 bg-slate-900/70">
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5 text-sky-300" />
+                Creation de live
+              </CardTitle>
+              <CardDescription className="text-slate-300">
+                Workflow en 2 etapes: cours puis session live
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              <Tabs
+                value={creationTab}
+                onValueChange={(value) => setCreationTab(value === 'course' ? 'course' : 'session')}
+                className="space-y-4"
+              >
+                <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl border border-slate-700 bg-slate-900 p-1">
+                  <TabsTrigger
+                    value="session"
+                    className="rounded-lg text-slate-200 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
+                  >
+                    Session live
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="course"
+                    className="rounded-lg text-slate-200 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
+                  >
+                    Nouveau cours
+                  </TabsTrigger>
+                </TabsList>
 
-              {!fixedCourseId ? (
-                <div className="space-y-2">
-                  <Label htmlFor="course-selection">Cours</Label>
-                  <Select value={courseSelection} onValueChange={setCourseSelection}>
-                    <SelectTrigger id="course-selection">
-                      <SelectValue placeholder="Selectionnez un cours" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teacherCourses.map((course: LiveCourse) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
+                <TabsContent value="session" id="session-create-form" className="space-y-4">
+                  {isLoadingCourses ? (
+                    <div className="flex items-center rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Chargement des cours...
+                    </div>
+                  ) : null}
 
-              {selectedCourse ? (
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-600">
-                  Session rattachee a: <span className="font-medium">{selectedCourse.title}</span>
-                </div>
-              ) : null}
+                  {!isLoadingCourses && !teacherCourses.length && !fixedCourseId ? (
+                    <div className="rounded-xl border border-amber-700/50 bg-amber-500/10 p-3 text-sm text-amber-200">
+                      Aucun cours trouve. Creez d abord un cours dans l onglet "Nouveau cours".
+                    </div>
+                  ) : null}
 
-              <div className="space-y-2">
-                <Label htmlFor="scheduled-at">Date et heure</Label>
-                <Input
-                  id="scheduled-at"
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(event) => setScheduledAt(event.target.value)}
-                  required
-                />
+                  <form className="space-y-4" onSubmit={handleCreateSession}>
+                    {!fixedCourseId ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="course-selection" className="text-slate-200">
+                          Cours
+                        </Label>
+                        <Select value={courseSelection} onValueChange={setCourseSelection}>
+                          <SelectTrigger
+                            id="course-selection"
+                            className="border-slate-700 bg-slate-900 text-slate-100 focus:ring-slate-600"
+                          >
+                            <SelectValue placeholder="Selectionnez un cours" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teacherCourses.map((course: LiveCourse) => (
+                              <SelectItem key={course.id} value={course.id}>
+                                {course.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
+
+                    {selectedCourse ? (
+                      <div className="rounded-xl border border-emerald-700/60 bg-emerald-600/10 p-3 text-xs text-emerald-200">
+                        Session rattachee a: <span className="font-medium">{selectedCourse.title}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="scheduled-at" className="text-slate-200">
+                          Date et heure
+                        </Label>
+                        <Input
+                          id="scheduled-at"
+                          type="datetime-local"
+                          value={scheduledAt}
+                          onChange={(event) => setScheduledAt(event.target.value)}
+                          required
+                          className="border-slate-700 bg-slate-900 text-slate-100"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="resolution" className="text-slate-200">
+                          Resolution
+                        </Label>
+                        <Select value={resolution} onValueChange={setResolution}>
+                          <SelectTrigger
+                            id="resolution"
+                            className="border-slate-700 bg-slate-900 text-slate-100 focus:ring-slate-600"
+                          >
+                            <SelectValue placeholder="Resolution" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="480p">480p</SelectItem>
+                            <SelectItem value="720p">720p</SelectItem>
+                            <SelectItem value="1080p">1080p</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-100">Enregistrement</p>
+                        <p className="text-xs text-slate-400">Activer le replay VOD apres la session</p>
+                      </div>
+                      <Switch checked={recordingEnabled} onCheckedChange={setRecordingEnabled} />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        className="h-11 w-full rounded-xl bg-sky-500 px-5 text-base font-semibold text-slate-950 hover:bg-sky-400 sm:w-auto"
+                        disabled={isCreating || (!courseSelection && !fixedCourseId)}
+                      >
+                        {isCreating ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Play className="mr-2 h-4 w-4" />
+                        )}
+                        Creer et ouvrir le studio
+                      </Button>
+                    </div>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="course">
+                  <form className="space-y-4" onSubmit={handleCreateCourse}>
+                    <div className="space-y-2">
+                      <Label htmlFor="course-title" className="text-slate-200">
+                        Titre du cours
+                      </Label>
+                      <Input
+                        id="course-title"
+                        value={courseTitle}
+                        onChange={(event) => setCourseTitle(event.target.value)}
+                        placeholder="Ex: React avance pour projets reels"
+                        required
+                        className="border-slate-700 bg-slate-900 text-slate-100"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="course-category" className="text-slate-200">
+                        Categorie
+                      </Label>
+                      <Select value={courseCategory} onValueChange={setCourseCategory}>
+                        <SelectTrigger
+                          id="course-category"
+                          className="border-slate-700 bg-slate-900 text-slate-100 focus:ring-slate-600"
+                        >
+                          <SelectValue placeholder="Choisir une categorie" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Programmation">Programmation</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Marketing">Marketing</SelectItem>
+                          <SelectItem value="Business">Business</SelectItem>
+                          <SelectItem value="Data">Data</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="course-start-at" className="text-slate-200">
+                        Date de lancement
+                      </Label>
+                      <Input
+                        id="course-start-at"
+                        type="datetime-local"
+                        value={courseStartAt}
+                        onChange={(event) => setCourseStartAt(event.target.value)}
+                        required
+                        className="border-slate-700 bg-slate-900 text-slate-100"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="course-description" className="text-slate-200">
+                        Description
+                      </Label>
+                      <Textarea
+                        id="course-description"
+                        value={courseDescription}
+                        onChange={(event) => setCourseDescription(event.target.value)}
+                        placeholder="Objectifs, prerequis, plan du cours..."
+                        rows={4}
+                        required
+                        className="border-slate-700 bg-slate-900 text-slate-100"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="rounded-xl border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                        disabled={isCreatingCourse}
+                      >
+                        {isCreatingCourse ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Creer le cours
+                      </Button>
+                    </div>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-slate-200 bg-white/95 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <CardHeader className="border-b border-slate-200 dark:border-slate-800">
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Workflow enseignant
+              </CardTitle>
+              <CardDescription>Parcours rapide pour demarrer un live proprement</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 p-5">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Etape 1</p>
+                <p className="mt-1 text-sm font-medium">Creer un cours</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Etape 2</p>
+                <p className="mt-1 text-sm font-medium">Planifier une session live</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Etape 3</p>
+                <p className="mt-1 text-sm font-medium">Ouvrir le studio et lancer la publication</p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="resolution">Resolution</Label>
-                <Select value={resolution} onValueChange={setResolution}>
-                  <SelectTrigger id="resolution">
-                    <SelectValue placeholder="Resolution" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="480p">480p</SelectItem>
-                    <SelectItem value="720p">720p</SelectItem>
-                    <SelectItem value="1080p">1080p</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-950/40">
+                <p>
+                  Session active:{' '}
+                  <span className="font-semibold">
+                    {activeSession ? `#${activeSession.id}` : 'Aucune'}
+                  </span>
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Prochaine session:{' '}
+                  {nextSession ? formatSessionDate(nextSession.scheduledAt) : 'Non planifiee'}
+                </p>
               </div>
 
-              <div className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <p className="text-sm font-medium">Enregistrement</p>
-                  <p className="text-xs text-muted-foreground">Activer le VOD apres la session</p>
-                </div>
-                <Switch checked={recordingEnabled} onCheckedChange={setRecordingEnabled} />
-              </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isCreating || (!courseSelection && !fixedCourseId)}>
-                  {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Creer
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  className="rounded-full bg-sky-500 text-slate-950 hover:bg-sky-400"
+                  onClick={focusSessionForm}
+                >
+                  Nouvelle session
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setCreationTab('course')}
+                >
+                  Nouveau cours
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
 
       {errorMessage ? (
         <Alert variant="destructive">
@@ -1577,12 +1868,13 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
         </Alert>
       ) : null}
 
-      <Card className="border-border shadow-sm">
-        <CardHeader>
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <Card className="order-2 overflow-hidden border-slate-200 bg-white/95 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 xl:order-2">
+        <CardHeader className="border-b border-slate-200 dark:border-slate-800">
           <CardTitle>Mes cours</CardTitle>
           <CardDescription>Un cours peut contenir autant de sessions live que necessaire</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 p-5">
           {isLoadingCourses ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1593,7 +1885,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
               {visibleCourseSummaries.map((summary) => (
                 <div
                   key={summary.course.id}
-                  className="rounded-xl border bg-background p-4 transition-shadow hover:shadow-md"
+                  className="rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-950/50"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div>
@@ -1650,18 +1942,18 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="order-1 overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-xl xl:order-1">
+        <CardHeader className="border-b border-slate-800 bg-slate-900/70">
           <CardTitle>Mes sessions</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {fixedCourseId
               ? `Filtrees sur le cours #${fixedCourseId}`
               : 'Toutes les sessions de l enseignant connecte'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 p-5">
           {isLoadingSessions ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <div className="flex items-center justify-center py-8 text-slate-300">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Chargement des sessions...
             </div>
@@ -1671,17 +1963,19 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
               return (
                 <div
                   key={session.id}
-                  className="flex flex-col gap-4 rounded-xl border bg-background p-4 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <SessionStatusPill session={session} />
-                      <Badge variant="outline">
-                        Cours #
-                        {session.courseId}
+                      <Badge variant="outline" className="border-slate-600 text-slate-200">
+                        Cours #{session.courseId}
+                      </Badge>
+                      <Badge variant="outline" className="border-slate-600 text-slate-200">
+                        Session #{session.id}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-300">
                       Planifiee: {formatSessionDate(session.scheduledAt)}
                     </p>
                     {session.recordingUrl ? (
@@ -1689,7 +1983,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                         href={session.recordingUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary underline underline-offset-4"
+                        className="text-xs text-sky-300 underline underline-offset-4"
                       >
                         Replay disponible
                       </a>
@@ -1699,7 +1993,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
+                      className="rounded-full bg-sky-500 px-4 text-slate-950 hover:bg-sky-400"
                       onClick={() => onNavigate(`/teacher/live/${session.courseId}/${session.id}`)}
                     >
                       Ouvrir studio
@@ -1707,6 +2001,8 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                     {!session.isLive ? (
                       <Button
                         size="sm"
+                        variant="outline"
+                        className="rounded-full border-emerald-600 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
                         onClick={() => handleStart(session.id)}
                         disabled={isStarting}
                       >
@@ -1717,6 +2013,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                       <Button
                         size="sm"
                         variant="destructive"
+                        className="rounded-full px-4"
                         onClick={() => handleStop(session.id)}
                         disabled={isStopping}
                       >
@@ -1727,6 +2024,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="rounded-full"
                       onClick={() => handleFetchVod(session.id)}
                       disabled={isFetchingVod}
                     >
@@ -1735,6 +2033,7 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="rounded-full text-slate-200 hover:bg-slate-800 hover:text-white"
                       onClick={() => {
                         copyToClipboard(`${window.location.origin}${viewerUrl}`);
                       }}
@@ -1742,7 +2041,12 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
                       <Copy className="mr-2 h-4 w-4" />
                       Copier lien
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onNavigate(viewerUrl)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full text-slate-200 hover:bg-slate-800 hover:text-white"
+                      onClick={() => onNavigate(viewerUrl)}
+                    >
                       Vue etudiant
                     </Button>
                   </div>
@@ -1750,12 +2054,14 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
               );
             })
           ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
+            <p className="py-6 text-center text-sm text-slate-300">
               Aucune session pour le moment.
             </p>
           )}
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }
