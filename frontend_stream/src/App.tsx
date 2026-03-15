@@ -20,6 +20,7 @@ function AppContent() {
   const { theme } = useAppSelector(state => state.ui);
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
   const hasRedirected = useRef(false);
+  const isMarketingHome = currentPath === '/';
 
   // Initialize theme (only once on mount)
   useEffect(() => {
@@ -185,11 +186,11 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background flex flex-col">
-        <HeaderRedux onNavigate={navigate} currentPath={currentPath} />
+        {!isMarketingHome && <HeaderRedux onNavigate={navigate} currentPath={currentPath} />}
         <main className="flex-1 overflow-x-hidden">
           {renderPage()}
         </main>
-        <Footer onNavigate={navigate} />
+        {!isMarketingHome && <Footer onNavigate={navigate} />}
         
         {/* Chatbot - Available for authenticated users */}
         {isAuthenticated && (

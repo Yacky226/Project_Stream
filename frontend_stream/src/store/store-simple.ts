@@ -11,6 +11,7 @@ import { userApi } from './api/userApi';
 import { adminUserApi } from './api/adminUserApi';
 import { dashboardApi } from './api/dashboardApi';
 import { liveApi } from './api/liveApi';
+import { publicSupportApi } from './api/publicSupportApi';
 import { authStorage, uiStorage } from '../lib/localStorage';
 import { hydrateAuthState } from './persistence/authHydration';
 
@@ -26,6 +27,7 @@ export const simpleStore = configureStore({
     [adminUserApi.reducerPath]: adminUserApi.reducer,
     [dashboardApi.reducerPath]: dashboardApi.reducer,
     [liveApi.reducerPath]: liveApi.reducer,
+    [publicSupportApi.reducerPath]: publicSupportApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -43,6 +45,7 @@ export const simpleStore = configureStore({
       adminUserApi.middleware,
       dashboardApi.middleware,
       liveApi.middleware,
+      publicSupportApi.middleware,
     ),
   devTools: true,
 });
