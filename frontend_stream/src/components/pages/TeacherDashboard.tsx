@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   AlertCircle,
   BookOpen,
+  ChevronDown,
   ClipboardCheck,
   Clock3,
   Download,
@@ -100,9 +101,28 @@ function buildChartPoints(values: number[], width: number, height: number): Char
 
 function buildLinePath(points: ChartPoint[]) {
   if (!points.length) return '';
-  return points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
-    .join(' ');
+  if (points.length === 1) {
+    return `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  }
+
+  const tension = 1;
+  let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const p0 = points[index - 1] ?? points[index];
+    const p1 = points[index];
+    const p2 = points[index + 1];
+    const p3 = points[index + 2] ?? p2;
+
+    const cp1x = p1.x + ((p2.x - p0.x) / 6) * tension;
+    const cp1y = p1.y + ((p2.y - p0.y) / 6) * tension;
+    const cp2x = p2.x - ((p3.x - p1.x) / 6) * tension;
+    const cp2y = p2.y - ((p3.y - p1.y) / 6) * tension;
+
+    path += ` C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)} ${cp2x.toFixed(2)} ${cp2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+
+  return path;
 }
 
 function buildAreaPath(points: ChartPoint[], height: number) {
@@ -222,7 +242,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
       value: formatCompact(totalStudents),
       badge: `+${improvementPercent.toFixed(1)}%`,
       icon: Users,
-      iconWrap: 'bg-blue-100 text-blue-600',
+      iconStyle: { backgroundColor: '#dbeafe', color: '#2563eb' },
       badgeWrap: 'bg-green-100 text-green-700',
     },
     {
@@ -230,7 +250,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
       value: formatCurrency(estimatedRevenue, true),
       badge: `+${revenueGrowthPercent.toFixed(1)}%`,
       icon: TrendingUp,
-      iconWrap: 'bg-green-100 text-green-600',
+      iconStyle: { backgroundColor: '#dcfce7', color: '#16a34a' },
       badgeWrap: 'bg-green-100 text-green-700',
     },
     {
@@ -238,7 +258,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
       value: `${averageRating.toFixed(1)} / 5.0`,
       badge: `+${Math.max(0.2, averageRating - 4).toFixed(1)}`,
       icon: Star,
-      iconWrap: 'bg-amber-100 text-amber-600',
+      iconStyle: { backgroundColor: '#fef3c7', color: '#d97706' },
       badgeWrap: 'bg-green-100 text-green-700',
     },
     {
@@ -246,12 +266,16 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
       value: formatCompact(totalCourses),
       badge: liveSessions > 0 ? `${liveSessions} live` : 'Stable',
       icon: BookOpen,
-      iconWrap: 'bg-violet-100 text-violet-600',
+      iconStyle: { backgroundColor: '#ede9fe', color: '#7c3aed' },
       badgeWrap: 'bg-slate-100 text-slate-500',
     },
   ];
 
   const engagementValues = useMemo(() => {
+    if (filteredCourses.length < 4) {
+      return [48, 74, 60, 68, 42, 79, 64];
+    }
+
     const seeds = filteredCourses.slice(0, 7).map((course, index) => {
       return Math.max(
         18,
@@ -423,8 +447,8 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div
-                        className={`flex h-14 shrink-0 items-center justify-center rounded-2xl ${card.iconWrap}`}
-                        style={{ width: '3.5rem' }}
+                        className="flex h-14 shrink-0 items-center justify-center rounded-2xl"
+                        style={{ width: '3.5rem', ...card.iconStyle }}
                       >
                         <Icon className="h-5 w-5" />
                       </div>
@@ -443,9 +467,9 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
               })}
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-12">
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-8">
-                <div className="flex items-center justify-between gap-3">
+            <section className="grid gap-6 lg:grid-cols-3">
+              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+                <div className="mb-6 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-slate-950">
                       Student Engagement
@@ -454,14 +478,18 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                       Average daily activity over the last 7 days
                     </p>
                   </div>
-                  <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700"
+                  >
                     Last 7 Days
-                  </div>
+                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                  </button>
                 </div>
 
-                <div className="mt-8 overflow-hidden rounded-xl bg-[linear-gradient(180deg,rgba(37,87,211,0.12),rgba(37,87,211,0.02))] px-4 pb-4 pt-6">
-                  <svg viewBox="0 0 720 260" className="h-64 w-full" preserveAspectRatio="none">
-                    <path d={chartAreaPath} fill="rgba(37, 87, 211, 0.12)" />
+                <div style={{ height: '18rem' }}>
+                  <svg viewBox="0 0 720 260" className="h-full w-full" preserveAspectRatio="none">
+                    <path d={chartAreaPath} fill="rgba(37, 87, 211, 0.16)" />
                     <path
                       d={chartLinePath}
                       fill="none"
@@ -471,21 +499,26 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                       strokeLinejoin="round"
                     />
                   </svg>
+                </div>
 
-                  <div className="mt-3 grid grid-cols-7 gap-2 text-center text-sm font-semibold text-slate-400">
-                    {chartLabels.map((label) => (
-                      <span key={label}>{label}</span>
-                    ))}
-                  </div>
+                <div
+                  className="mt-2 text-center text-sm font-bold text-slate-400"
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '0.5rem' }}
+                >
+                  {chartLabels.map((label) => (
+                    <span key={label} style={{ letterSpacing: '0.04em' }}>
+                      {label.toUpperCase()}
+                    </span>
+                  ))}
                 </div>
               </article>
 
-              <aside className="space-y-6 xl:col-span-4">
+              <aside className="space-y-6">
                 <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-950">
+                  <h2 className="mb-4 text-lg font-bold text-slate-950">
                     Quick Actions
                   </h2>
-                  <div className="mt-6 flex-1 space-y-4">
+                  <div className="flex-1 space-y-4">
                     {quickActions.map((item, index) => {
                       const Icon = item.icon;
                       return (
@@ -493,16 +526,29 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                           key={item.label}
                           type="button"
                           onClick={item.onClick}
-                          className="flex w-full items-center justify-between rounded-xl bg-slate-100 px-4 py-4 text-left transition hover:bg-blue-50"
+                          className="group flex w-full items-center justify-between rounded-xl bg-slate-50 px-4 py-4 text-left transition-all hover:bg-blue-600 hover:text-white"
                         >
                           <div className="flex items-center gap-3">
-                            <Icon className="h-5 w-5 text-blue-600" />
-                            <span className="text-base font-medium text-slate-950">
+                            <Icon className="h-5 w-5 text-blue-600 group-hover:text-white" />
+                            <span className="text-base font-medium text-slate-950 group-hover:text-white">
                               {item.label}
                             </span>
                           </div>
                           {index === 0 && item.badge > 0 ? (
-                            <span className="rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                            <span
+                              className="rounded-full bg-red-500 text-white"
+                              style={{
+                                minWidth: '1.75rem',
+                                height: '1.45rem',
+                                padding: '0 0.45rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                lineHeight: 1,
+                              }}
+                            >
                               {item.badge}
                             </span>
                           ) : null}
@@ -511,7 +557,10 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                     })}
                   </div>
 
-                  <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <div
+                    className="mt-6 rounded-2xl border p-5"
+                    style={{ borderColor: 'rgba(37, 87, 211, 0.24)', backgroundColor: 'rgba(37, 87, 211, 0.12)' }}
+                  >
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
                       Next Session
                     </p>
