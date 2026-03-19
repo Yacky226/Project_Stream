@@ -1,4 +1,4 @@
-﻿package com.fstm.ma.ilisi.appstreaming.config;
+package com.fstm.ma.ilisi.appstreaming.config;
 
 import com.fstm.ma.ilisi.appstreaming.security.JwtAuthenticationFilter;
 import com.fstm.ma.ilisi.appstreaming.security.RateLimitingFilter;

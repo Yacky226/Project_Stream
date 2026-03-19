@@ -1,331 +1,174 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { useTranslation } from '../../lib/i18n';
-import { 
-  Smartphone, 
-  Download, 
-  Star, 
-  Play,
-  Apple,
-  Shield,
-  Zap,
-  Users,
-  BookOpen,
-  Bell,
-  Wifi,
-  Heart,
-  MessageSquare,
-  Check
-} from 'lucide-react';
+import { Apple, Bell, Download, Play, RefreshCw, Sparkles, Star, Zap } from 'lucide-react';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { PublicFooterBar } from '../layout/PublicFooterBar';
+import { PublicHeaderBar } from '../layout/PublicHeaderBar';
+import './MobileAppPage.css';
 
 interface MobileAppPageProps {
   onNavigate: (path: string) => void;
 }
 
+const heroMockup =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuBluSMxEDcMsws6jNDKnIb92UMTI9nRyViOL3kRUTEUxdM9NuENEz5fdqwSvjvdaXg80qaiPqbDhx1HXu9X7_oEP-hwNBgyppjSgf3tSuXaFtSXO9olgnw-ETQDKU6Cwkgzj3C36SEGvFHGsmJumHkbbOA2Ca3d1zeUuDza_2SV-CwXVe058lgf9WBnMVFxFZ0BY1LRGXQnsJ5kTk1ibul1cu8603TlawnlZ1gxgXVbONJUZEPvwjFb4JnqqePt5BuSUF4uVDya7j4';
+
+const testimonials = [
+  {
+    name: 'Sarah Jenkins',
+    role: 'Marketing Executive',
+    quote:
+      'The EduElevate mobile app is a game changer. The interface is elegant and offline mode helps me learn during commutes.',
+    avatar:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCH4q4Gje1l3F6TlTKpKiuShQvPs_Ys7wt1DexYdZqGFiHkGHmyyNiVV7z2NbmCL-d_wNRxcjY3O5Ux7oyFnJPZZEIJxSKKtsRp9TLS99ej738OlONuM_pLw21ls6WbYyINqInKC_xp7Z6Yq3X7YE_-HOaV15LwH7BtkaghaHR8GfK6hHXK6jpcgaqlvqPDn1iBRjc3uoqI55nYaPiuVwXC_qnEDtrDbRQ8vK2JG1bnuh06lm8IREaNDMW_GeXE97zoQXNStPkSlHs',
+  },
+  {
+    name: 'David Chen',
+    role: 'Software Engineer',
+    quote:
+      'The micro-learning format fits my schedule perfectly. I can keep momentum even during busy weeks.',
+    avatar:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuAwAXTpD-B3PU4C8du7_1ZUFmTFItHyhNAqTFHO62PssArt9ELFBJ6zekSvTjs24-tqC5W-klD-3PKVCijcdTrPzyp4_nt01GZpF9PRIc4qis_RqlJ-zIk794yd-bPoNQ7sM-r6kdlpcOxgNZrj5o28s1erJieU9I64p_PUkLGJbgWj5vtk4_IzVzvlhQeztoAqQgruSabqfjKJ0ERGqXCn8QuKc2zQ3JwCbG3ZMsXYjY2MFAj9IK3eafwmemDa1jGSXkVkLz_w_7M',
+  },
+  {
+    name: 'Elena Rodriguez',
+    role: 'Graphic Designer',
+    quote:
+      'Video quality is great even on limited bandwidth, and offline download makes learning addictive.',
+    avatar:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDjSXLVZHt9t7PbulPb4jKy90-lro-1eK2S1_cH392iALGLd347Yl25ii1lBd6W742ybZfHbgG3MLo6WasgbNHbSnzTShoBv61rx5_dTm60qAGUe9y1auDhasvmittWApkUn0eUsHH9O47Ot315yDyWrFz5sLE2IJt0j-T0ZnIR_IFsYAVIwdYPL9K2Nk1cxk-R5YpW2wwsdRsoWK-V-Az5q2RVoFLmB8wHta3333jKyu1KFPzdLdJr_VHX_tSC-4EKIKTUr9X3DAI',
+  },
+];
+
+const features = [
+  { icon: Download, title: 'Offline Access', desc: 'Download courses and learn without internet.' },
+  { icon: Zap, title: 'Micro-learning', desc: 'Short lessons designed for retention.' },
+  { icon: RefreshCw, title: 'Progress Syncing', desc: 'Continue across phone, tablet and desktop.' },
+  { icon: Bell, title: 'Smart Reminders', desc: 'Personalized nudges to keep your streak alive.' },
+];
+
 export function MobileAppPage({ onNavigate }: MobileAppPageProps) {
-  const { t } = useTranslation();
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  const features = [
-    {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: 'Apprentissage Hors-ligne',
-      description: 'Téléchargez vos cours pour apprendre partout, même sans connexion internet',
-      details: 'Synchronisation automatique une fois reconnecté'
-    },
-    {
-      icon: <Bell className="w-8 h-8" />,
-      title: 'Notifications Intelligentes',
-      description: 'Recevez des rappels personnalisés pour vos sessions et objectifs',
-      details: 'Notifications push pour ne manquer aucune session live'
-    },
-    {
-      icon: <Zap className="w-8 h-8" />,
-      title: 'Performance Optimisée',
-      description: 'Interface native ultra-rapide optimisée pour mobile',
-      details: 'Chargement instantané et navigation fluide'
-    },
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: 'Sécurité Renforcée',
-      description: 'Authentification biométrique et données chiffrées',
-      details: 'Protection maximale de vos données personnelles'
-    }
-  ];
-
-  const stats = [
-    { icon: <Users className="w-6 h-6" />, value: '500K+', label: 'Téléchargements' },
-    { icon: <Star className="w-6 h-6" />, value: '4.8', label: 'Note App Store' },
-    { icon: <Play className="w-6 h-6" />, value: '50K+', label: 'Heures de contenu' },
-    { icon: <Heart className="w-6 h-6" />, value: '98%', label: 'Satisfaction' }
-  ];
-
-  const screenshots = [
-    {
-      title: 'Dashboard Étudiant',
-      description: 'Suivez votre progression en un coup d\'œil',
-      image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=300&h=600'
-    },
-    {
-      title: 'Cours Interactifs',
-      description: 'Apprenez avec des vidéos HD et exercices',
-      image: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=300&h=600'
-    },
-    {
-      title: 'Sessions Live',
-      description: 'Participez aux cours en direct',
-      image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=300&h=600'
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge className="bg-white/20 text-white border-white/30 mb-4">
-                🎉 Nouvelle version disponible
-              </Badge>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                Stream Éducatif
-                <span className="block text-blue-200">sur Mobile</span>
+    <div className="ma-page">
+      <PublicHeaderBar currentPath="/mobile-app" onNavigate={onNavigate} />
+
+      <main className="ma-main">
+        <section className="ma-hero">
+          <div className="ma-shell ma-hero-grid">
+            <div className="ma-hero-copy">
+              <div className="ma-badge">
+                <Sparkles className="h-4 w-4" />
+                Awarded Best Mobile Learning App 2024
+              </div>
+              <h1 className="ma-hero-title">
+                Learn Anywhere with <span>EduElevate</span>
               </h1>
-              <p className="text-xl text-blue-100 mb-8">
-                Apprenez partout, à tout moment avec notre application mobile. 
-                Accédez à plus de 1000 cours depuis votre smartphone ou tablette.
+              <p className="ma-hero-subtitle">
+                Master new skills on the go with a premium mobile experience: offline access,
+                interactive lessons, and seamless progress sync.
               </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-black hover:bg-gray-100 flex items-center"
-                  onClick={() => window.open('https://apps.apple.com', '_blank')}
-                >
-                  <Apple className="w-6 h-6 mr-2" />
-                  App Store
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-white text-white hover:bg-white/10 flex items-center"
-                  onClick={() => window.open('https://play.google.com', '_blank')}
-                >
-                  <Play className="w-6 h-6 mr-2" />
-                  Google Play
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="flex justify-center text-blue-200 mb-2">
-                      {stat.icon}
-                    </div>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                    <div className="text-sm text-blue-200">{stat.label}</div>
+              <div className="ma-store-actions">
+                <button type="button" className="ma-store-btn is-dark">
+                  <Apple className="h-8 w-8" />
+                  <div>
+                    <p>Download on the</p>
+                    <strong>App Store</strong>
                   </div>
-                ))}
+                </button>
+                <button type="button" className="ma-store-btn is-dark">
+                  <Play className="h-8 w-8" />
+                  <div>
+                    <p>Get it on</p>
+                    <strong>Google Play</strong>
+                  </div>
+                </button>
               </div>
             </div>
-            
-            <div className="flex justify-center">
-              <div className="relative">
-                <div className="w-64 h-96 bg-black rounded-3xl p-2 shadow-2xl">
-                  <div className="w-full h-full bg-gradient-to-b from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <Smartphone className="w-16 h-16 mx-auto mb-4" />
-                      <p className="text-lg font-semibold">Stream Éducatif</p>
-                      <p className="text-sm opacity-80">Version Mobile</p>
-                    </div>
+
+            <div className="ma-hero-visual">
+              <div className="ma-phone">
+                <ImageWithFallback src={heroMockup} alt="Mobile app dashboard" className="ma-phone-image" />
+                <div className="ma-phone-overlay" />
+                <div className="ma-floating-card ma-top-card">
+                  <div className="ma-floating-icon">
+                    <Play className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="ma-floating-title">Next Lesson</p>
+                    <p className="ma-floating-subtitle">Advanced UI Design (12:40)</p>
                   </div>
                 </div>
-                {/* Floating elements */}
-                <div className="absolute -top-4 -right-4 bg-green-500 text-white p-2 rounded-full">
-                  <Check className="w-4 h-4" />
-                </div>
-                <div className="absolute -bottom-4 -left-4 bg-orange-500 text-white p-2 rounded-full">
-                  <Bell className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Fonctionnalités Exclusives Mobile
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Découvrez pourquoi plus de 500,000 apprenants choisissent notre app mobile
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              {features.map((feature, index) => (
-                <Card 
-                  key={index}
-                  className={`cursor-pointer transition-all ${
-                    activeFeature === index ? 'ring-2 ring-primary shadow-lg' : 'hover:shadow-md'
-                  }`}
-                  onClick={() => setActiveFeature(index)}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${
-                        activeFeature === index ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                      }`}>
-                        {feature.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                        <p className="text-muted-foreground mb-2">{feature.description}</p>
-                        {activeFeature === index && (
-                          <p className="text-sm text-primary font-medium">
-                            {feature.details}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="flex justify-center">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {screenshots.map((screenshot, index) => (
-                  <div key={index} className="text-center">
-                    <div className="w-48 h-96 bg-gray-200 rounded-2xl overflow-hidden mb-4 mx-auto">
-                      <img 
-                        src={screenshot.image} 
-                        alt={screenshot.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <h4 className="font-semibold mb-1">{screenshot.title}</h4>
-                    <p className="text-sm text-muted-foreground">{screenshot.description}</p>
+                <div className="ma-floating-card ma-bottom-card">
+                  <div className="ma-progress-track">
+                    <div className="ma-progress-value" />
                   </div>
-                ))}
+                  <p className="ma-floating-title">Course Progress: 75%</p>
+                </div>
               </div>
+              <div className="ma-hero-glow" />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Reviews Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ce que disent nos utilisateurs
-            </h2>
-            <div className="flex items-center justify-center space-x-2 mb-8">
-              {[1,2,3,4,5].map((star) => (
-                <Star key={star} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-              ))}
-              <span className="text-xl font-semibold ml-2">4.8/5</span>
-              <span className="text-muted-foreground">(2,347 avis)</span>
+        <section className="ma-features">
+          <div className="ma-shell">
+            <div className="ma-section-head">
+              <h2>Tailored for Mobile Excellence</h2>
+              <p>Education that fits into your lifestyle, not the other way around.</p>
+            </div>
+            <div className="ma-features-grid">
+              {features.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.title} className="ma-feature-card">
+                    <div className="ma-feature-icon">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.desc}</p>
+                  </article>
+                );
+              })}
             </div>
           </div>
+        </section>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: 'Sophie Martin',
-                role: 'Développeuse Frontend',
-                comment: 'L\'app mobile me permet d\'apprendre pendant mes trajets. Interface parfaite et contenu de qualité !',
-                rating: 5
-              },
-              {
-                name: 'Alexandre Dubois',
-                role: 'Étudiant en Marketing',
-                comment: 'Les notifications m\'aident à rester motivé. J\'ai terminé 3 cours ce mois-ci grâce à l\'app.',
-                rating: 5
-              },
-              {
-                name: 'Marie Rodriguez',
-                role: 'Chef de Projet',
-                comment: 'Parfait pour la formation continue. Je peux suivre mes cours même en déplacement professionnel.',
-                rating: 5
-              }
-            ].map((review, index) => (
-              <Card key={index}>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-1 mb-4">
-                    {[1,2,3,4,5].map((star) => (
-                      <Star 
-                        key={star} 
-                        className={`w-4 h-4 ${
-                          star <= review.rating 
-                            ? 'fill-yellow-400 text-yellow-400' 
-                            : 'text-gray-300'
-                        }`} 
-                      />
+        <section className="ma-testimonials">
+          <div className="ma-shell">
+            <div className="ma-section-head ma-section-head-left">
+              <h2>Loved by 50,000+ Students</h2>
+              <p>Real stories from learners who use EduElevate every day.</p>
+            </div>
+            <div className="ma-testimonials-grid">
+              {testimonials.map((item) => (
+                <article key={item.name} className="ma-testimonial-card">
+                  <div className="ma-rating">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star key={`${item.name}-${index}`} className="h-4 w-4 fill-current" />
                     ))}
                   </div>
-                  <p className="text-muted-foreground mb-4 italic">
-                    "{review.comment}"
-                  </p>
-                  <div>
-                    <div className="font-semibold">{review.name}</div>
-                    <div className="text-sm text-muted-foreground">{review.role}</div>
+                  <p className="ma-quote">"{item.quote}"</p>
+                  <div className="ma-author">
+                    <ImageWithFallback src={item.avatar} alt={item.name} className="ma-author-avatar" />
+                    <div>
+                      <h4>{item.name}</h4>
+                      <p>{item.role}</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </article>
+              ))}
+            </div>
+
+            <div className="ma-cta">
+              <h3>Ready to learn on mobile?</h3>
+              <p>Start now and continue your progress across every device.</p>
+              <button type="button" className="ma-cta-btn" onClick={() => onNavigate('/catalog')}>
+                Explore Courses
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            <CardContent className="p-12 text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Commencez dès aujourd'hui
-              </h2>
-              <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                Rejoignez les milliers d'apprenants qui développent leurs compétences 
-                avec Stream Éducatif Mobile
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-black hover:bg-gray-100"
-                  onClick={() => window.open('https://apps.apple.com', '_blank')}
-                >
-                  <Apple className="w-6 h-6 mr-2" />
-                  Télécharger sur App Store
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-white/50 text-white hover:bg-white/20 hover:border-white/70 font-semibold shadow-lg px-6 py-3"
-                  onClick={() => window.open('https://play.google.com', '_blank')}
-                >
-                  <Play className="w-6 h-6 mr-2" />
-                  Obtenir sur Google Play
-                </Button>
-              </div>
-
-              <p className="text-sm text-blue-200">
-                Gratuit • Compatible iOS 14+ et Android 8+ • Français & English
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <PublicFooterBar onNavigate={onNavigate} />
     </div>
   );
 }

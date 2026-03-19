@@ -1,264 +1,241 @@
-import { useEffect, useRef } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
 import {
-  closeChatbot,
-  startNewSession,
-  addUserMessage,
   addAssistantMessage,
+  addUserMessage,
+  clearCurrentSession,
+  closeChatbot,
   setTyping,
-  clearCurrentSession
+  startNewSession,
 } from '../../store/slices/chatbotSlice';
 import { getChatbotResponseAsync } from '../../lib/chatbotService';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
-import { ChatMessage, TypingIndicator } from './ChatMessage';
-import { ChatInput } from './ChatInput';
-import { X, Bot, Sparkles, RotateCcw, Settings, Zap } from 'lucide-react';
+import { Bot, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 
 interface ChatbotProps {
   onNavigate?: (path: string) => void;
   currentPath?: string;
 }
 
+function formatTime(timestamp: number): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp));
+}
+
 export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
   const dispatch = useAppDispatch();
   const { user } = useAuth();
-  const chatbotState = useAppSelector(state => state.chatbot);
+  const chatbotState = useAppSelector((state) => state.chatbot);
+  const [draft, setDraft] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Safety check: if chatbot state is not initialized, don't render
   if (!chatbotState) {
     return null;
   }
 
   const { isOpen, currentSession, isTyping, quickActions } = chatbotState;
 
-  // Auto-scroll vers le bas quand de nouveaux messages arrivent
+  useEffect(() => {
+    if (!isOpen || currentSession || !user) {
+      return;
+    }
+
+    dispatch(
+      startNewSession({
+        userId: user.id,
+        userRole: user.role,
+        currentPage: currentPath,
+      }),
+    );
+  }, [currentPath, currentSession, dispatch, isOpen, user]);
+
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentSession?.messages, isTyping]);
 
-  // Initialiser une session si pas de session courante et chatbot ouvert
-  useEffect(() => {
-    if (isOpen && !currentSession && user) {
-      dispatch(startNewSession({
-        userId: user.id,
-        userRole: user.role,
-        currentPage: currentPath
-      }));
+  const visibleQuickActions = useMemo(() => {
+    return quickActions
+      .filter((item) => !item.roles || item.roles.includes(user?.role || 'student'))
+      .slice(0, 3)
+      .map((item) => item.label);
+  }, [quickActions, user?.role]);
+
+  const sendMessage = async (content: string) => {
+    const message = content.trim();
+    if (!message || !currentSession || !user) {
+      return;
     }
-  }, [isOpen, currentSession, user, currentPath, dispatch]);
 
-  const handleSendMessage = async (message: string) => {
-    if (!currentSession || !user) return;
-
-    // Ajouter le message utilisateur
     dispatch(addUserMessage(message));
     dispatch(setTyping(true));
 
     try {
-      // Obtenir la réponse du chatbot
       const response = await getChatbotResponseAsync(message, {
         userRole: user.role,
         currentPage: currentPath,
-        userName: user.firstName
+        userName: user.firstName,
       });
 
-      // Ajouter la réponse
       dispatch(addAssistantMessage(response.message));
 
-      // Gérer les actions si nécessaire
-      if (response.action && onNavigate) {
-        if (response.action.type === 'navigate') {
-          setTimeout(() => {
-            onNavigate(response.action!.payload);
-          }, 1000);
-        }
+      if (response.action && onNavigate && response.action.type === 'navigate') {
+        setTimeout(() => {
+          onNavigate(response.action!.payload);
+        }, 800);
       }
-    } catch (error) {
-      console.error('Erreur chatbot:', error);
-      dispatch(addAssistantMessage('Désolé, une erreur est survenue. Pouvez-vous réessayer ?'));
+    } catch {
+      dispatch(addAssistantMessage('I had a temporary issue. Please try again.'));
     } finally {
       dispatch(setTyping(false));
     }
   };
 
-  const handleQuickAction = (actionLabel: string) => {
-    handleSendMessage(actionLabel);
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const message = draft.trim();
+    if (!message) {
+      return;
+    }
+    setDraft('');
+    await sendMessage(message);
   };
 
-  const handleRestart = () => {
-    if (user) {
-      dispatch(clearCurrentSession());
-      dispatch(startNewSession({
+  const restartSession = () => {
+    if (!user) return;
+    dispatch(clearCurrentSession());
+    dispatch(
+      startNewSession({
         userId: user.id,
         userRole: user.role,
-        currentPage: currentPath
-      }));
-    }
+        currentPage: currentPath,
+      }),
+    );
   };
 
-  const handleClose = () => {
-    dispatch(closeChatbot());
-  };
-
-  if (!isOpen) return null;
-
-  const filteredQuickActions = quickActions.filter(action => 
-    !action.roles || action.roles.includes(user?.role || 'student')
-  );
+  if (!isOpen) {
+    return null;
+  }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9998] w-[90vw] sm:w-[420px] lg:w-[460px] animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <Card className="shadow-2xl border-2 overflow-hidden backdrop-blur-xl bg-card/95">
-        {/* Header avec gradient amélioré */}
-        <CardHeader className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 text-white p-5 rounded-t-lg overflow-hidden">
-          {/* Effet de fond animé */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-400/10 rounded-full blur-3xl" />
-          
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Avatar amélioré avec animation */}
-              <div className="relative">
-                <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/30 shadow-lg">
-                  <Bot className="h-6 w-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse" />
-              </div>
-              
-              <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-white">Assistant IA</CardTitle>
-                  <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse shadow-sm shadow-green-400/50" />
-                  <span className="text-white/90">En ligne • Réponse instantanée</span>
-                </div>
-              </div>
+    <div className="fixed bottom-24 right-8 z-[9998] h-[600px] w-[400px] overflow-hidden rounded-xl border border-[#1152d4]/10 bg-white shadow-2xl dark:bg-slate-900">
+      <div className="flex items-center justify-between border-b border-[#1152d4]/10 bg-white/80 px-5 py-4 backdrop-blur-xl dark:bg-slate-900/80">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1152d4]/10 text-[#1152d4]">
+              <Bot className="h-6 w-6" />
             </div>
-            
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRestart}
-                className="h-9 w-9 text-white hover:bg-white/20 rounded-xl transition-all"
-                aria-label="Nouvelle conversation"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleClose}
-                className="h-9 w-9 text-white hover:bg-white/20 hover:rotate-90 rounded-xl transition-all duration-300"
-                aria-label="Fermer le chat"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-slate-900" />
+          </div>
+          <div>
+            <h3 className="leading-none text-slate-900 dark:text-white">EduAI Assistant</h3>
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Live & Ready
+              </span>
             </div>
           </div>
-          
-          {/* Badge indicateur */}
-          <div className="relative mt-3 flex items-center gap-2">
-            <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-              <Zap className="h-3 w-3 mr-1" />
-              Propulsé par IA
-            </Badge>
-            <span className="text-white/70">• {currentSession?.messages.length || 0} messages</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => dispatch(closeChatbot())}
+          className="text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-200"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="h-[calc(100%-150px)] overflow-y-auto p-5">
+        {!currentSession ? null : (
+          <div className="space-y-6">
+            {currentSession.messages.map((message) => {
+              const isUser = message.role === 'user';
+              return (
+                <div key={message.id} className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
+                  <p
+                    className={`text-xs uppercase tracking-widest ${
+                      isUser ? 'mr-1 text-[#1152d4]/60' : 'ml-1 text-slate-400'
+                    }`}
+                  >
+                    {isUser ? 'You' : 'EduAI'}
+                  </p>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                      isUser
+                        ? 'rounded-tr-none bg-[#1152d4] text-white shadow-[#1152d4]/20'
+                        : 'rounded-tl-none bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                  <span className={`text-[10px] ${isUser ? 'mr-1 text-[#1152d4]/50' : 'ml-1 text-slate-400'}`}>
+                    {formatTime(message.timestamp)}
+                  </span>
+                </div>
+              );
+            })}
+
+            {isTyping ? (
+              <div className="flex flex-col items-start gap-1.5">
+                <p className="ml-1 text-xs uppercase tracking-widest text-slate-400">EduAI</p>
+                <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-slate-100 px-4 py-3 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  Typing...
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              {visibleQuickActions.map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => sendMessage(label)}
+                  className="rounded-full border border-[#1152d4]/20 bg-[#1152d4]/5 px-4 py-2 text-xs font-medium text-[#1152d4] transition-all hover:bg-[#1152d4] hover:text-white"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div ref={messagesEndRef} />
           </div>
-        </CardHeader>
+        )}
+      </div>
 
-        {/* Corps du chat avec style amélioré */}
-        <CardContent className="p-0 bg-gradient-to-b from-background to-muted/30">
-          {/* Zone de messages */}
-          <ScrollArea ref={scrollAreaRef} className="h-[400px] px-4 py-4">
-            {!currentSession || currentSession.messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-8">
-                <div className="relative">
-                  <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
-                    <Bot className="h-10 w-10 text-white" />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl blur-xl opacity-50 animate-pulse" />
-                </div>
-                
-                <div className="space-y-2 max-w-sm">
-                  <h3 className="text-foreground">
-                    Bonjour ! Je suis votre assistant IA 👋
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Je peux vous aider avec vos cours, répondre à vos questions sur la plateforme, 
-                    ou vous guider dans votre apprentissage.
-                  </p>
-                </div>
-
-                {/* Actions rapides stylisées */}
-                <div className="mt-6 pt-4 border-t w-full">
-                  <p className="text-muted-foreground mb-3">
-                    Questions fréquentes :
-                  </p>
-                  <div className="grid gap-2">
-                    {filteredQuickActions.slice(0, 3).map((action, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAction(action.label)}
-                        className="justify-start text-left hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all group"
-                      >
-                        <Sparkles className="h-3.5 w-3.5 mr-2 opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all" />
-                        <span className="truncate">{action.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {currentSession?.messages.map((msg, index) => (
-                  <ChatMessage key={index} message={msg} />
-                ))}
-                {isTyping && <TypingIndicator />}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </ScrollArea>
-
-          {/* Input zone avec style amélioré */}
-          <div className="border-t bg-background/50 backdrop-blur-sm p-4">
-            <ChatInput 
-              onSendMessage={handleSendMessage}
-              disabled={isTyping || !currentSession}
-              placeholder="Posez votre question..."
+      <div className="border-t border-slate-100 bg-white/60 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/60">
+        <form onSubmit={onSubmit} className="rounded-2xl border border-slate-200 bg-slate-100 p-1.5 dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={restartSession} className="p-2 text-slate-500 transition-colors hover:text-[#1152d4]">
+              <Mic className="h-4 w-4" />
+            </button>
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              className="flex-1 border-none bg-transparent py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:text-slate-100"
+              placeholder="Ask anything..."
+              type="text"
             />
-            
-            {/* Footer info */}
-            <div className="flex items-center justify-between mt-3 px-1">
-              <p className="text-muted-foreground flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
-                IA peut faire des erreurs
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 hover:text-primary"
-              >
-                <Settings className="h-3.5 w-3.5 mr-1.5" />
-                Paramètres
-              </Button>
-            </div>
+            <button
+              type="submit"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/30 transition-transform hover:scale-105"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </form>
+        <div className="mt-3 flex items-center justify-between px-1">
+          <div className="flex gap-3 text-slate-400">
+            <Smile className="h-4 w-4" />
+            <Paperclip className="h-4 w-4" />
+            <Bot className="h-4 w-4" />
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Enter to send</span>
+        </div>
+      </div>
     </div>
   );
 }
+

@@ -1,16 +1,13 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   ArrowRight,
-  Facebook,
-  GraduationCap,
-  Instagram,
-  Linkedin,
   Search,
   ShoppingCart,
   Star,
-  Twitter,
 } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { PublicFooterBar } from '../layout/PublicFooterBar';
+import { PublicHeaderBar } from '../layout/PublicHeaderBar';
 import { buildApiUrl } from '../../lib/api-base-url';
 import { useGetCourseDetailsQuery, useGetCoursesQuery } from '../../store/api/liveApi';
 import { useSubscribeToNewsletterMutation } from '../../store/api/publicSupportApi';
@@ -38,56 +35,6 @@ interface RenderableTestimonial {
   role: string;
   stars: number;
 }
-
-interface FooterColumn {
-  links: Array<{ label: string; path: string }>;
-  title: string;
-}
-
-const footerColumns: FooterColumn[] = [
-  {
-    links: [
-      { label: 'Browse Courses', path: '/catalog' },
-      { label: 'Mentorship', path: '/search' },
-      { label: 'Roadmaps', path: '/catalog' },
-      { label: 'Pricing', path: '/business' },
-    ],
-    title: 'Platform',
-  },
-  {
-    links: [
-      { label: 'About Us', path: '/business' },
-      { label: 'Careers', path: '/careers' },
-      { label: 'Partners', path: '/business' },
-      { label: 'Blog', path: '/blog' },
-    ],
-    title: 'Company',
-  },
-  {
-    links: [
-      { label: 'Help Center', path: '/help' },
-      { label: 'Privacy Policy', path: '/privacy' },
-      { label: 'Terms of Service', path: '/terms' },
-      { label: 'Cookie Settings', path: '/privacy' },
-    ],
-    title: 'Support',
-  },
-  {
-    links: [
-      { label: 'iOS App', path: '/mobile-app' },
-      { label: 'Android App', path: '/mobile-app' },
-      { label: 'Web Player', path: '/mobile-app' },
-    ],
-    title: 'Apps',
-  },
-];
-
-const NAV_ITEMS: Array<{ label: string; path: string }> = [
-  { label: 'Courses', path: '/catalog' },
-  { label: 'Mentors', path: '/search' },
-  { label: 'Pricing', path: '/business' },
-  { label: 'Enterprise', path: '/business' },
-];
 
 function toReviewStars(value: number | null | undefined): number {
   const normalized = Number.isFinite(value) ? Number(value) : 0;
@@ -172,8 +119,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
   );
 
   const heroImage = featuredCourses[0]?.coverImage || null;
-  const currentYear = new Date().getFullYear();
-
   const isFeaturedLoading =
     isCoursesLoading ||
     firstCourseQuery.isLoading ||
@@ -284,44 +229,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
   return (
     <div className="el-home">
-      <header className="el-header">
-        <div className="el-container">
-          <div className="el-header-row">
-            <div className="el-header-left">
-              <button className="el-brand" onClick={() => onNavigate('/')} type="button">
-                <span className="el-brand-icon">
-                  <GraduationCap size={18} />
-                </span>
-                <span className="el-brand-text">EliteLearn</span>
-              </button>
-
-              <nav className="el-nav" aria-label="Main navigation">
-                {NAV_ITEMS.map((item) => (
-                  <button className="el-nav-link" key={item.label} onClick={() => onNavigate(item.path)} type="button">
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            <div className="el-header-actions">
-              <div className="el-header-search" role="search">
-                <Search className="el-search-icon" size={18} />
-                <input className="el-header-search-input" placeholder="Search skills..." type="text" />
-              </div>
-
-              <button className="el-login-btn" onClick={() => onNavigate('/auth/signin')} type="button">
-                Log in
-              </button>
-
-              <button className="el-primary-btn" onClick={() => onNavigate('/auth/signup')} type="button">
-                Get Started
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+      <PublicHeaderBar currentPath="/" onNavigate={onNavigate} />
       <main className="el-main">
         <section className="el-hero-section">
           <div className="el-container">
@@ -555,54 +463,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </section>
       </main>
-
-      <footer className="el-footer">
-        <div className="el-container">
-          <div className="el-footer-grid">
-            <div className="el-footer-brand-col">
-              <button className="el-footer-brand" onClick={() => onNavigate('/')} type="button">
-                <span className="el-footer-brand-icon">
-                  <GraduationCap size={18} />
-                </span>
-                <span className="el-footer-brand-text">EliteLearn</span>
-              </button>
-
-              <p className="el-footer-brand-copy">
-                Empowering the next generation of digital leaders through premium education and global networking.
-              </p>
-
-              <div className="el-footer-socials">
-                <button className="el-footer-social-btn" type="button"><Facebook size={18} /></button>
-                <button className="el-footer-social-btn" type="button"><Twitter size={18} /></button>
-                <button className="el-footer-social-btn" type="button"><Instagram size={18} /></button>
-                <button className="el-footer-social-btn" type="button"><Linkedin size={18} /></button>
-              </div>
-            </div>
-
-            {footerColumns.map((column) => (
-              <div className="el-footer-links-col" key={column.title}>
-                <h4>{column.title}</h4>
-                <ul>
-                  {column.links.map((link) => (
-                    <li key={link.label}>
-                      <button onClick={() => onNavigate(link.path)} type="button">{link.label}</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="el-footer-bottom">
-            <p>Copyright {currentYear} EliteLearn Inc. All rights reserved.</p>
-            <div className="el-footer-meta-links">
-              <button onClick={() => onNavigate('/privacy')} type="button">Security</button>
-              <button onClick={() => onNavigate('/search')} type="button">Sitemap</button>
-              <button onClick={() => onNavigate('/terms')} type="button">Legal</button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooterBar onNavigate={onNavigate} />
     </div>
   );
 }
+

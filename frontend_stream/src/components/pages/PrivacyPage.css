@@ -1,0 +1,465 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+.pvp-page,
+.pvp-page * {
+  box-sizing: border-box;
+}
+
+.pvp-page {
+  --pvp-primary: #1152d4;
+  --pvp-bg: #fafafb;
+  --pvp-surface: #ffffff;
+  --pvp-text: #0f172a;
+  --pvp-muted: #64748b;
+  --pvp-border: #e2e8f0;
+  min-height: 100vh;
+  background: var(--pvp-bg);
+  color: var(--pvp-text);
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.pvp-container {
+  width: min(1280px, calc(100% - 2.5rem));
+  margin: 0 auto;
+}
+
+.pvp-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--pvp-border);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+}
+
+.pvp-header-row {
+  height: 4.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pvp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.pvp-brand,
+.pvp-footer-brand {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pvp-brand-icon,
+.pvp-footer-brand-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: var(--pvp-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pvp-brand-text {
+  font-family: 'Lexend', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pvp-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.pvp-nav button,
+.pvp-footer-links button,
+.pvp-breadcrumb button,
+.pvp-sidebar-link,
+.pvp-legal-box button,
+.pvp-signin {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pvp-nav button {
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.pvp-nav button:hover {
+  color: var(--pvp-primary);
+}
+
+.pvp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.pvp-search-wrap {
+  width: 240px;
+  height: 2.45rem;
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.7rem;
+  color: #94a3b8;
+}
+
+.pvp-search-wrap input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  outline: none;
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.pvp-signin {
+  border-radius: 0.7rem;
+  background: var(--pvp-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.6rem 0.95rem;
+}
+
+.pvp-main {
+  padding-top: 2.2rem;
+  padding-bottom: 2.4rem;
+  flex: 1;
+}
+
+.pvp-headline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2.2rem;
+}
+
+.pvp-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  margin-bottom: 0.75rem;
+  color: #64748b;
+}
+
+.pvp-breadcrumb button {
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.pvp-breadcrumb span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pvp-headline h1 {
+  margin: 0;
+  font-family: 'Lexend', sans-serif;
+  font-size: clamp(2.2rem, 4.7vw, 3.15rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pvp-headline p {
+  margin: 0.55rem 0 0;
+  color: #64748b;
+}
+
+.pvp-headline-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+}
+
+.pvp-print {
+  border: 1px solid var(--pvp-border);
+  border-radius: 0.72rem;
+  background: #fff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.55rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pvp-headline-actions span {
+  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.pvp-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1.35rem;
+}
+
+.pvp-sidebar {
+  position: sticky;
+  top: 5.5rem;
+  height: fit-content;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.pvp-sidebar > p {
+  margin: 0 0 0.3rem;
+  padding: 0 0.7rem;
+  color: #94a3b8;
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pvp-sidebar-link {
+  border-radius: 0.6rem;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.58rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.pvp-sidebar-link:hover {
+  background: #f1f5f9;
+}
+
+.pvp-sidebar-link.is-active {
+  background: rgba(17, 82, 212, 0.1);
+  color: var(--pvp-primary);
+  border-right: 3px solid var(--pvp-primary);
+}
+
+.pvp-legal-box {
+  margin-top: 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(17, 82, 212, 0.16);
+  background: rgba(17, 82, 212, 0.06);
+  padding: 0.9rem;
+}
+
+.pvp-legal-box h3 {
+  margin: 0;
+  color: var(--pvp-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pvp-legal-box p {
+  margin: 0.45rem 0 0;
+  color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.pvp-legal-box button {
+  margin-top: 0.6rem;
+  color: var(--pvp-primary);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.pvp-article {
+  border: 1px solid #eef2f7;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  padding: 1.8rem;
+}
+
+.pvp-article-section + .pvp-article-section {
+  margin-top: 2.1rem;
+  padding-top: 2.1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pvp-article-section h2 {
+  margin: 0;
+  font-family: 'Lexend', sans-serif;
+  font-size: 1.38rem;
+  font-weight: 700;
+}
+
+.pvp-article-section p {
+  margin: 0.78rem 0 0;
+  color: #475569;
+  line-height: 1.68;
+}
+
+.pvp-article-section ul {
+  margin: 0.9rem 0 0;
+  padding-left: 1.2rem;
+  color: #475569;
+}
+
+.pvp-article-section li + li {
+  margin-top: 0.5rem;
+}
+
+.pvp-article-section li::marker {
+  color: var(--pvp-primary);
+}
+
+.pvp-info-box {
+  margin-top: 0.95rem;
+  border: 1px solid var(--pvp-border);
+  border-radius: 0.85rem;
+  background: #f8fafc;
+  padding: 0.85rem;
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  color: #475569;
+}
+
+.pvp-info-box h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.pvp-info-box p {
+  margin: 0.24rem 0 0;
+  font-size: 0.82rem;
+}
+
+.pvp-rights-grid {
+  margin-top: 0.95rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.pvp-rights-grid div {
+  border: 1px solid #eef2f7;
+  border-radius: 0.7rem;
+  padding: 0.72rem 0.75rem;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pvp-article-section address {
+  margin-top: 0.95rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.7rem;
+  background: #f8fafc;
+  padding: 0.9rem;
+  color: #475569;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  font-style: italic;
+}
+
+.pvp-footer {
+  border-top: 1px solid var(--pvp-border);
+  background: #fff;
+  padding: 1.3rem 0;
+}
+
+.pvp-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pvp-footer-brand {
+  color: #0f172a;
+  font-family: 'Lexend', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.pvp-footer-brand-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.pvp-footer-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.pvp-footer-links button {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.pvp-footer-links button.is-active,
+.pvp-footer-links button:hover {
+  color: var(--pvp-primary);
+}
+
+.pvp-footer-row p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.74rem;
+}
+
+@media (max-width: 1100px) {
+  .pvp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pvp-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .pvp-nav,
+  .pvp-search-wrap {
+    display: none;
+  }
+
+  .pvp-headline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pvp-headline-actions {
+    justify-items: start;
+  }
+
+  .pvp-footer-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

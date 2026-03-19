@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 public class AppProperties {
     private String mailFrom;
     private String frontendUrl;
+    private String supportEmail;
 
     // Getters et setters
     public String getMailFrom() {
@@ -24,5 +25,13 @@ public class AppProperties {
 
     public void setFrontendUrl(String frontendUrl) {
         this.frontendUrl = frontendUrl;
+    }
+
+    public String getSupportEmail() {
+        return supportEmail;
+    }
+
+    public void setSupportEmail(String supportEmail) {
+        this.supportEmail = supportEmail;
     }
 }

@@ -1,244 +1,259 @@
-import { useState } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { useTranslation } from '../../lib/i18n';
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
+import { useState, type FormEvent } from 'react';
+import {
+  Camera,
+  ExternalLink,
+  Globe,
+  Mail,
+  MapPin,
+  MessageCircle,
   Send,
-  MessageSquare,
   Users,
-  Shield
 } from 'lucide-react';
+import {
+  useGetHelpCenterContentQuery,
+  useSubmitContactRequestMutation,
+  type ContactSubjectValue,
+} from '../../store/api/publicSupportApi';
+import { PublicFooterBar } from '../layout/PublicFooterBar';
+import { PublicHeaderBar } from '../layout/PublicHeaderBar';
+import './ContactPage.css';
 
 interface ContactPageProps {
   onNavigate: (path: string) => void;
 }
 
-export function ContactPage({ onNavigate }: ContactPageProps) {
-  const { t } = useTranslation();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface ContactFormState {
+  email: string;
+  fullName: string;
+  message: string;
+  subject: ContactSubjectValue;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    alert('Votre message a été envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-    setIsSubmitting(false);
+const subjectOptions: Array<{ label: string; value: ContactSubjectValue }> = [
+  { label: 'General Inquiry', value: 'GENERAL_INQUIRY' },
+  { label: 'Course Admissions', value: 'COURSE_ADMISSIONS' },
+  { label: 'Technical Support', value: 'TECHNICAL_SUPPORT' },
+  { label: 'Partnership Opportunities', value: 'PARTNERSHIP_OPPORTUNITIES' },
+  { label: 'Other', value: 'OTHER' },
+];
+
+export function ContactPage({ onNavigate }: ContactPageProps) {
+  const [formState, setFormState] = useState<ContactFormState>({
+    email: '',
+    fullName: '',
+    message: '',
+    subject: 'GENERAL_INQUIRY',
+  });
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: helpCenterContent } = useGetHelpCenterContentQuery();
+  const [submitContactRequest, { isLoading }] = useSubmitContactRequestMutation();
+
+  const supportEmail = helpCenterContent?.supportEmail || 'hello@edupremium.edu';
+  const responseWindow = helpCenterContent?.responseWindow || 'within 24 hours';
+  const handleChange = <K extends keyof ContactFormState>(key: K, value: ContactFormState[K]) => {
+    setFormState((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const fullName = formState.fullName.trim();
+    const email = formState.email.trim();
+    const message = formState.message.trim();
+
+    if (!fullName || !email || !message) {
+      setFeedback(null);
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      const result = await submitContactRequest({
+        email,
+        fullName,
+        message,
+        sourcePage: 'CONTACT_PAGE',
+        subject: formState.subject,
+      }).unwrap();
+
+      setError(null);
+      setFeedback(result.message || 'Your message has been sent successfully.');
+      setFormState({
+        email: '',
+        fullName: '',
+        message: '',
+        subject: 'GENERAL_INQUIRY',
+      });
+    } catch {
+      setFeedback(null);
+      setError('Unable to send your message at the moment. Please try again.');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl mb-4">Contactez-nous</h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            Une question ? Un projet ? Notre équipe est là pour vous aider
+    <div className="ctp-page">
+      <PublicHeaderBar currentPath="/contact" onNavigate={onNavigate} />
+
+      <main className="ctp-main ctp-container">
+        <section className="ctp-hero">
+          <h1>Get in Touch</h1>
+          <p>
+            Our advisors and support specialists are ready to guide your learning journey.
+            Tell us what you need and we will get back to you quickly.
           </p>
-        </div>
-      </section>
+        </section>
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-3xl mb-6">Envoyez-nous un message</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="name" className="block text-sm font-medium mb-2">
-                          Nom complet *
-                        </label>
-                        <Input
-                          id="name"
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          required
-                          placeholder="Votre nom"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium mb-2">
-                          Email *
-                        </label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          required
-                          placeholder="votre@email.com"
-                        />
-                      </div>
-                    </div>
+        <section className="ctp-layout">
+          <article className="ctp-form-card">
+            <form className="ctp-form" onSubmit={handleSubmit}>
+              <div className="ctp-form-grid">
+                <label>
+                  <span>Full Name</span>
+                  <input
+                    onChange={(event) => handleChange('fullName', event.target.value)}
+                    placeholder="Jane Doe"
+                    required
+                    type="text"
+                    value={formState.fullName}
+                  />
+                </label>
 
-                    <div>
-                      <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                        Sujet *
-                      </label>
-                      <Input
-                        id="subject"
-                        type="text"
-                        value={formData.subject}
-                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                        required
-                        placeholder="De quoi souhaitez-vous parler ?"
-                      />
-                    </div>
+                <label>
+                  <span>Email Address</span>
+                  <input
+                    onChange={(event) => handleChange('email', event.target.value)}
+                    placeholder="jane@university.edu"
+                    required
+                    type="email"
+                    value={formState.email}
+                  />
+                </label>
+              </div>
 
-                    <div>
-                      <label htmlFor="message" className="block text-sm font-medium mb-2">
-                        Message *
-                      </label>
-                      <Textarea
-                        id="message"
-                        value={formData.message}
-                        onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                        required
-                        placeholder="Décrivez votre demande en détail..."
-                        rows={5}
-                      />
-                    </div>
+              <label>
+                <span>Subject</span>
+                <select
+                  onChange={(event) => handleChange('subject', event.target.value as ContactSubjectValue)}
+                  value={formState.subject}
+                >
+                  {subjectOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        'Envoi en cours...'
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Envoyer le message
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
+              <label>
+                <span>Message</span>
+                <textarea
+                  onChange={(event) => handleChange('message', event.target.value)}
+                  placeholder="How can we help you today?"
+                  required
+                  rows={5}
+                  value={formState.message}
+                />
+              </label>
 
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-3xl mb-6">Nos coordonnées</h2>
-                <div className="space-y-6">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Mail className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">Email</h3>
-                          <p className="text-muted-foreground">contact@stream-educatif.fr</p>
-                          <p className="text-sm text-muted-foreground">Réponse sous 24h</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              <button className="ctp-submit" disabled={isLoading} type="submit">
+                <Send size={16} />
+                {isLoading ? 'Sending...' : 'Send Message'}
+              </button>
 
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Phone className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">Téléphone</h3>
-                          <p className="text-muted-foreground">+33 1 23 45 67 89</p>
-                          <p className="text-sm text-muted-foreground">Lun-Ven 9h-18h</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              {feedback && <p className="ctp-feedback">{feedback}</p>}
+              {error && <p className="ctp-feedback is-error">{error}</p>}
+            </form>
+          </article>
 
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <MapPin className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">Adresse</h3>
-                          <p className="text-muted-foreground">123 Avenue de l'Innovation</p>
-                          <p className="text-muted-foreground">75001 Paris, France</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <Clock className="w-6 h-6 text-orange-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">Horaires d'ouverture</h3>
-                          <p className="text-muted-foreground">Lundi - Vendredi : 9h - 18h</p>
-                          <p className="text-muted-foreground">Weekend : Fermé</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          <aside className="ctp-sidebar">
+            <div className="ctp-info-list">
+              <div className="ctp-info-item">
+                <span className="ctp-info-icon">
+                  <Mail size={18} />
+                </span>
+                <div>
+                  <h3>Support Email</h3>
+                  <p>Response {responseWindow}</p>
+                  <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
                 </div>
               </div>
 
-              {/* FAQ Links */}
-              <div>
-                <h3 className="text-xl mb-4">Liens utiles</h3>
-                <div className="space-y-3">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => onNavigate('/faq')}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Questions fréquentes
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => onNavigate('/help')}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Centre d'aide
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => onNavigate('/terms')}
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Conditions d'utilisation
-                  </Button>
+              <div className="ctp-info-item">
+                <span className="ctp-info-icon">
+                  <MapPin size={18} />
+                </span>
+                <div>
+                  <h3>Office Address</h3>
+                  <p>
+                    University Innovation Hub
+                    <br />
+                    42 Learning Way, Ste 300
+                    <br />
+                    Palo Alto, CA 94301
+                  </p>
+                </div>
+              </div>
+
+              <div className="ctp-info-item">
+                <span className="ctp-info-icon">
+                  <Users size={18} />
+                </span>
+                <div>
+                  <h3>Social Media</h3>
+                  <div className="ctp-social-links">
+                    <a aria-label="Website" href="#">
+                      <Globe size={16} />
+                    </a>
+                    <a aria-label="Community" href="#">
+                      <Users size={16} />
+                    </a>
+                    <a aria-label="Gallery" href="#">
+                      <Camera size={16} />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="ctp-map">
+              <img
+                alt="Modern abstract map illustration showing campus location"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzEPVwO8c3mPoi7ZuTYJff5MSKrS7eTcGkYSbUzSZ4WcwZlet-_b8h6yTYe-BmXHnL0Fz2ghbCWb3hzExSSUNHz8pd0mJLfC2n9mnzobND5aY_0uLHMXFqmjf9FuXGa157TklIJPatDcEMosQOPRwFNmqx11bsI77vS2VVgrILZHonFMY-aZGllv2sBW9ODBqFn5Tvh9DmUgOcP7n4cqjKUE3HePsh6b7ybJs1dqqsoqVpAEeLU3R6M1PQhSMxabgILiWU0RsZJ6s"
+              />
+              <div className="ctp-map-overlay">
+                <span>View on Google Maps</span>
+                <ExternalLink size={15} />
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section className="ctp-support-banner">
+          <div className="ctp-support-copy">
+            <h2>Need a faster response?</h2>
+            <p>
+              Our live chat agents are online and ready to help you in real-time.
+            </p>
           </div>
-        </div>
-      </section>
+          <button onClick={() => onNavigate('/help')} type="button">
+            <MessageCircle size={18} />
+            Start Live Chat
+          </button>
+        </section>
+      </main>
+
+      <button
+        aria-label="Open chat"
+        className="ctp-floating-chat"
+        onClick={() => onNavigate('/help')}
+        type="button"
+      >
+        <MessageCircle size={24} />
+      </button>
+
+      <PublicFooterBar onNavigate={onNavigate} />
     </div>
   );
 }

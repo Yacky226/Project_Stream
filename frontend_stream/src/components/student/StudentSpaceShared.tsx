@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
+import { useAppSelector } from '../../hooks/redux';
 
 type StudentSpaceStatusType =
   | 'auth-loading'
@@ -146,35 +147,51 @@ export function formatStudentCompactNumber(value: number): string {
   }).format(value);
 }
 
-export function getStudentCategoryMeta(category: string) {
+export function getStudentCategoryMeta(category: string, isDark = false) {
   const normalized = category.toLowerCase();
   if (normalized.includes('design')) {
     return {
-      iconClass: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300',
-      pillClass: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+      iconClass: isDark
+        ? 'bg-rose-900/30 text-rose-300'
+        : 'bg-rose-100 text-rose-600',
+      pillClass: isDark
+        ? 'bg-rose-900/30 text-rose-300'
+        : 'bg-rose-100 text-rose-700',
     };
   }
   if (normalized.includes('market')) {
     return {
-      iconClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
-      pillClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+      iconClass: isDark
+        ? 'bg-amber-900/30 text-amber-300'
+        : 'bg-amber-100 text-amber-600',
+      pillClass: isDark
+        ? 'bg-amber-900/30 text-amber-300'
+        : 'bg-amber-100 text-amber-700',
     };
   }
   if (normalized.includes('business')) {
     return {
-      iconClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
-      pillClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+      iconClass: isDark
+        ? 'bg-emerald-900/30 text-emerald-300'
+        : 'bg-emerald-100 text-emerald-600',
+      pillClass: isDark
+        ? 'bg-emerald-900/30 text-emerald-300'
+        : 'bg-emerald-100 text-emerald-700',
     };
   }
   if (normalized.includes('develop') || normalized.includes('program')) {
     return {
-      iconClass: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300',
-      pillClass: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+      iconClass: isDark
+        ? 'bg-indigo-900/30 text-indigo-300'
+        : 'bg-indigo-100 text-indigo-600',
+      pillClass: isDark
+        ? 'bg-indigo-900/30 text-indigo-300'
+        : 'bg-indigo-100 text-indigo-700',
     };
   }
   return {
-    iconClass: 'bg-[#1152d4]/10 text-[#1152d4]',
-    pillClass: 'bg-[#1152d4]/10 text-[#1152d4]',
+    iconClass: isDark ? 'bg-[#1152d4]/20 text-[#8fb5ff]' : 'bg-[#1152d4]/10 text-[#1152d4]',
+    pillClass: isDark ? 'bg-[#1152d4]/20 text-[#8fb5ff]' : 'bg-[#1152d4]/10 text-[#1152d4]',
   };
 }
 
@@ -298,9 +315,18 @@ export function useStudentSpaceData(): StudentSpaceData {
 }
 
 export function StudentSpaceStatus({ shared }: { shared: StudentSpaceData }) {
+  const theme = useAppSelector((state) => state.ui.theme);
+  const prefersDark =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+
   if (shared.status === 'auth-loading' || shared.status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] dark:bg-[#101622]">
+      <div
+        className={`flex min-h-screen items-center justify-center ${
+          isDark ? 'bg-[#101622]' : 'bg-[#f6f6f8]'
+        }`}
+      >
         <Loader2 className="h-8 w-8 animate-spin text-[#1152d4]" />
       </div>
     );
@@ -354,13 +380,24 @@ export function StudentSpaceShell({
   unreadCount,
   children,
 }: StudentSpaceShellProps) {
+  const theme = useAppSelector((state) => state.ui.theme);
+  const prefersDark =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+
   return (
     <div
-      className="min-h-screen bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
+      className={`min-h-screen ${
+        isDark ? 'bg-[#101622] text-[#e2e8f0]' : 'bg-[#f6f6f8] text-[#0f172a]'
+      }`}
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
       <div className="flex min-h-screen overflow-hidden">
-        <aside className="hidden w-72 shrink-0 border-r border-[#1152d4]/10 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex lg:flex-col">
+        <aside
+          className={`hidden w-72 shrink-0 border-r lg:flex lg:flex-col ${
+            isDark ? 'border-[#1e293b] bg-[#0f172a]' : 'border-[#1152d4]/10 bg-white'
+          }`}
+        >
           <div className="flex items-center gap-3 p-6">
             <div className="rounded-2xl bg-[#1152d4] p-2 text-white">
               <GraduationCap className="h-5 w-5" />
@@ -380,7 +417,9 @@ export function StudentSpaceShell({
                   className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
                     active
                       ? 'bg-[#1152d4] text-white'
-                      : 'text-slate-600 hover:bg-[#1152d4]/10 hover:text-[#1152d4] dark:text-slate-400'
+                      : isDark
+                        ? 'text-[#cbd5e1] hover:bg-[#1152d4]/15 hover:text-[#8fb5ff]'
+                        : 'text-[#475569] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -389,7 +428,11 @@ export function StudentSpaceShell({
               );
             })}
 
-            <div className="px-4 pt-8 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            <div
+              className={`px-4 pt-8 text-[10px] font-bold uppercase tracking-[0.2em] ${
+                isDark ? 'text-[#94a3b8]' : 'text-[#94a3b8]'
+              }`}
+            >
               Account
             </div>
 
@@ -404,7 +447,9 @@ export function StudentSpaceShell({
                   className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
                     active
                       ? 'bg-[#1152d4] text-white'
-                      : 'text-slate-600 hover:bg-[#1152d4]/10 hover:text-[#1152d4] dark:text-slate-400'
+                      : isDark
+                        ? 'text-[#cbd5e1] hover:bg-[#1152d4]/15 hover:text-[#8fb5ff]'
+                        : 'text-[#475569] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -415,7 +460,7 @@ export function StudentSpaceShell({
           </nav>
 
           <div className="p-4">
-            <div className="rounded-[24px] border border-[#1152d4]/10 bg-[#1152d4]/5 p-4">
+            <div className={`rounded-[24px] border p-4 ${isDark ? 'border-[#1152d4]/20 bg-[#1152d4]/10' : 'border-[#1152d4]/10 bg-[#1152d4]/5'}`}>
               <div className="mb-3 flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={avatarUrl || undefined} />
@@ -425,7 +470,11 @@ export function StudentSpaceShell({
                 </Avatar>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold">{displayName}</p>
-                  <p className="text-[10px] font-semibold uppercase text-slate-500">
+                  <p
+                    className={`text-[10px] font-semibold uppercase ${
+                      isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'
+                    }`}
+                  >
                     {displayLevel}
                   </p>
                 </div>
@@ -441,14 +490,26 @@ export function StudentSpaceShell({
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          <header className="sticky top-0 z-20 border-b border-[#1152d4]/5 bg-[#f6f6f8]/85 px-4 py-4 backdrop-blur-md dark:bg-[#101622]/85 md:px-8">
+          <header
+            className={`sticky top-0 z-20 border-b px-4 py-4 backdrop-blur-md md:px-8 ${
+              isDark ? 'border-[#1e293b] bg-[#101622]/90' : 'border-[#1152d4]/5 bg-[#f6f6f8]/85'
+            }`}
+          >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="relative w-full md:max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search
+                  className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${
+                    isDark ? 'text-[#94a3b8]' : 'text-[#94a3b8]'
+                  }`}
+                />
                 <input
                   value={searchQuery}
                   onChange={(event) => onSearchChange(event.target.value)}
-                  className="h-11 w-full rounded-2xl border-none bg-white pl-10 pr-4 text-sm shadow-sm focus:ring-2 focus:ring-[#1152d4]/20 dark:bg-slate-800"
+                  className={`h-11 w-full rounded-2xl border-none pl-10 pr-4 text-sm shadow-sm focus:ring-2 focus:ring-[#1152d4]/20 ${
+                    isDark
+                      ? 'bg-[#1e293b] text-[#e2e8f0] placeholder:text-[#94a3b8]'
+                      : 'bg-white text-[#0f172a] placeholder:text-[#94a3b8]'
+                  }`}
                   placeholder={searchPlaceholder}
                   type="text"
                 />
@@ -457,7 +518,11 @@ export function StudentSpaceShell({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="relative rounded-2xl bg-white dark:bg-slate-800"
+                  className={`relative rounded-2xl ${
+                    isDark
+                      ? 'border-[#334155] bg-[#1e293b] text-[#e2e8f0] hover:bg-[#334155]'
+                      : 'border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]'
+                  }`}
                   onClick={() => onNavigate('/notifications')}
                 >
                   <Bell className="h-4 w-4" />
@@ -465,7 +530,9 @@ export function StudentSpaceShell({
                     <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
                   ) : null}
                 </Button>
-                <div className="hidden h-8 w-px bg-[#1152d4]/10 sm:block" />
+                <div
+                  className={`hidden h-8 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#1152d4]/10'}`}
+                />
                 <div className="hidden text-right sm:block">
                   <p className="text-xs font-bold">Today's Goal</p>
                   <p className="text-[10px] font-bold text-[#1152d4]">{goalProgress}% Complete</p>

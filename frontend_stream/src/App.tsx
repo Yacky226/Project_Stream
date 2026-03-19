@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { HeaderRedux } from './components/layout/HeaderRedux';
 import { Footer } from './components/layout/Footer';
 import { Chatbot } from './components/chatbot/Chatbot';
@@ -20,7 +20,58 @@ function AppContent() {
   const { theme } = useAppSelector(state => state.ui);
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
   const hasRedirected = useRef(false);
-  const isMarketingHome = currentPath === '/';
+  const isAuthRoute = currentPath.startsWith('/auth');
+  const isResetPasswordRoute = currentPath === '/reset-password';
+  const isCourseDetailRoute = /^\/courses\/[^/]+$/.test(currentPath);
+  const isLiveSessionRoute = /^\/courses\/[^/]+\/session\/[^/]+$/.test(currentPath);
+  const isTeacherProfileRoute = /^\/profile\/teacher\/[^/]+$/.test(currentPath);
+  const isProfileRoute = currentPath === '/profile';
+  const isCourseBuilderRoute =
+    currentPath === '/teacher/course-builder' ||
+    currentPath.startsWith('/teacher/course-builder/');
+  const isLiveSessionBuilderRoute =
+    currentPath === '/teacher/live-session-builder' ||
+    currentPath.startsWith('/teacher/live-session-builder/');
+  const isTeacherDashboardRoute = currentPath === '/teacher/dashboard';
+  const isAdminSpaceRoute = currentPath === '/admin' || currentPath.startsWith('/admin/');
+  const isStudentSpaceRoute =
+    currentPath === '/dashboard' || currentPath.startsWith('/student/');
+  const standalonePages = new Set([
+    '/',
+    '/catalog',
+    '/search',
+    '/courses/categories',
+    '/courses/programming',
+    '/courses/design',
+    '/courses/marketing',
+    '/courses/beginner',
+    '/blog',
+    '/mobile-app',
+    '/privacy',
+    '/help',
+    '/contact',
+    '/business',
+    '/careers',
+  ]);
+  const currentRouteMeta = getRouteMeta(currentPath);
+  const notFoundMeta = getRouteMeta('/404');
+  const isNotFoundRoute =
+    currentRouteMeta.title === notFoundMeta.title &&
+    currentRouteMeta.description === notFoundMeta.description;
+  const isFullscreenPage =
+    standalonePages.has(currentPath) ||
+    isAuthRoute ||
+    isResetPasswordRoute ||
+    isNotFoundRoute ||
+    isCourseDetailRoute ||
+    isLiveSessionRoute ||
+    isTeacherProfileRoute ||
+    isProfileRoute ||
+    isCourseBuilderRoute ||
+    isLiveSessionBuilderRoute ||
+    isTeacherDashboardRoute ||
+    isAdminSpaceRoute ||
+    isStudentSpaceRoute;
 
   // Initialize theme (only once on mount)
   useEffect(() => {
@@ -186,11 +237,11 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background flex flex-col">
-        {!isMarketingHome && <HeaderRedux onNavigate={navigate} currentPath={currentPath} />}
+        {!isFullscreenPage && <HeaderRedux onNavigate={navigate} currentPath={currentPath} />}
         <main className="flex-1 overflow-x-hidden">
           {renderPage()}
         </main>
-        {!isMarketingHome && <Footer onNavigate={navigate} />}
+        {!isFullscreenPage && <Footer onNavigate={navigate} />}
         
         {/* Chatbot - Available for authenticated users */}
         {isAuthenticated && (
@@ -200,10 +251,8 @@ function AppContent() {
           </>
         )}
         
-        {configUtils.isDevelopment() && (
-          <>
-            <ReduxDebug />
-          </>
+        {configUtils.isDevelopment() && import.meta.env.VITE_SHOW_REDUX_DEBUG === 'true' && (
+          <ReduxDebug />
         )}
       </div>
     </ErrorBoundary>

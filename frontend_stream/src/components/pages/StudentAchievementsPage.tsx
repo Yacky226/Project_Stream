@@ -1,24 +1,22 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  Bell,
   Bolt,
-  BookOpen,
   ChevronUp,
-  GraduationCap,
   MessageSquare,
   Sparkles,
   Star,
   Trophy,
   WandSparkles,
 } from 'lucide-react';
+import type { StudentDashboardCourse } from '../../types/dashboard';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
+  StudentSpaceShell,
   StudentSpaceStatus,
   calculateActivityStreak,
   formatStudentDateShort,
   useStudentSpaceData,
 } from '../student/StudentSpaceShared';
-import type { StudentDashboardCourse } from '../../types/dashboard';
 
 interface StudentAchievementsPageProps {
   onNavigate: (path: string | number) => void;
@@ -118,14 +116,23 @@ function buildTrophyCards(courses: StudentDashboardCourse[]): TrophyCard[] {
   }));
 }
 
+function matchesQuery(query: string, ...values: Array<string | number>) {
+  if (!query) return true;
+  return values.join(' ').toLowerCase().includes(query);
+}
+
 export function StudentAchievementsPage({
   onNavigate,
   currentPath,
 }: StudentAchievementsPageProps) {
   const shared = useStudentSpaceData();
+  const [searchQuery, setSearchQuery] = useState('');
+
   const dashboard = shared.dashboard;
   const courses = dashboard?.courses ?? [];
   const recentActivity = dashboard?.recentActivity ?? [];
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
   const streak = useMemo(
     () => calculateActivityStreak(recentActivity.map((activity) => activity.occurredAt)),
     [recentActivity],
@@ -144,7 +151,10 @@ export function StudentAchievementsPage({
   }, [dashboard, recentActivity.length, streak]);
 
   const totalLearners = 1200;
-  const globalRank = Math.max(1, Math.min(totalLearners, Math.round(totalLearners / Math.max(totalPoints / 450, 1))));
+  const globalRank = Math.max(
+    1,
+    Math.min(totalLearners, Math.round(totalLearners / Math.max(totalPoints / 450, 1))),
+  );
   const topPercent = Math.max(1, Math.round((globalRank / totalLearners) * 100));
   const todayGain = Math.max(25, Math.round(recentActivity.length * 30 + streak * 15));
 
@@ -158,8 +168,14 @@ export function StudentAchievementsPage({
         id: 'quick-learner',
         title: 'Quick Learner',
         description: 'Mastered 5 skills in 48h',
-        progress: dashboard.stats.completedCourses >= 1 ? 100 : Math.min(dashboard.stats.averageProgress, 100),
-        statusLabel: dashboard.stats.completedCourses >= 1 ? 'Unlocked' : `${dashboard.stats.averageProgress}% Complete`,
+        progress:
+          dashboard.stats.completedCourses >= 1
+            ? 100
+            : Math.min(dashboard.stats.averageProgress, 100),
+        statusLabel:
+          dashboard.stats.completedCourses >= 1
+            ? 'Unlocked'
+            : `${dashboard.stats.averageProgress}% Complete`,
         icon: Bolt,
         accentClassName: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300',
         progressClassName: 'bg-blue-500',
@@ -250,136 +266,118 @@ export function StudentAchievementsPage({
     ];
   }, [globalRank, shared.avatarUrl, shared.displayName, totalPoints]);
 
+  const visibleTrophyCards = useMemo(
+    () =>
+      trophyCards.filter((card) =>
+        matchesQuery(normalizedQuery, card.title, card.tag, card.issuer, card.dateLabel),
+      ),
+    [normalizedQuery, trophyCards],
+  );
+
+  const visibleSkillBadges = useMemo(
+    () =>
+      skillBadges.filter((badge) =>
+        matchesQuery(normalizedQuery, badge.title, badge.description, badge.statusLabel),
+      ),
+    [normalizedQuery, skillBadges],
+  );
+
+  const visibleMilestones = useMemo(
+    () =>
+      milestoneCards.filter((milestone) =>
+        matchesQuery(normalizedQuery, milestone.title, milestone.description, milestone.stage),
+      ),
+    [milestoneCards, normalizedQuery],
+  );
+
+  const visibleTopLeaderboard = useMemo(
+    () =>
+      leaderboard
+        .filter((entry) => !entry.highlighted)
+        .filter((entry) => matchesQuery(normalizedQuery, entry.name, entry.rank, entry.xp))
+        .slice(0, 3),
+    [leaderboard, normalizedQuery],
+  );
+
+  const currentUserLeaderboard = useMemo(
+    () => leaderboard.find((entry) => entry.highlighted),
+    [leaderboard],
+  );
+
+  const hasNoResult =
+    !visibleTrophyCards.length &&
+    !visibleSkillBadges.length &&
+    !visibleMilestones.length &&
+    !visibleTopLeaderboard.length;
+
   if (shared.status !== 'ready' || !dashboard) {
     return <StudentSpaceStatus shared={shared} />;
   }
 
   return (
-    <div
-      className="min-h-screen bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
-      style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
+    <StudentSpaceShell
+      currentPath={currentPath}
+      onNavigate={onNavigate}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search badges, trophies, milestones..."
+      displayName={shared.displayName}
+      displayLevel={shared.displayLevel}
+      initials={shared.initials}
+      avatarUrl={shared.avatarUrl}
+      goalProgress={shared.goalProgress}
+      unreadCount={shared.unreadCount}
     >
-      <div className="relative flex w-full flex-col overflow-x-hidden">
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/80">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-              <button type="button" onClick={() => onNavigate('/dashboard')} className="flex items-center gap-3">
-                <div className="rounded-lg bg-[#1152d4] p-2 text-white">
-                  <BookOpen className="block h-5 w-5" />
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="space-y-8 lg:col-span-8">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Points</p>
+                  <h3 className="mt-1 text-3xl font-bold">
+                    {formatXp(totalPoints)}{' '}
+                    <span className="text-sm font-normal text-[#1152d4]">XP</span>
+                  </h3>
+                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
+                    <ChevronUp className="h-4 w-4" />+{formatXp(todayGain)} today
+                  </p>
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-[#1152d4]">
-                  Elegant Academic
-                </h2>
-              </button>
+                <div className="rounded-xl bg-[#1152d4]/10 p-4 text-[#1152d4]">
+                  <Star className="h-10 w-10 fill-current" />
+                </div>
+              </div>
 
-              <nav className="hidden items-center gap-8 md:flex">
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/dashboard')}
-                  className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1152d4] dark:text-slate-400 dark:hover:text-[#1152d4]"
-                >
-                  Dashboard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/student/courses')}
-                  className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1152d4] dark:text-slate-400 dark:hover:text-[#1152d4]"
-                >
-                  Courses
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/student/achievements')}
-                  className="border-b-2 border-[#1152d4] pb-1 text-sm font-semibold text-[#1152d4]"
-                >
-                  Achievements
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/student/community')}
-                  className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1152d4] dark:text-slate-400 dark:hover:text-[#1152d4]"
-                >
-                  Community
-                </button>
-              </nav>
-
-              <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/notifications')}
-                  className="rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/profile')}
-                  className="h-10 w-10 overflow-hidden rounded-full border-2 border-[#1152d4]/20 bg-[#1152d4]/10"
-                >
-                  {shared.avatarUrl ? (
-                    <ImageWithFallback
-                      src={shared.avatarUrl}
-                      alt={shared.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[#1152d4]">
-                      {shared.initials}
-                    </div>
-                  )}
-                </button>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Global Rank</p>
+                  <h3 className="mt-1 text-3xl font-bold">
+                    #{globalRank}{' '}
+                    <span className="text-sm font-normal text-slate-400">/ {formatXp(totalLearners)}</span>
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-orange-500">Top {topPercent}% this month</p>
+                </div>
+                <div className="rounded-xl bg-amber-100 p-4 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300">
+                  <Trophy className="h-10 w-10 fill-current" />
+                </div>
               </div>
             </div>
-          </div>
-        </header>
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <div className="space-y-8 lg:col-span-8">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Points</p>
-                    <h3 className="mt-1 text-3xl font-bold">
-                      {formatXp(totalPoints)} <span className="text-sm font-normal text-[#1152d4]">XP</span>
-                    </h3>
-                    <p className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
-                      <ChevronUp className="h-4 w-4" /> +{formatXp(todayGain)} today
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-[#1152d4]/10 p-4 text-[#1152d4]">
-                    <Star className="h-10 w-10 fill-current" />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Global Rank</p>
-                    <h3 className="mt-1 text-3xl font-bold">
-                      #{globalRank} <span className="text-sm font-normal text-slate-400">/ {formatXp(totalLearners)}</span>
-                    </h3>
-                    <p className="mt-1 text-xs font-medium text-orange-500">Top {topPercent}% this month</p>
-                  </div>
-                  <div className="rounded-xl bg-amber-100 p-4 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300">
-                    <Trophy className="h-10 w-10 fill-current" />
-                  </div>
-                </div>
+            <section>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold tracking-tight">Trophy Case</h2>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/profile/public')}
+                  className="text-sm font-semibold text-[#1152d4] hover:underline"
+                >
+                  View All
+                </button>
               </div>
 
-              <section>
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-2xl font-bold tracking-tight">Trophy Case</h2>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/profile/public')}
-                    className="text-sm font-semibold text-[#1152d4] hover:underline"
-                  >
-                    View All
-                  </button>
-                </div>
-
+              {visibleTrophyCards.length ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  {trophyCards.map((card) => (
+                  {visibleTrophyCards.map((card) => (
                     <div
                       key={card.id}
                       className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
@@ -394,7 +392,9 @@ export function StudentAchievementsPage({
                       </div>
                       <div className="px-5 pb-5">
                         <div className="mb-2 flex items-center gap-2">
-                          <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${card.tagClassName}`}>
+                          <span
+                            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${card.tagClassName}`}
+                          >
                             {card.tag}
                           </span>
                           <span className="text-xs italic text-slate-400">{card.dateLabel}</span>
@@ -405,25 +405,37 @@ export function StudentAchievementsPage({
                     </div>
                   ))}
                 </div>
-              </section>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+                  No trophy matches your current search.
+                </div>
+              )}
+            </section>
 
-              <section>
-                <h2 className="mb-6 text-2xl font-bold tracking-tight">Skill Badges</h2>
+            <section>
+              <h2 className="mb-6 text-2xl font-bold tracking-tight">Skill Badges</h2>
+
+              {visibleSkillBadges.length ? (
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {skillBadges.map((badge) => {
+                  {visibleSkillBadges.map((badge) => {
                     const Icon = badge.icon;
                     return (
                       <div
                         key={badge.id}
                         className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900"
                       >
-                        <div className={`mb-3 flex h-16 w-16 items-center justify-center rounded-full ${badge.accentClassName}`}>
+                        <div
+                          className={`mb-3 flex h-16 w-16 items-center justify-center rounded-full ${badge.accentClassName}`}
+                        >
                           <Icon className="h-8 w-8 fill-current" />
                         </div>
                         <h5 className="text-sm font-bold">{badge.title}</h5>
                         <p className="mb-4 text-xs text-slate-500">{badge.description}</p>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                          <div className={`h-full ${badge.progressClassName}`} style={{ width: `${badge.progress}%` }} />
+                          <div
+                            className={`h-full ${badge.progressClassName}`}
+                            style={{ width: `${badge.progress}%` }}
+                          />
                         </div>
                         <span className={`mt-1 text-[10px] font-bold uppercase ${badge.labelClassName}`}>
                           {badge.statusLabel}
@@ -432,17 +444,23 @@ export function StudentAchievementsPage({
                     );
                   })}
                 </div>
-              </section>
-            </div>
-
-            <aside className="space-y-8 lg:col-span-4">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-100 p-6 dark:border-slate-800">
-                  <h3 className="text-lg font-bold">Leaderboard</h3>
-                  <p className="text-xs text-slate-500">Weekly Top Learners</p>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+                  No badge matches your current search.
                 </div>
-                <div className="p-2">
-                  {leaderboard.slice(0, 3).map((entry) => (
+              )}
+            </section>
+          </div>
+
+          <aside className="space-y-8 lg:col-span-4">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b border-slate-100 p-6 dark:border-slate-800">
+                <h3 className="text-lg font-bold">Leaderboard</h3>
+                <p className="text-xs text-slate-500">Weekly Top Learners</p>
+              </div>
+              <div className="p-2">
+                {visibleTopLeaderboard.length ? (
+                  visibleTopLeaderboard.map((entry) => (
                     <div
                       key={`${entry.rank}-${entry.name}`}
                       className="flex items-center gap-3 rounded-lg p-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -473,52 +491,54 @@ export function StudentAchievementsPage({
                         <Trophy className="h-4 w-4 fill-current text-amber-500" />
                       ) : null}
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <p className="px-3 py-2 text-sm text-slate-500">No leaderboard result for this search.</p>
+                )}
 
-                  <div className="mx-4 my-2 h-px bg-slate-100 dark:bg-slate-800" />
+                <div className="mx-4 my-2 h-px bg-slate-100 dark:bg-slate-800" />
 
-                  {leaderboard.slice(-1).map((entry) => (
-                    <div
-                      key={`${entry.rank}-${entry.name}`}
-                      className="flex items-center gap-3 rounded-xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-3"
-                    >
-                      <span className="w-6 text-sm font-bold text-[#1152d4]">{entry.rank}</span>
-                      <div className="h-10 w-10 overflow-hidden rounded-full border border-[#1152d4]/30 bg-[#1152d4]/20">
-                        {shared.avatarUrl ? (
-                          <ImageWithFallback
-                            src={shared.avatarUrl}
-                            alt={entry.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[#1152d4]">
-                            {shared.initials}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-[#1152d4]">{entry.name}</p>
-                        <p className="text-[10px] text-[#1152d4]/60">{formatXp(entry.xp)} XP</p>
-                      </div>
-                      <ChevronUp className="h-4 w-4 text-[#1152d4]" />
+                {currentUserLeaderboard ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-3">
+                    <span className="w-6 text-sm font-bold text-[#1152d4]">{currentUserLeaderboard.rank}</span>
+                    <div className="h-10 w-10 overflow-hidden rounded-full border border-[#1152d4]/30 bg-[#1152d4]/20">
+                      {shared.avatarUrl ? (
+                        <ImageWithFallback
+                          src={shared.avatarUrl}
+                          alt={currentUserLeaderboard.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[#1152d4]">
+                          {shared.initials}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-                <div className="bg-slate-50 p-4 text-center dark:bg-slate-800/50">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/student/community')}
-                    className="text-xs font-bold text-[#1152d4] hover:underline"
-                  >
-                    View Full Leaderboard
-                  </button>
-                </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-[#1152d4]">{currentUserLeaderboard.name}</p>
+                      <p className="text-[10px] text-[#1152d4]/60">{formatXp(currentUserLeaderboard.xp)} XP</p>
+                    </div>
+                    <ChevronUp className="h-4 w-4 text-[#1152d4]" />
+                  </div>
+                ) : null}
               </div>
+              <div className="bg-slate-50 p-4 text-center dark:bg-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/student/community')}
+                  className="text-xs font-bold text-[#1152d4] hover:underline"
+                >
+                  View Full Leaderboard
+                </button>
+              </div>
+            </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 className="mb-6 text-lg font-bold">Upcoming Milestones</h3>
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="mb-6 text-lg font-bold">Upcoming Milestones</h3>
+
+              {visibleMilestones.length ? (
                 <div className="relative space-y-6 before:absolute before:bottom-0 before:left-[11px] before:top-2 before:w-px before:bg-slate-200 dark:before:bg-slate-800">
-                  {milestoneCards.map((milestone, index) => (
+                  {visibleMilestones.map((milestone, index) => (
                     <div key={milestone.id} className="relative pl-8">
                       <div
                         className={`absolute left-0 top-1.5 z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 ${
@@ -531,9 +551,7 @@ export function StudentAchievementsPage({
                       </div>
                       <p
                         className={`mb-1 text-xs font-bold uppercase ${
-                          milestone.stage === 'In Progress'
-                            ? 'text-[#1152d4]'
-                            : 'text-slate-400'
+                          milestone.stage === 'In Progress' ? 'text-[#1152d4]' : 'text-slate-400'
                         }`}
                       >
                         {milestone.stage}
@@ -556,19 +574,21 @@ export function StudentAchievementsPage({
                     </div>
                   ))}
                 </div>
-              </div>
-            </aside>
-          </div>
-        </main>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+                  No milestone matches your current search.
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
 
-        <footer className="mt-12 border-t border-slate-200 bg-white py-8 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mx-auto max-w-7xl px-4 text-center">
-            <p className="text-sm text-slate-500">
-              © 2024 Elegant Academic Learning Platform. Empowering excellence since 2023.
-            </p>
+        {hasNoResult ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+            No element matches your search in achievements.
           </div>
-        </footer>
+        ) : null}
       </div>
-    </div>
+    </StudentSpaceShell>
   );
 }

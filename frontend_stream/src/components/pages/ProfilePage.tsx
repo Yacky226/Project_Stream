@@ -1,481 +1,486 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Edit, Loader2, Save, Shield, User } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { useAppDispatch } from '../../hooks/redux';
-import { updateProfile as updateAuthProfile } from '../../store/slices/authSlice';
-import { getUserRoleLabel, normalizeUserRole } from '../../lib/roleUtils';
+import { useMemo } from 'react';
+import {
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  CheckCircle2,
+  Flame,
+  GraduationCap,
+  Layers,
+  Link as LinkIcon,
+  Mail,
+  Sparkles,
+  Star,
+  User,
+} from 'lucide-react';
+import { useAppSelector } from '../../hooks/redux';
+import { normalizeUserRole } from '../../lib/roleUtils';
+import {
+  useGetProfileQuery,
+  useGetStudentLevelQuery,
+  useGetTeacherSpecialtyQuery,
+} from '../../store/api/userApi';
 import {
   useGetAdminDashboardQuery,
   useGetStudentDashboardQuery,
   useGetTeacherDashboardQuery,
 } from '../../store/api/dashboardApi';
-import {
-  useGetProfileQuery,
-  useGetStudentLevelQuery,
-  useGetTeacherSpecialtyQuery,
-  useUpdateProfileMutation,
-} from '../../store/api/userApi';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
-import { PageContainer } from '../layout/PageContainer';
-import { PageHeader } from '../layout/PageHeader';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
 
 interface ProfilePageProps {
   onNavigate: (path: string | number) => void;
 }
 
-interface ProfileFormState {
-  firstName: string;
-  lastName: string;
-  dateNaissance: string;
-  avatar: string;
-}
-
-interface RoleStat {
-  label: string;
+interface MetricCard {
+  icon: React.ComponentType<{ className?: string }>;
   value: string;
-  description: string;
-}
-
-function toInputDate(value?: string | null): string {
-  if (!value) {
-    return '';
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
-  }
-
-  const parts = value.split('/');
-  if (parts.length === 3) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2];
-    return `${year}-${month}-${day}`;
-  }
-
-  return '';
+  label: string;
 }
 
 function getInitials(firstName?: string, lastName?: string): string {
-  return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.trim() || 'U';
+  const first = firstName?.trim().charAt(0) || '';
+  const last = lastName?.trim().charAt(0) || '';
+  const initials = `${first}${last}`.toUpperCase();
+  return initials || 'U';
 }
 
-export function ProfilePage({ onNavigate }: ProfilePageProps) {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+function normalizeStatus(value?: string | null): string {
+  return (value || '').trim().toUpperCase();
+}
 
-  const {
-    data: profile,
-    isLoading: profileLoading,
-    error: profileError,
-  } = useGetProfileQuery(undefined, { skip: !isAuthenticated });
-  const currentRole = normalizeUserRole(profile?.role);
+function formatDate(value?: string | null): string {
+  if (!value) {
+    return 'N/A';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A';
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+function activityDescription(type: string, title: string, details?: string): string {
+  const normalizedType = (type || '').toLowerCase();
+  if (normalizedType === 'completed') {
+    return `Completed ${title}`;
+  }
+  if (normalizedType === 'enrolled') {
+    return `Enrolled in ${title}`;
+  }
+  if (normalizedType === 'session') {
+    return `Joined a live session: ${title}`;
+  }
+  if (normalizedType === 'progress') {
+    return `Progress update: ${title}`;
+  }
+  return details || title;
+}
+
+const badgeIcons = [Sparkles, Layers, BookOpen, Star, Award];
+
+export function ProfilePage({ onNavigate }: ProfilePageProps) {
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  const { data: profile, isLoading: profileLoading, error: profileError } = useGetProfileQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  const role = normalizeUserRole(profile?.role);
 
   const { data: studentLevel } = useGetStudentLevelQuery(undefined, {
-    skip: !profile || currentRole !== 'student' || Boolean(profile.niveau),
+    skip: !profile || role !== 'student' || Boolean(profile.niveau),
   });
+
   const { data: teacherSpecialty } = useGetTeacherSpecialtyQuery(undefined, {
-    skip: !profile || currentRole !== 'teacher' || Boolean(profile.specialite),
-  });
-  const { data: studentDashboard, isFetching: studentStatsLoading } = useGetStudentDashboardQuery(
-    undefined,
-    {
-      skip: !profile || currentRole !== 'student',
-    },
-  );
-  const { data: teacherDashboard, isFetching: teacherStatsLoading } = useGetTeacherDashboardQuery(
-    undefined,
-    {
-      skip: !profile || currentRole !== 'teacher',
-    },
-  );
-  const { data: adminDashboard, isFetching: adminStatsLoading } = useGetAdminDashboardQuery(
-    undefined,
-    {
-      skip: !profile || currentRole !== 'admin',
-    },
-  );
-
-  const [updateProfile, { isLoading: isSaving }] = useUpdateProfileMutation();
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
-  const [form, setForm] = useState<ProfileFormState>({
-    firstName: '',
-    lastName: '',
-    dateNaissance: '',
-    avatar: '',
+    skip: !profile || role !== 'teacher' || Boolean(profile.specialite),
   });
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      onNavigate('/auth/signin');
+  const { data: studentDashboard, isLoading: studentLoading } = useGetStudentDashboardQuery(undefined, {
+    skip: !profile || role !== 'student',
+  });
+
+  const { data: teacherDashboard, isLoading: teacherLoading } = useGetTeacherDashboardQuery(undefined, {
+    skip: !profile || role !== 'teacher',
+  });
+
+  const { data: adminDashboard, isLoading: adminLoading } = useGetAdminDashboardQuery(undefined, {
+    skip: !profile || role !== 'admin',
+  });
+
+  const fullName = `${profile?.firstName || user?.firstName || ''} ${profile?.lastName || user?.lastName || ''}`.trim() || 'Learner';
+  const avatarUrl = profile?.avatar || user?.avatar || '';
+  const initials = getInitials(profile?.firstName || user?.firstName, profile?.lastName || user?.lastName);
+
+  const roleSubtitle = useMemo(() => {
+    if (role === 'teacher') {
+      return profile?.specialite || teacherSpecialty || 'Instructor profile';
     }
-  }, [authLoading, isAuthenticated, onNavigate]);
-
-  useEffect(() => {
-    if (!profile) {
-      return;
+    if (role === 'admin') {
+      return 'Platform administration';
     }
+    return profile?.niveau || studentLevel || 'Student profile';
+  }, [profile?.niveau, profile?.specialite, role, studentLevel, teacherSpecialty]);
 
-    setForm({
-      firstName: profile.firstName || '',
-      lastName: profile.lastName || '',
-      dateNaissance: toInputDate(profile.dateNaissance),
-      avatar: profile.avatar || '',
-    });
-  }, [profile]);
-
-  const roleMeta = useMemo(() => {
-    if (!profile) {
-      return null;
-    }
-
-    if (currentRole === 'student') {
-      return {
-        label: 'Niveau',
-        value: profile.niveau || studentLevel || 'Non renseigne',
-      };
-    }
-
-    if (currentRole === 'teacher') {
-      return {
-        label: 'Specialite',
-        value: profile.specialite || teacherSpecialty || 'Non renseignee',
-      };
+  const metrics = useMemo<MetricCard[]>(() => {
+    if (role === 'teacher' && teacherDashboard) {
+      return [
+        { icon: GraduationCap, value: String(teacherDashboard.stats.totalCourses), label: 'Courses Published' },
+        { icon: User, value: String(teacherDashboard.stats.totalStudents), label: 'Students Reached' },
+        { icon: BarChart3, value: `${teacherDashboard.stats.averageCompletionRate}%`, label: 'Completion Rate' },
+      ];
     }
 
-    return {
-      label: 'Acces',
-      value: 'Administration',
-    };
-  }, [profile, currentRole, studentLevel, teacherSpecialty]);
+    if (role === 'admin' && adminDashboard) {
+      return [
+        { icon: User, value: String(adminDashboard.stats.totalUsers), label: 'Total Users' },
+        { icon: GraduationCap, value: String(adminDashboard.stats.totalCourses), label: 'Courses' },
+        { icon: BarChart3, value: `${adminDashboard.stats.averageCompletionRate}%`, label: 'Completion Rate' },
+      ];
+    }
 
-  const roleStats = useMemo<RoleStat[]>(() => {
-    if (!profile) {
+    if (studentDashboard) {
+      const uniqueSkills = new Set(studentDashboard.courses.map((course) => course.category).filter(Boolean));
+      return [
+        { icon: Award, value: String(studentDashboard.stats.completedCourses), label: 'Courses Done' },
+        { icon: Star, value: String(uniqueSkills.size), label: 'Skills Earned' },
+        { icon: Flame, value: String(studentDashboard.stats.activeCourses), label: 'Active Courses' },
+      ];
+    }
+
+    return [
+      { icon: GraduationCap, value: '0', label: 'Courses Done' },
+      { icon: Star, value: '0', label: 'Skills Earned' },
+      { icon: Flame, value: '0', label: 'Active Courses' },
+    ];
+  }, [adminDashboard, role, studentDashboard, teacherDashboard]);
+
+  const completedCourses = useMemo(() => {
+    if (!studentDashboard) {
       return [];
     }
+    return studentDashboard.courses
+      .filter((course) => normalizeStatus(course.status) === 'TERMINE' || course.progress >= 100)
+      .slice(0, 2);
+  }, [studentDashboard]);
 
-    if (currentRole === 'student' && studentDashboard) {
-      return [
-        {
-          label: 'Cours inscrits',
-          value: String(studentDashboard.stats.enrolledCourses),
-          description: `${studentDashboard.stats.activeCourses} actifs`,
-        },
-        {
-          label: 'Cours termines',
-          value: String(studentDashboard.stats.completedCourses),
-          description: 'Parcours finalises',
-        },
-        {
-          label: 'Progression moyenne',
-          value: `${studentDashboard.stats.averageProgress}%`,
-          description: `${studentDashboard.stats.upcomingSessions} sessions a venir`,
-        },
-      ];
+  const inProgressCourses = useMemo(() => {
+    if (!studentDashboard) {
+      return [];
+    }
+    return studentDashboard.courses
+      .filter((course) => normalizeStatus(course.status) !== 'TERMINE' && course.progress < 100)
+      .slice(0, 2);
+  }, [studentDashboard]);
+
+  const skillBadges = useMemo(() => {
+    if (studentDashboard && studentDashboard.courses.length > 0) {
+      return Array.from(new Set(studentDashboard.courses.map((course) => course.category).filter(Boolean))).slice(0, 5);
     }
 
-    if (currentRole === 'teacher' && teacherDashboard) {
-      return [
-        {
-          label: 'Cours geres',
-          value: String(teacherDashboard.stats.totalCourses),
-          description: `${teacherDashboard.stats.liveSessions} sessions live`,
-        },
-        {
-          label: 'Etudiants inscrits',
-          value: String(teacherDashboard.stats.totalStudents),
-          description: `${teacherDashboard.stats.activeEnrollments} inscriptions actives`,
-        },
-        {
-          label: 'Completion moyenne',
-          value: `${teacherDashboard.stats.averageCompletionRate}%`,
-          description: `${teacherDashboard.stats.upcomingSessions} sessions planifiees`,
-        },
-      ];
+    if (role === 'teacher') {
+      return [profile?.specialite || teacherSpecialty || 'Mentorship'];
     }
 
-    if (currentRole === 'admin' && adminDashboard) {
-      return [
-        {
-          label: 'Utilisateurs',
-          value: String(adminDashboard.stats.totalUsers),
-          description: `${adminDashboard.stats.monthlyNewUsers} nouveaux (30j)`,
-        },
-        {
-          label: 'Cours',
-          value: String(adminDashboard.stats.totalCourses),
-          description: `${adminDashboard.stats.activeCourses} actifs`,
-        },
-        {
-          label: 'Inscriptions',
-          value: String(adminDashboard.stats.totalEnrollments),
-          description: `${adminDashboard.stats.averageCompletionRate}% completion moyenne`,
-        },
-      ];
+    if (role === 'admin') {
+      return ['Operations', 'Monitoring', 'Security'];
     }
 
-    return [];
-  }, [profile, currentRole, studentDashboard, teacherDashboard, adminDashboard]);
+    return [profile?.niveau || studentLevel || 'Learning'];
+  }, [profile?.niveau, profile?.specialite, role, studentDashboard, studentLevel, teacherSpecialty]);
 
-  const roleStatsLoading = useMemo(() => {
-    if (!profile) {
-      return false;
+  const activityFeed = useMemo(() => {
+    if (!studentDashboard?.recentActivity?.length) {
+      return [];
     }
+    return studentDashboard.recentActivity.slice(0, 3);
+  }, [studentDashboard]);
 
-    if (currentRole === 'student') {
-      return studentStatsLoading;
-    }
-    if (currentRole === 'teacher') {
-      return teacherStatsLoading;
-    }
-    if (currentRole === 'admin') {
-      return adminStatsLoading;
-    }
-    return false;
-  }, [currentRole, studentStatsLoading, teacherStatsLoading, adminStatsLoading]);
-
-  const handleSave = async () => {
-    setSubmitError(null);
-    setSubmitSuccess(null);
-
-    try {
-      const updated = await updateProfile({
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        dateNaissance: form.dateNaissance || null,
-        avatar: form.avatar.trim() || null,
-      }).unwrap();
-
-      dispatch(
-        updateAuthProfile({
-          firstName: updated.firstName,
-          lastName: updated.lastName,
-          avatar: updated.avatar,
-          dateNaissance: updated.dateNaissance,
-        }),
-      );
-
-      setSubmitSuccess('Profil mis a jour avec succes.');
-      setIsEditing(false);
-    } catch (error) {
-      const payload = error as { data?: { message?: string; error?: string } };
-      setSubmitError(payload?.data?.message || payload?.data?.error || 'Mise a jour impossible.');
-    }
-  };
-
-  if (authLoading || profileLoading) {
+  if (!isAuthenticated) {
     return (
-      <PageContainer>
-        <div className="flex min-h-[360px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </PageContainer>
+      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <p className="text-slate-600">Please sign in to view your profile.</p>
+        <button
+          className="mt-4 rounded-lg bg-[#1152d4] px-5 py-2 text-sm font-semibold text-white"
+          onClick={() => onNavigate('/auth/signin')}
+          type="button"
+        >
+          Go to sign in
+        </button>
+      </div>
     );
   }
 
-  if (!profile) {
+  if (profileLoading || studentLoading || teacherLoading || adminLoading) {
     return (
-      <PageContainer>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Impossible de charger votre profil.</AlertDescription>
-        </Alert>
-      </PageContainer>
+      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <p className="text-slate-600">Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (!profile || profileError) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <p className="text-slate-600">Unable to load profile data.</p>
+      </div>
     );
   }
 
   return (
-    <PageContainer maxWidth="4xl">
-      <PageHeader
-        title="Mon profil"
-        description="Informations personnelles connectees au backend."
-        onBack={() => onNavigate(-1)}
-      />
+    <div className="min-h-screen bg-[#f6f6f8] font-[Lexend,sans-serif] text-slate-900">
+      <nav className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <button className="flex items-center gap-2" onClick={() => onNavigate('/')} type="button">
+            <div className="flex h-8 w-8 items-center justify-center rounded bg-[#1152d4] text-white">
+              <GraduationCap className="h-4 w-4" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">EduElevate</span>
+          </button>
 
-      {profileError && (
-        <Alert className="mb-4" variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Le profil n'a pas pu etre charge.</AlertDescription>
-        </Alert>
-      )}
-      {submitError && (
-        <Alert className="mb-4" variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{submitError}</AlertDescription>
-        </Alert>
-      )}
-      {submitSuccess && (
-        <Alert className="mb-4">
-          <AlertDescription>{submitSuccess}</AlertDescription>
-        </Alert>
-      )}
+          <div className="hidden items-center gap-8 md:flex">
+            <button className="text-sm text-slate-600 hover:text-[#1152d4]" onClick={() => onNavigate('/catalog')} type="button">Browse Courses</button>
+            <button className="text-sm text-slate-600 hover:text-[#1152d4]" onClick={() => onNavigate('/search')} type="button">Mentors</button>
+            <button className="text-sm font-semibold text-[#1152d4]" onClick={() => onNavigate('/profile')} type="button">Profile</button>
+          </div>
 
-      <Card className="mb-6">
-        <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={form.avatar || undefined} />
-              <AvatarFallback>{getInitials(form.firstName, form.lastName)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-xl font-semibold">
-                {form.firstName} {form.lastName}
-              </h2>
-              <p className="text-sm text-muted-foreground">{profile.email}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <Badge>{getUserRoleLabel(profile.role)}</Badge>
-                {roleMeta && (
-                  <Badge variant="outline">
-                    {roleMeta.label}: {roleMeta.value}
-                  </Badge>
-                )}
-              </div>
-            </div>
+            <button className="rounded-full p-2 text-slate-500 hover:bg-slate-100" type="button">
+              <Bell className="h-5 w-5" />
+            </button>
+            <button className="h-8 w-8 overflow-hidden rounded-full border border-slate-300 bg-slate-200" onClick={() => onNavigate('/profile')} type="button">
+              {avatarUrl ? <ImageWithFallback alt={fullName} className="h-full w-full object-cover" src={avatarUrl} /> : <span className="text-[11px] font-bold text-[#1152d4]">{initials}</span>}
+            </button>
           </div>
-          {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Modifier
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
-                Annuler
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
+        </div>
+      </nav>
+
+      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <aside className="space-y-6 lg:col-span-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+              <div className="relative mx-auto mb-6 h-32 w-32">
+                {avatarUrl ? (
+                  <ImageWithFallback alt={fullName} className="h-full w-full rounded-full border-4 border-white object-cover shadow-lg" src={avatarUrl} />
                 ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Sauvegarder
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations personnelles</CardTitle>
-          <CardDescription>Ces donnees sont synchronisees avec l'API backend.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="profile-first-name">Prenom</Label>
-              <Input
-                id="profile-first-name"
-                value={form.firstName}
-                onChange={(event) => setForm((prev) => ({ ...prev, firstName: event.target.value }))}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-last-name">Nom</Label>
-              <Input
-                id="profile-last-name"
-                value={form.lastName}
-                onChange={(event) => setForm((prev) => ({ ...prev, lastName: event.target.value }))}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="profile-email">Email</Label>
-            <Input id="profile-email" value={profile.email} disabled />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="profile-birth-date">Date de naissance</Label>
-              <Input
-                id="profile-birth-date"
-                type="date"
-                value={form.dateNaissance}
-                onChange={(event) => setForm((prev) => ({ ...prev, dateNaissance: event.target.value }))}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-avatar">URL photo profil</Label>
-              <Input
-                id="profile-avatar"
-                value={form.avatar}
-                onChange={(event) => setForm((prev) => ({ ...prev, avatar: event.target.value }))}
-                placeholder="/Uploads/photos/..."
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border p-3">
-              <p className="mb-1 text-xs text-muted-foreground">Type de compte</p>
-              <p className="font-medium">
-                <User className="mr-1 inline h-4 w-4" />
-                {getUserRoleLabel(profile.role)}
-              </p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="mb-1 text-xs text-muted-foreground">Securite</p>
-              <p className="font-medium">
-                <Shield className="mr-1 inline h-4 w-4" />
-                Compte actif
-              </p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="mb-1 text-xs text-muted-foreground">Acces API</p>
-              <p className="font-medium">Synchronise</p>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <p className="mb-3 text-sm font-medium">Statistiques de role</p>
-            {roleStatsLoading && (
-              <div className="flex min-h-[72px] items-center justify-center rounded-lg border">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            )}
-            {!roleStatsLoading && roleStats.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {roleStats.map((stat) => (
-                  <div key={stat.label} className="rounded-lg border p-3">
-                    <p className="mb-1 text-xs text-muted-foreground">{stat.label}</p>
-                    <p className="text-lg font-semibold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.description}</p>
+                  <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-white bg-[#1152d4]/10 text-3xl font-bold text-[#1152d4] shadow-lg">
+                    {initials}
                   </div>
-                ))}
+                )}
+                <span className="absolute bottom-1 right-1 h-6 w-6 rounded-full border-4 border-white bg-emerald-500" />
               </div>
-            )}
-            {!roleStatsLoading && roleStats.length === 0 && (
-              <p className="rounded-lg border p-3 text-sm text-muted-foreground">
-                Aucune statistique specifique disponible pour ce role.
+
+              <h1 className="text-2xl font-bold">{fullName}</h1>
+              <p className="mt-2 text-sm text-slate-500">{roleSubtitle}</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                {role === 'teacher'
+                  ? 'Public instructor identity connected to your live backend profile and published courses.'
+                  : role === 'admin'
+                    ? 'Administration profile synchronized with platform analytics.'
+                    : 'Learning portfolio synchronized with your student dashboard.'}
               </p>
-            )}
+
+              <div className="mt-6 flex justify-center gap-4">
+                <button className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[#1152d4]/10 hover:text-[#1152d4]" type="button">
+                  <LinkIcon className="h-4 w-4" />
+                </button>
+                <button className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[#1152d4]/10 hover:text-[#1152d4]" type="button">
+                  <Mail className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-4 border-t border-slate-100 pt-8">
+                <div>
+                  <div className="text-xl font-bold text-slate-900">{metrics[0]?.value || '0'}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{metrics[0]?.label || 'Primary'}</div>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-slate-900">{metrics[1]?.value || '0'}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{metrics[1]?.label || 'Secondary'}</div>
+                </div>
+              </div>
+
+              <button
+                className="mt-8 w-full rounded-lg bg-[#1152d4] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1152d4]/20 hover:opacity-90"
+                onClick={() => onNavigate('/settings')}
+                type="button"
+              >
+                Manage profile
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-6 text-sm font-bold uppercase tracking-[0.16em] text-slate-900">Skill Badges</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {skillBadges.map((badge, index) => {
+                  const Icon = badgeIcons[index % badgeIcons.length];
+                  return (
+                    <div className="flex flex-col items-center gap-2" key={badge}>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1152d4]/10 text-[#1152d4]">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-center text-[10px] font-bold uppercase tracking-tight text-slate-500">{badge}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+
+          <div className="space-y-8 lg:col-span-8">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {metrics.map((metric) => {
+                const Icon = metric.icon;
+                return (
+                  <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-6" key={metric.label}>
+                    <div className="rounded-lg bg-[#1152d4]/10 p-3">
+                      <Icon className="h-5 w-5 text-[#1152d4]" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold">{metric.value}</div>
+                      <div className="text-xs font-semibold uppercase text-slate-500">{metric.label}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <section>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-xl font-bold">
+                  <CheckCircle2 className="h-5 w-5 text-[#1152d4]" />
+                  Verified Certificates
+                </h2>
+                <button className="text-sm font-semibold text-[#1152d4] hover:underline" onClick={() => onNavigate('/courses')} type="button">
+                  View All
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {completedCourses.length > 0 ? (
+                  completedCourses.map((course) => (
+                    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:shadow-xl hover:shadow-[#1152d4]/5" key={course.id}>
+                      <div className="relative h-40 bg-slate-100">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#1152d4]/20 to-transparent" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="flex h-32 w-48 flex-col justify-between rounded border border-slate-200 bg-white p-4 shadow-2xl">
+                            <div className="flex items-start justify-between">
+                              <GraduationCap className="h-3 w-3 text-[#1152d4]" />
+                              <span className="font-mono text-[8px] text-slate-400">ID: CERT-{course.id}</span>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-bold leading-tight text-slate-900">{course.title}</div>
+                              <div className="text-[8px] text-slate-500">{fullName}</div>
+                            </div>
+                            <div className="flex items-end justify-between border-t border-slate-100 pt-1">
+                              <span className="text-[6px] uppercase text-slate-400">EduElevate Academic</span>
+                              <CheckCircle2 className="h-[10px] w-[10px] text-emerald-500" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-5">
+                        <h3 className="mb-1 font-bold text-slate-900">{course.title}</h3>
+                        <p className="mb-4 text-xs text-slate-500">Completed: {formatDate(course.scheduledAt || course.enrolledAt)}</p>
+                        <button className="text-xs font-bold text-[#1152d4]" onClick={() => onNavigate(`/courses/${course.id}`)} type="button">
+                          VIEW CREDENTIAL
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 md:col-span-2">
+                    No completed course yet. Finish a course to unlock your first verified credential card.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-8">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Currently Learning</h2>
+                  <p className="mt-1 text-sm text-slate-500">Courses in progress</p>
+                </div>
+                <BookOpen className="h-9 w-9 text-[#1152d4]/40" />
+              </div>
+
+              <div className="space-y-4">
+                {inProgressCourses.length > 0 ? (
+                  inProgressCourses.map((course) => (
+                    <div className="rounded-lg border border-slate-200 bg-white p-4" key={course.id}>
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded bg-amber-100 text-amber-600">
+                            <BookOpen className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-slate-900">{course.title}</h4>
+                            <p className="text-xs text-slate-500">Category: {course.category}</p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-[#1152d4]">{course.progress}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-[#1152d4]" style={{ width: `${Math.min(100, Math.max(0, course.progress))}%` }} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
+                    You do not have an active course right now.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-6 text-xl font-bold">Learning Activity</h2>
+              <div className="space-y-6">
+                {activityFeed.length > 0 ? (
+                  <div className="relative pl-8 before:absolute before:bottom-0 before:left-3 before:top-2 before:w-0.5 before:bg-slate-200 before:content-['']">
+                    {activityFeed.map((activityItem, index) => (
+                      <div className="relative mb-8 last:mb-0" key={activityItem.id}>
+                        <span className={`absolute -left-[26px] top-0 h-4 w-4 rounded-full border-4 border-white ${index === 0 ? 'bg-[#1152d4]' : 'bg-slate-300'}`} />
+                        <div className="mb-1 text-sm text-slate-500">{formatDate(activityItem.occurredAt)}</div>
+                        <p className="text-slate-800">
+                          {activityDescription(activityItem.type, activityItem.title, activityItem.details)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
+                    No recent activity yet.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
-        </CardContent>
-      </Card>
-    </PageContainer>
+        </div>
+      </main>
+
+      <footer className="mt-16 border-t border-slate-200 bg-white py-10">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-[#1152d4] text-white">
+              <GraduationCap className="h-[14px] w-[14px]" />
+            </div>
+            <span className="text-sm font-bold text-slate-900">EduElevate Academic</span>
+          </div>
+          <p className="text-sm text-slate-500">Copyright {new Date().getFullYear()} EduElevate. Professional learning portfolios.</p>
+          <div className="mt-6 flex justify-center gap-6">
+            <button className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-[#1152d4]" onClick={() => onNavigate('/privacy')} type="button">Privacy</button>
+            <button className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-[#1152d4]" onClick={() => onNavigate('/terms')} type="button">Terms</button>
+            <button className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-[#1152d4]" onClick={() => onNavigate('/help')} type="button">Help Center</button>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

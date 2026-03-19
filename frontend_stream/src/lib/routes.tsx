@@ -9,6 +9,11 @@ const ResetPasswordPage = lazy(() => import('../components/pages/ResetPasswordPa
 const CourseCatalog = lazy(() => import('../components/pages/CourseCatalog').then(m => ({ default: m.CourseCatalog })));
 const CourseDetail = lazy(() => import('../components/pages/CourseDetail').then(m => ({ default: m.CourseDetail })));
 const StudentDashboard = lazy(() => import('../components/pages/StudentDashboard').then(m => ({ default: m.StudentDashboard })));
+const StudentCoursesPage = lazy(() => import('../components/pages/StudentCoursesPage').then(m => ({ default: m.StudentCoursesPage })));
+const StudentLearningPathPage = lazy(() => import('../components/pages/StudentLearningPathPage').then(m => ({ default: m.StudentLearningPathPage })));
+const StudentLiveSessionsPage = lazy(() => import('../components/pages/StudentLiveSessionsPage').then(m => ({ default: m.StudentLiveSessionsPage })));
+const StudentAchievementsPage = lazy(() => import('../components/pages/StudentAchievementsPage').then(m => ({ default: m.StudentAchievementsPage })));
+const StudentCommunityPage = lazy(() => import('../components/pages/StudentCommunityPage').then(m => ({ default: m.StudentCommunityPage })));
 const TeacherDashboard = lazy(() => import('../components/pages/TeacherDashboard').then(m => ({ default: m.TeacherDashboard })));
 const AdminDashboard = lazy(() => import('../components/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ProfilePage = lazy(() => import('../components/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
@@ -34,11 +39,10 @@ const AccessibilityPage = lazy(() => import('../components/pages/AccessibilityPa
 const BlogPage = lazy(() => import('../components/pages/BlogPage').then(m => ({ default: m.BlogPage })));
 const MobileAppPage = lazy(() => import('../components/pages/MobileAppPage').then(m => ({ default: m.MobileAppPage })));
 const CareersPage = lazy(() => import('../components/pages/CareersPage').then(m => ({ default: m.CareersPage })));
-const ProgrammingCoursesPage = lazy(() => import('../components/pages/ProgrammingCoursesPage').then(m => ({ default: m.ProgrammingCoursesPage })));
-const DesignCoursesPage = lazy(() => import('../components/pages/DesignCoursesPage').then(m => ({ default: m.DesignCoursesPage })));
-const MarketingCoursesPage = lazy(() => import('../components/pages/MarketingCoursesPage').then(m => ({ default: m.MarketingCoursesPage })));
-const BeginnerCoursesPage = lazy(() => import('../components/pages/BeginnerCoursesPage').then(m => ({ default: m.BeginnerCoursesPage })));
+const CategoryGeneralPage = lazy(() => import('../components/pages/CategoryGeneralPage').then(m => ({ default: m.CategoryGeneralPage })));
 const LiveSessionsPage = lazy(() => import('../components/pages/LiveSessionsPage').then(m => ({ default: m.LiveSessionsPage })));
+const CourseBuilderPage = lazy(() => import('../components/pages/CourseBuilderPage').then(m => ({ default: m.CourseBuilderPage })));
+const LiveSessionBuilderPage = lazy(() => import('../components/pages/LiveSessionBuilderPage').then(m => ({ default: m.LiveSessionBuilderPage })));
 
 // Route configuration interface
 export interface RouteConfig {
@@ -161,6 +165,46 @@ export const routes: RouteConfig[] = [
     description: 'GÃ©rez vos cours et votre progression'
   },
   {
+    path: '/student/courses',
+    component: withSuspense(StudentCoursesPage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Student Courses',
+    description: 'Suivi detaille des cours et inscriptions etudiant'
+  },
+  {
+    path: '/student/learning-path',
+    component: withSuspense(StudentLearningPathPage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Student Learning Path',
+    description: 'Parcours d apprentissage personalise'
+  },
+  {
+    path: '/student/live',
+    component: withSuspense(StudentLiveSessionsPage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Student Live Sessions',
+    description: 'Sessions live etudiant'
+  },
+  {
+    path: '/student/achievements',
+    component: withSuspense(StudentAchievementsPage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Student Achievements',
+    description: 'Recompenses, badges et classement etudiant'
+  },
+  {
+    path: '/student/community',
+    component: withSuspense(StudentCommunityPage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Student Community',
+    description: 'Communaute et contenu editorial etudiant'
+  },
+  {
     path: '/teacher/dashboard',
     component: withSuspense(TeacherDashboard),
     requireAuth: true,
@@ -234,6 +278,62 @@ export const routes: RouteConfig[] = [
     title: 'Cours et Sessions Live',
     description: 'Creez les cours et gerez plusieurs sessions live'
   },
+  {
+    path: '/teacher/course-builder',
+    component: withSuspense(CourseBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher', 'admin'],
+    title: 'Course Builder',
+    description: 'Creation d un cours en plusieurs etapes'
+  },
+  {
+    path: '/teacher/course-builder/curriculum',
+    component: withSuspense(CourseBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher', 'admin'],
+    title: 'Course Builder - Curriculum',
+    description: 'Construction du curriculum de cours'
+  },
+  {
+    path: '/teacher/course-builder/settings',
+    component: withSuspense(CourseBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher', 'admin'],
+    title: 'Course Builder - Settings',
+    description: 'Parametres et pricing du cours'
+  },
+  {
+    path: '/teacher/course-builder/publish',
+    component: withSuspense(CourseBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher', 'admin'],
+    title: 'Course Builder - Publish',
+    description: 'Revision et publication du cours'
+  },
+  {
+    path: '/teacher/live-session-builder',
+    component: withSuspense(LiveSessionBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher'],
+    title: 'Live Session Builder - Basic Info',
+    description: 'Creation de session live - informations de base'
+  },
+  {
+    path: '/teacher/live-session-builder/technical',
+    component: withSuspense(LiveSessionBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher'],
+    title: 'Live Session Builder - Technical Setup',
+    description: 'Creation de session live - configuration technique'
+  },
+  {
+    path: '/teacher/live-session-builder/audience',
+    component: withSuspense(LiveSessionBuilderPage),
+    requireAuth: true,
+    allowedRoles: ['teacher'],
+    title: 'Live Session Builder - Audience & Pricing',
+    description: 'Creation de session live - audience et pricing'
+  },
   
   // Live streaming routes
   {
@@ -245,26 +345,32 @@ export const routes: RouteConfig[] = [
   
   // Course category routes
   {
+    path: '/courses/categories',
+    component: withSuspense(CategoryGeneralPage),
+    title: 'Categories',
+    description: 'Vue generale des categories techniques'
+  },
+  {
     path: '/courses/programming',
-    component: withSuspense(ProgrammingCoursesPage),
+    component: withSuspense(CategoryGeneralPage),
     title: 'Cours de programmation',
     description: 'Apprenez la programmation'
   },
   {
     path: '/courses/design',
-    component: withSuspense(DesignCoursesPage),
+    component: withSuspense(CategoryGeneralPage),
     title: 'Cours de design',
     description: 'Apprenez le design'
   },
   {
     path: '/courses/marketing',
-    component: withSuspense(MarketingCoursesPage),
+    component: withSuspense(CategoryGeneralPage),
     title: 'Cours de marketing',
     description: 'Apprenez le marketing'
   },
   {
     path: '/courses/beginner',
-    component: withSuspense(BeginnerCoursesPage),
+    component: withSuspense(CategoryGeneralPage),
     title: 'Cours pour dÃ©butants',
     description: 'Courses parfaits pour commencer'
   },

@@ -1,31 +1,21 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
+  Bolt,
   Eye,
   EyeOff,
   GraduationCap,
   Loader2,
-  Sparkles,
+  ShieldCheck,
   UserRoundPlus,
 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Alert, AlertDescription } from '../ui/alert';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import { useAuth } from '../../hooks/useAuth';
 import type {
   LoginCredentials,
   RegisterData,
   RegisterTeacherData,
 } from '../../types/auth';
+import './AuthPageRedux.css';
 
 type SignupRole = 'student' | 'teacher';
 
@@ -36,26 +26,28 @@ interface AuthPageReduxProps {
 }
 
 interface AuthFormState {
+  acceptTerms: boolean;
+  confirmPassword: string;
+  dateNaissance: string;
   email: string;
-  password: string;
   firstName: string;
   lastName: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-  dateNaissance: string;
   niveau: string;
+  password: string;
+  rememberMe: boolean;
   specialite: string;
 }
 
 const initialForm: AuthFormState = {
+  acceptTerms: false,
+  confirmPassword: '',
+  dateNaissance: '',
   email: '',
-  password: '',
   firstName: '',
   lastName: '',
-  confirmPassword: '',
-  acceptTerms: false,
-  dateNaissance: '',
   niveau: 'DEBUTANT',
+  password: '',
+  rememberMe: false,
   specialite: '',
 };
 
@@ -80,23 +72,29 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function formatTime(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 export function AuthPageRedux({
   mode,
   onNavigate,
   defaultSignupRole = 'student',
 }: AuthPageReduxProps) {
   const {
+    canAttemptLogin,
+    clearError,
+    error,
+    forgotPassword,
+    isAuthenticated,
+    isLoading,
     login,
     register,
     registerTeacher,
-    forgotPassword,
-    isLoading,
-    error,
-    clearError,
-    canAttemptLogin,
     timeUntilUnblock,
     user,
-    isAuthenticated,
   } = useAuth();
 
   const [formData, setFormData] = useState<AuthFormState>(initialForm);
@@ -104,6 +102,11 @@ export function AuthPageRedux({
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [signupRole, setSignupRole] = useState<SignupRole>(defaultSignupRole);
+
+  const isSignin = mode === 'signin';
+  const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -121,62 +124,14 @@ export function AuthPageRedux({
   }, [clearError, mode]);
 
   useEffect(() => {
-    if (mode !== 'signup') {
-      return;
-    }
-
-    setSignupRole(defaultSignupRole);
-  }, [defaultSignupRole, mode]);
-
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.email.trim()) {
-      errors.email = "L'email est requis";
-    } else if (!isValidEmail(formData.email.trim())) {
-      errors.email = "Format d'email invalide";
-    }
-
-    if (mode !== 'forgot') {
-      if (!formData.password) {
-        errors.password = 'Le mot de passe est requis';
-      } else if (formData.password.length < 8) {
-        errors.password = 'Le mot de passe doit contenir au moins 8 caracteres';
-      }
-    }
-
     if (mode === 'signup') {
-      if (!formData.firstName.trim()) {
-        errors.firstName = 'Le prenom est requis';
-      }
-
-      if (!formData.lastName.trim()) {
-        errors.lastName = 'Le nom est requis';
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        errors.confirmPassword = 'Les mots de passe ne correspondent pas';
-      }
-
-      if (!formData.acceptTerms) {
-        errors.acceptTerms = "Vous devez accepter les conditions d'utilisation";
-      }
-
-      if (signupRole === 'teacher') {
-        if (!formData.specialite.trim()) {
-          errors.specialite = 'La specialite est requise';
-        }
-      } else if (!formData.niveau.trim()) {
-        errors.niveau = 'Le niveau est requis';
-      }
+      setSignupRole(defaultSignupRole);
     }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  }, [defaultSignupRole, mode]);
 
   const handleInputChange = (field: keyof AuthFormState, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+
     if (validationErrors[field]) {
       setValidationErrors((prev) => {
         const next = { ...prev };
@@ -186,29 +141,67 @@ export function AuthPageRedux({
     }
   };
 
-  const handleRoleChange = (role: SignupRole) => {
-    setSignupRole(role);
-    setValidationErrors((prev) => {
-      const next = { ...prev };
-      delete next.specialite;
-      delete next.niveau;
-      return next;
-    });
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required.';
+    } else if (!isValidEmail(formData.email.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+
+    if (!isForgot) {
+      if (!formData.password) {
+        errors.password = 'Password is required.';
+      } else if (formData.password.length < 8) {
+        errors.password = 'Password must be at least 8 characters.';
+      }
+    }
+
+    if (isSignup) {
+      if (!formData.firstName.trim()) {
+        errors.firstName = 'First name is required.';
+      }
+
+      if (!formData.lastName.trim()) {
+        errors.lastName = 'Last name is required.';
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match.';
+      }
+
+      if (!formData.acceptTerms) {
+        errors.acceptTerms = 'You must accept terms and privacy policy.';
+      }
+
+      if (signupRole === 'teacher') {
+        if (!formData.specialite.trim()) {
+          errors.specialite = 'Speciality is required for teachers.';
+        }
+      } else if (!formData.niveau.trim()) {
+        errors.niveau = 'Learning level is required.';
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setSuccessMessage(null);
 
-    if (!validateForm() || (mode === 'signin' && !canAttemptLogin)) {
+    if (!validateForm() || (isSignin && !canAttemptLogin)) {
       return;
     }
 
     try {
-      if (mode === 'signin') {
+      if (isSignin) {
         const credentials: LoginCredentials = {
           email: formData.email.trim(),
           password: formData.password,
+          rememberMe: formData.rememberMe,
         };
 
         const result = await login(credentials);
@@ -217,7 +210,7 @@ export function AuthPageRedux({
         return;
       }
 
-      if (mode === 'signup') {
+      if (isSignup) {
         if (signupRole === 'teacher') {
           const teacherData: RegisterTeacherData = {
             prenom: formData.firstName.trim(),
@@ -241,7 +234,7 @@ export function AuthPageRedux({
           return;
         }
 
-        const userData: RegisterData = {
+        const studentData: RegisterData = {
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
           firstName: formData.firstName.trim(),
@@ -253,367 +246,399 @@ export function AuthPageRedux({
           acceptPrivacy: formData.acceptTerms,
         };
 
-        const result = await register(userData);
+        const result = await register(studentData);
         const redirectUrl = getRedirectUrl();
         onNavigate(redirectUrl || getDashboardPath(result?.user?.role));
         return;
       }
 
       await forgotPassword(formData.email.trim());
-      setSuccessMessage(
-        'Si ce compte existe, un email de reinitialisation a ete envoye.',
-      );
-    } catch (err) {
-      console.error('Authentication error:', err);
+      setSuccessMessage('If this email exists, a reset link has been sent.');
+    } catch {
+      // Backend errors are handled through the auth slice and shown in UI.
     }
   };
 
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60_000);
-    const seconds = Math.floor((ms % 60_000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const getTitle = () => {
-    if (mode === 'signin') return 'Connexion';
-    if (mode === 'signup') return 'Inscription';
-    return 'Mot de passe oublie';
-  };
-
-  const getDescription = () => {
-    if (mode === 'signin') return 'Connectez-vous a votre compte Stream Educatif';
-    if (mode === 'signup') return 'Une seule page pour creer un compte etudiant ou enseignant';
-    return 'Entrez votre email pour reinitialiser votre mot de passe';
-  };
-
-  const isSignup = mode === 'signup';
+  const title = isForgot ? 'Reset password' : isSignup ? 'Create account' : 'Welcome back';
+  const subtitle = isForgot
+    ? 'Enter your email to receive a secure reset link.'
+    : 'Please enter your details to continue.';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 to-muted/30 px-4 py-12">
-      <div className="mx-auto w-full max-w-2xl">
-        <Card className="border-0 bg-background/95 shadow-2xl backdrop-blur">
-          <CardHeader className="space-y-2 text-center">
-            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Stream Educatif</span>
-            </div>
-            <CardTitle className="text-3xl">{getTitle()}</CardTitle>
-            <CardDescription>{getDescription()}</CardDescription>
-          </CardHeader>
+    <div className="authx-page">
+      <div className="authx-split-container">
+        <aside className="authx-aside">
+          <div className="authx-aside-overlay"></div>
 
-          <CardContent>
-            {mode === 'signin' && !canAttemptLogin && timeUntilUnblock > 0 && (
-              <Alert className="mb-4" variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Trop de tentatives de connexion. Reessayez dans {formatTime(timeUntilUnblock)}.
-                </AlertDescription>
-              </Alert>
+          <div className="authx-aside-brand">
+            <span className="authx-brand-icon-square" aria-hidden="true"></span>
+            <span className="authx-brand-name">Platform</span>
+          </div>
+
+          <div className="authx-aside-content">
+            <h1>Elevate your professional workflow.</h1>
+            <p>
+              Join thousands of professionals who use our platform to manage complex
+              projects and scale their business.
+            </p>
+
+            <div className="authx-aside-benefits">
+              <div className="authx-benefit-item">
+                <div className="authx-benefit-icon">
+                  <Bolt size={18} />
+                </div>
+                <div>
+                  <h3>Real-time analytics</h3>
+                  <p>Track every metric as it happens with zero latency.</p>
+                </div>
+              </div>
+
+              <div className="authx-benefit-item">
+                <div className="authx-benefit-icon">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <h3>Enterprise security</h3>
+                  <p>Your data is protected by strong security controls.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="authx-aside-footer">
+            <span>Copyright {currentYear} Platform Inc.</span>
+            <div className="authx-aside-links">
+              <button onClick={() => onNavigate('/privacy')} type="button">Privacy</button>
+              <button onClick={() => onNavigate('/terms')} type="button">Terms</button>
+            </div>
+          </div>
+        </aside>
+
+        <section className="authx-main">
+          <div className="authx-card">
+            <div className="authx-mobile-brand">
+              <GraduationCap size={18} />
+              <span>Platform</span>
+            </div>
+
+            <div className="authx-header">
+              <h2>{title}</h2>
+              <p>{subtitle}</p>
+            </div>
+
+            {!isForgot && (
+              <div className="authx-mode-toggle" role="tablist" aria-label="Authentication mode">
+                <button
+                  className={isSignin ? 'is-active' : ''}
+                  onClick={() => onNavigate('/auth/signin')}
+                  type="button"
+                >
+                  Login
+                </button>
+                <button
+                  className={isSignup ? 'is-active' : ''}
+                  onClick={() => onNavigate('/auth/signup')}
+                  type="button"
+                >
+                  Sign up
+                </button>
+              </div>
+            )}
+
+            {!isForgot && (
+              <div className="authx-social-grid">
+                <button type="button">
+                  <span className="authx-social-mark">G</span>
+                  Google
+                </button>
+                <button type="button">
+                  <span className="authx-social-mark">A</span>
+                  Apple
+                </button>
+              </div>
+            )}
+
+            {!isForgot && (
+              <div className="authx-divider">
+                <span>Or continue with email</span>
+              </div>
+            )}
+
+            {isSignin && !canAttemptLogin && timeUntilUnblock > 0 && (
+              <div className="authx-alert authx-alert-error">
+                <AlertCircle size={18} />
+                <span>
+                  Too many attempts. Please retry in {formatTime(timeUntilUnblock)}.
+                </span>
+              </div>
             )}
 
             {error && (
-              <Alert className="mb-4" variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="authx-alert authx-alert-error">
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
             )}
 
-            {successMessage && (
-              <Alert className="mb-4">
-                <AlertDescription>{successMessage}</AlertDescription>
-              </Alert>
-            )}
+            {successMessage && <div className="authx-alert authx-alert-success">{successMessage}</div>}
 
             {isSignup && (
-              <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="authx-role-toggle" role="group" aria-label="Signup role">
                 <button
+                  className={signupRole === 'student' ? 'is-active' : ''}
+                  onClick={() => setSignupRole('student')}
                   type="button"
-                  onClick={() => handleRoleChange('student')}
-                  className={[
-                    'rounded-xl border p-4 text-left transition-all',
-                    signupRole === 'student'
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/40',
-                  ].join(' ')}
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Etudiant</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Acces aux cours, live sessions et progression.
-                  </p>
+                  <GraduationCap size={16} /> Student
                 </button>
-
                 <button
+                  className={signupRole === 'teacher' ? 'is-active' : ''}
+                  onClick={() => setSignupRole('teacher')}
                   type="button"
-                  onClick={() => handleRoleChange('teacher')}
-                  className={[
-                    'rounded-xl border p-4 text-left transition-all',
-                    signupRole === 'teacher'
-                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/40',
-                  ].join(' ')}
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <UserRoundPlus className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Enseignant</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Creation de cours et animation de sessions live.
-                  </p>
+                  <UserRoundPlus size={16} /> Teacher
                 </button>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="authx-form" onSubmit={handleSubmit}>
               {isSignup && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Prenom</Label>
-                    <Input
+                <div className="authx-grid-2">
+                  <div className="authx-field">
+                    <label htmlFor="firstName">First name</label>
+                    <input
+                      className={`authx-input${validationErrors.firstName ? ' is-error' : ''}`}
+                      disabled={isLoading}
                       id="firstName"
+                      onChange={(event) => handleInputChange('firstName', event.target.value)}
                       type="text"
                       value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      disabled={isLoading}
-                      className={validationErrors.firstName ? 'border-destructive' : ''}
                     />
                     {validationErrors.firstName && (
-                      <p className="text-sm text-destructive">{validationErrors.firstName}</p>
+                      <p className="authx-field-error">{validationErrors.firstName}</p>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
-                    <Input
+                  <div className="authx-field">
+                    <label htmlFor="lastName">Last name</label>
+                    <input
+                      className={`authx-input${validationErrors.lastName ? ' is-error' : ''}`}
+                      disabled={isLoading}
                       id="lastName"
+                      onChange={(event) => handleInputChange('lastName', event.target.value)}
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      disabled={isLoading}
-                      className={validationErrors.lastName ? 'border-destructive' : ''}
                     />
                     {validationErrors.lastName && (
-                      <p className="text-sm text-destructive">{validationErrors.lastName}</p>
+                      <p className="authx-field-error">{validationErrors.lastName}</p>
                     )}
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
+              <div className="authx-field">
+                <label htmlFor="email">Email address</label>
+                <input
+                  className={`authx-input${validationErrors.email ? ' is-error' : ''}`}
+                  disabled={isLoading}
                   id="email"
+                  onChange={(event) => handleInputChange('email', event.target.value)}
+                  placeholder="name@company.com"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  disabled={isLoading}
-                  className={validationErrors.email ? 'border-destructive' : ''}
                 />
                 {validationErrors.email && (
-                  <p className="text-sm text-destructive">{validationErrors.email}</p>
+                  <p className="authx-field-error">{validationErrors.email}</p>
                 )}
               </div>
 
-              {mode !== 'forgot' && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
-                    <Input
+              {!isForgot && (
+                <div className="authx-field">
+                  <div className="authx-field-row">
+                    <label htmlFor="password">Password</label>
+                    {isSignin && (
+                      <button
+                        className="authx-link"
+                        onClick={() => onNavigate('/auth/forgot')}
+                        type="button"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="authx-password-wrap">
+                    <input
+                      className={`authx-input${validationErrors.password ? ' is-error' : ''}`}
+                      disabled={isLoading}
                       id="password"
+                      onChange={(event) => handleInputChange('password', event.target.value)}
+                      placeholder="••••••••"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      disabled={isLoading}
-                      className={validationErrors.password ? 'border-destructive' : ''}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    <button
+                      className="authx-password-toggle"
                       onClick={() => setShowPassword((prev) => !prev)}
+                      type="button"
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
+
                   {validationErrors.password && (
-                    <p className="text-sm text-destructive">{validationErrors.password}</p>
+                    <p className="authx-field-error">{validationErrors.password}</p>
                   )}
                 </div>
               )}
 
               {isSignup && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                  <Input
+                <div className="authx-field">
+                  <label htmlFor="confirmPassword">Confirm password</label>
+                  <input
+                    className={`authx-input${validationErrors.confirmPassword ? ' is-error' : ''}`}
+                    disabled={isLoading}
                     id="confirmPassword"
+                    onChange={(event) => handleInputChange('confirmPassword', event.target.value)}
                     type="password"
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    disabled={isLoading}
-                    className={validationErrors.confirmPassword ? 'border-destructive' : ''}
                   />
                   {validationErrors.confirmPassword && (
-                    <p className="text-sm text-destructive">
-                      {validationErrors.confirmPassword}
-                    </p>
+                    <p className="authx-field-error">{validationErrors.confirmPassword}</p>
                   )}
                 </div>
               )}
 
               {isSignup && (
-                <div className="space-y-2">
-                  <Label htmlFor="dateNaissance">Date de naissance (optionnel)</Label>
-                  <Input
+                <div className="authx-field">
+                  <label htmlFor="dateNaissance">Birth date (optional)</label>
+                  <input
+                    className="authx-input"
+                    disabled={isLoading}
                     id="dateNaissance"
+                    onChange={(event) => handleInputChange('dateNaissance', event.target.value)}
                     type="date"
                     value={formData.dateNaissance}
-                    onChange={(e) => handleInputChange('dateNaissance', e.target.value)}
-                    disabled={isLoading}
                   />
                 </div>
               )}
 
               {isSignup && signupRole === 'student' && (
-                <div className="space-y-2">
-                  <Label>Niveau</Label>
-                  <Select
-                    value={formData.niveau}
-                    onValueChange={(value) => handleInputChange('niveau', value)}
+                <div className="authx-field">
+                  <label htmlFor="niveau">Learning level</label>
+                  <select
+                    className={`authx-select${validationErrors.niveau ? ' is-error' : ''}`}
                     disabled={isLoading}
+                    id="niveau"
+                    onChange={(event) => handleInputChange('niveau', event.target.value)}
+                    value={formData.niveau}
                   >
-                    <SelectTrigger className={validationErrors.niveau ? 'border-destructive' : ''}>
-                      <SelectValue placeholder="Choisir un niveau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DEBUTANT">Debutant</SelectItem>
-                      <SelectItem value="INTERMEDIAIRE">Intermediaire</SelectItem>
-                      <SelectItem value="AVANCE">Avance</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="DEBUTANT">Beginner</option>
+                    <option value="INTERMEDIAIRE">Intermediate</option>
+                    <option value="AVANCE">Advanced</option>
+                  </select>
                   {validationErrors.niveau && (
-                    <p className="text-sm text-destructive">{validationErrors.niveau}</p>
+                    <p className="authx-field-error">{validationErrors.niveau}</p>
                   )}
                 </div>
               )}
 
               {isSignup && signupRole === 'teacher' && (
-                <div className="space-y-2">
-                  <Label htmlFor="specialite">Specialite</Label>
-                  <Input
+                <div className="authx-field">
+                  <label htmlFor="specialite">Speciality</label>
+                  <input
+                    className={`authx-input${validationErrors.specialite ? ' is-error' : ''}`}
+                    disabled={isLoading}
                     id="specialite"
+                    onChange={(event) => handleInputChange('specialite', event.target.value)}
+                    placeholder="Ex: Web development, Data science"
                     type="text"
                     value={formData.specialite}
-                    onChange={(e) => handleInputChange('specialite', e.target.value)}
-                    disabled={isLoading}
-                    placeholder="Ex: Developpement web, Data, Design UX"
-                    className={validationErrors.specialite ? 'border-destructive' : ''}
                   />
                   {validationErrors.specialite && (
-                    <p className="text-sm text-destructive">{validationErrors.specialite}</p>
+                    <p className="authx-field-error">{validationErrors.specialite}</p>
                   )}
                 </div>
+              )}
+
+              {isSignin && (
+                <label className="authx-check-row" htmlFor="rememberMe">
+                  <input
+                    checked={formData.rememberMe}
+                    disabled={isLoading}
+                    id="rememberMe"
+                    onChange={(event) => handleInputChange('rememberMe', event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Remember me for 30 days</span>
+                </label>
               )}
 
               {isSignup && (
                 <>
-                  <div className="flex items-center space-x-2">
+                  <label className="authx-check-row" htmlFor="acceptTerms">
                     <input
-                      id="acceptTerms"
-                      type="checkbox"
                       checked={formData.acceptTerms}
-                      onChange={(e) => handleInputChange('acceptTerms', e.target.checked)}
                       disabled={isLoading}
-                      className="h-4 w-4"
+                      id="acceptTerms"
+                      onChange={(event) => handleInputChange('acceptTerms', event.target.checked)}
+                      type="checkbox"
                     />
-                    <Label htmlFor="acceptTerms" className="text-sm">
-                      J'accepte les{' '}
-                      <button
-                        type="button"
-                        onClick={() => onNavigate('/terms')}
-                        className="text-primary hover:underline"
-                      >
-                        conditions d'utilisation
-                      </button>{' '}
-                      et la{' '}
-                      <button
-                        type="button"
-                        onClick={() => onNavigate('/privacy')}
-                        className="text-primary hover:underline"
-                      >
-                        politique de confidentialite
+                    <span>
+                      I accept
+                      <button className="authx-inline-link" onClick={() => onNavigate('/terms')} type="button">
+                        Terms
                       </button>
-                    </Label>
-                  </div>
-
+                      and
+                      <button className="authx-inline-link" onClick={() => onNavigate('/privacy')} type="button">
+                        Privacy policy
+                      </button>
+                    </span>
+                  </label>
                   {validationErrors.acceptTerms && (
-                    <p className="text-sm text-destructive">{validationErrors.acceptTerms}</p>
+                    <p className="authx-field-error">{validationErrors.acceptTerms}</p>
                   )}
                 </>
               )}
 
-              <Button
+              <button
+                className="authx-submit"
+                disabled={isLoading || (isSignin && !canAttemptLogin)}
                 type="submit"
-                className="w-full"
-                disabled={isLoading || (mode === 'signin' && !canAttemptLogin)}
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'signin' && 'Se connecter'}
-                {mode === 'signup' && 'Creer le compte'}
-                {mode === 'forgot' && 'Envoyer le lien'}
-              </Button>
+                {isLoading && <Loader2 className="authx-spin" size={16} />}
+                {isSignin && 'Sign In'}
+                {isSignup && 'Create account'}
+                {isForgot && 'Send reset link'}
+              </button>
             </form>
 
-            <div className="mt-5 space-y-2 text-center">
-              {mode === 'signin' && (
-                <>
-                  <button
-                    onClick={() => onNavigate('/auth/forgot')}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Mot de passe oublie ?
-                  </button>
-                  <div className="text-sm text-muted-foreground">
-                    Pas encore de compte ?{' '}
-                    <button
-                      onClick={() => onNavigate('/auth/signup')}
-                      className="text-primary hover:underline"
-                    >
-                      S'inscrire
-                    </button>
-                  </div>
-                </>
+            <div className="authx-bottom-links">
+              {isSignin && (
+                <p>
+                  Don&apos;t have an account?
+                  <button onClick={() => onNavigate('/auth/signup')} type="button">Create one</button>
+                </p>
               )}
 
-              {mode === 'signup' && (
-                <div className="text-sm text-muted-foreground">
-                  Deja un compte ?{' '}
-                  <button
-                    onClick={() => onNavigate('/auth/signin')}
-                    className="text-primary hover:underline"
-                  >
-                    Se connecter
-                  </button>
-                </div>
+              {isSignup && (
+                <p>
+                  Already have an account?
+                  <button onClick={() => onNavigate('/auth/signin')} type="button">Sign in</button>
+                </p>
               )}
 
-              {mode === 'forgot' && (
-                <button
-                  onClick={() => onNavigate('/auth/signin')}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Retour a la connexion
-                </button>
+              {isForgot && (
+                <p>
+                  Back to
+                  <button onClick={() => onNavigate('/auth/signin')} type="button">sign in</button>
+                </p>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="authx-mobile-footer">Copyright {currentYear} Platform Inc.</div>
+        </section>
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import { toLocalDateTimeInput } from '../live/liveSession.utils';
 
 interface LiveSessionBuilderPageProps {
   onNavigate: (path: string) => void;
+  currentPath?: string;
 }
 
 type BuilderStep = 1 | 2 | 3;
@@ -205,6 +206,18 @@ function progressForStep(step: BuilderStep) {
   return 100;
 }
 
+function stepToPath(step: BuilderStep) {
+  if (step === 2) return '/teacher/live-session-builder/technical';
+  if (step === 3) return '/teacher/live-session-builder/audience';
+  return '/teacher/live-session-builder';
+}
+
+function stepFromPath(path?: string): BuilderStep {
+  if (path?.includes('/teacher/live-session-builder/audience')) return 3;
+  if (path?.includes('/teacher/live-session-builder/technical')) return 2;
+  return 1;
+}
+
 function validateStepOne(draft: LiveBuilderDraft) {
   if (draft.sessionMode === 'existing' && !draft.selectedCourseId) {
     return 'Select an existing course before moving to technical setup.';
@@ -242,7 +255,7 @@ function validateStepThree(draft: LiveBuilderDraft) {
   return null;
 }
 
-export function LiveSessionBuilderPage({ onNavigate }: LiveSessionBuilderPageProps) {
+export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionBuilderPageProps) {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const shouldLoad = Boolean(isAuthenticated && user?.role === 'teacher');
   const { data: profile } = useGetProfileQuery(undefined, { skip: !shouldLoad });
@@ -332,6 +345,15 @@ export function LiveSessionBuilderPage({ onNavigate }: LiveSessionBuilderPagePro
   }, []);
 
   useEffect(() => {
+    if (!currentPath) {
+      return;
+    }
+
+    const routeStep = stepFromPath(currentPath);
+    setDraft((current) => (current.step === routeStep ? current : { ...current, step: routeStep }));
+  }, [currentPath]);
+
+  useEffect(() => {
     if (!hasHydratedDraft.current || typeof window === 'undefined') {
       return;
     }
@@ -393,12 +415,12 @@ export function LiveSessionBuilderPage({ onNavigate }: LiveSessionBuilderPagePro
         setErrorMessage(validation);
         return;
       }
-      updateDraft({ step: 2 });
+      onNavigate(stepToPath(2));
       return;
     }
 
     if (draft.step === 2) {
-      updateDraft({ step: 3 });
+      onNavigate(stepToPath(3));
     }
   };
 
@@ -408,7 +430,7 @@ export function LiveSessionBuilderPage({ onNavigate }: LiveSessionBuilderPagePro
       onNavigate('/teacher/live-sessions');
       return;
     }
-    updateDraft({ step: (draft.step - 1) as BuilderStep });
+    onNavigate(stepToPath((draft.step - 1) as BuilderStep));
   };
 
   const handlePublish = async () => {

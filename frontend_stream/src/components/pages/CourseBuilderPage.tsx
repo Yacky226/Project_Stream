@@ -28,6 +28,7 @@ import { getInitials } from '../../lib/utils';
 
 interface CourseBuilderPageProps {
   onNavigate: (path: string) => void;
+  currentPath?: string;
 }
 
 type BuilderStep = 1 | 2 | 3 | 4;
@@ -171,7 +172,21 @@ function stepLabel(step: BuilderStep) {
   }
 }
 
-export function CourseBuilderPage({ onNavigate }: CourseBuilderPageProps) {
+function stepToPath(step: BuilderStep) {
+  if (step === 2) return '/teacher/course-builder/curriculum';
+  if (step === 3) return '/teacher/course-builder/settings';
+  if (step === 4) return '/teacher/course-builder/publish';
+  return '/teacher/course-builder';
+}
+
+function stepFromPath(path?: string): BuilderStep {
+  if (path?.includes('/teacher/course-builder/publish')) return 4;
+  if (path?.includes('/teacher/course-builder/settings')) return 3;
+  if (path?.includes('/teacher/course-builder/curriculum')) return 2;
+  return 1;
+}
+
+export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPageProps) {
   const { user, isAuthenticated } = useAuth();
   const [createCourse, { isLoading: isPublishing }] = useCreateCourseMutation();
   const [draft, setDraft] = useState<CourseBuilderDraft>(() => createDefaultDraft());
@@ -205,6 +220,11 @@ export function CourseBuilderPage({ onNavigate }: CourseBuilderPageProps) {
       window.localStorage.removeItem(COURSE_BUILDER_STORAGE_KEY);
     }
   }, []);
+
+  useEffect(() => {
+    const routeStep = stepFromPath(currentPath);
+    setDraft((current) => (current.step === routeStep ? current : { ...current, step: routeStep }));
+  }, [currentPath]);
 
   const totalLessons = useMemo(
     () => draft.sections.reduce((count, section) => count + section.lessons.length, 0),
@@ -278,6 +298,10 @@ export function CourseBuilderPage({ onNavigate }: CourseBuilderPageProps) {
   const moveToStep = (step: BuilderStep) => {
     setDraft((current) => ({ ...current, step }));
     setErrorMessage(null);
+    const targetPath = stepToPath(step);
+    if (!currentPath || currentPath !== targetPath) {
+      onNavigate(targetPath);
+    }
   };
 
   const validateCurrentStep = () => {

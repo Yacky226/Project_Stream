@@ -1,558 +1,383 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { useTranslation } from '../../lib/i18n';
-import { 
-  Briefcase, 
-  MapPin, 
-  Clock, 
-  Users, 
-  Heart,
-  Zap,
-  Target,
-  Globe,
-  Coffee,
-  Laptop,
-  Search,
-  Filter,
-  ArrowRight,
-  CheckCircle,
-  Star,
-  TrendingUp
-} from 'lucide-react';
+import { FormEvent, useMemo, useState } from 'react';
+import { CheckCircle, Clock3, Filter, Heart, Lightbulb, MapPin, Search, Users, Verified } from 'lucide-react';
+import { useSubscribeToNewsletterMutation } from '../../store/api/publicSupportApi';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { PublicFooterBar } from '../layout/PublicFooterBar';
+import { PublicHeaderBar } from '../layout/PublicHeaderBar';
+import './CareersPage.css';
 
 interface CareersPageProps {
   onNavigate: (path: string) => void;
 }
 
-interface JobPosition {
+interface JobRole {
   id: string;
+  department: 'Engineering' | 'Design' | 'Marketing';
   title: string;
-  department: string;
   location: string;
-  type: 'CDI' | 'CDD' | 'Stage' | 'Freelance';
-  experience: string;
-  salary: string;
-  description: string;
-  requirements: string[];
-  benefits: string[];
-  featured: boolean;
+  type: 'Full-time';
 }
 
+const valueCards = [
+  {
+    icon: Lightbulb,
+    title: 'Innovation',
+    description:
+      'Pushing what is possible in EdTech through AI and immersive learning experiences.',
+  },
+  {
+    icon: Users,
+    title: 'Inclusion',
+    description:
+      'Building a classroom that welcomes every learner regardless of background or geography.',
+  },
+  {
+    icon: Verified,
+    title: 'Excellence',
+    description:
+      'Setting a high standard for pedagogy quality and platform engineering performance.',
+  },
+  {
+    icon: Heart,
+    title: 'Learner-First',
+    description:
+      'Every feature starts with solving a real learner need through empathy and impact.',
+  },
+];
+
+const jobRoles: JobRole[] = [
+  {
+    id: 'eng-senior-fullstack',
+    department: 'Engineering',
+    title: 'Senior Full Stack Engineer',
+    location: 'Remote / London',
+    type: 'Full-time',
+  },
+  {
+    id: 'design-lead-product',
+    department: 'Design',
+    title: 'Lead Product Designer',
+    location: 'San Francisco / Hybrid',
+    type: 'Full-time',
+  },
+  {
+    id: 'eng-ai-learning-scientist',
+    department: 'Engineering',
+    title: 'AI Learning Scientist',
+    location: 'Remote',
+    type: 'Full-time',
+  },
+  {
+    id: 'marketing-growth-manager',
+    department: 'Marketing',
+    title: 'Growth Marketing Manager',
+    location: 'New York / Hybrid',
+    type: 'Full-time',
+  },
+];
+
 export function CareersPage({ onNavigate }: CareersPageProps) {
-  const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState<'All' | JobRole['department']>('All');
+  const [selectedLocation, setSelectedLocation] = useState<
+    'All' | 'Remote' | 'London' | 'San Francisco' | 'New York'
+  >('All');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterFeedback, setNewsletterFeedback] = useState<string | null>(null);
 
-  const departments = [
-    { id: 'all', name: 'Tous les départements', count: 12 },
-    { id: 'engineering', name: 'Ingénierie', count: 5 },
-    { id: 'product', name: 'Produit', count: 3 },
-    { id: 'design', name: 'Design', count: 2 },
-    { id: 'marketing', name: 'Marketing', count: 2 }
-  ];
+  const [subscribeToNewsletter, { isLoading: isSubscribing }] = useSubscribeToNewsletterMutation();
 
-  const locations = [
-    { id: 'all', name: 'Tous les lieux' },
-    { id: 'paris', name: 'Paris' },
-    { id: 'lyon', name: 'Lyon' },
-    { id: 'remote', name: 'Télétravail' }
-  ];
+  const filteredRoles = useMemo(() => {
+    return jobRoles.filter((role) => {
+      const departmentMatch = selectedDepartment === 'All' || role.department === selectedDepartment;
+      const locationMatch = selectedLocation === 'All' || role.location.includes(selectedLocation);
+      return departmentMatch && locationMatch;
+    });
+  }, [selectedDepartment, selectedLocation]);
 
-  const jobPositions: JobPosition[] = [
-    {
-      id: '1',
-      title: 'Développeur Full Stack Senior',
-      department: 'engineering',
-      location: 'Paris / Remote',
-      type: 'CDI',
-      experience: '5+ ans',
-      salary: '60k - 80k €',
-      description: 'Rejoignez notre équipe technique pour développer la prochaine génération de notre plateforme d\'apprentissage.',
-      requirements: [
-        'Maîtrise de React, Node.js et TypeScript',
-        'Expérience avec les bases de données (PostgreSQL, MongoDB)',
-        'Connaissance des architectures cloud (AWS, Azure)',
-        'Méthodes Agile/Scrum'
-      ],
-      benefits: [
-        'Télétravail flexible',
-        'Formation continue',
-        'Équipement fourni',
-        'Assurance santé premium'
-      ],
-      featured: true
-    },
-    {
-      id: '2',
-      title: 'Designer UX/UI',
-      department: 'design',
-      location: 'Paris',
-      type: 'CDI',
-      experience: '3-5 ans',
-      salary: '45k - 60k €',
-      description: 'Créez des expériences utilisateur exceptionnelles pour nos millions d\'apprenants.',
-      requirements: [
-        'Portfolio démontrant des compétences en UX/UI',
-        'Maîtrise de Figma, Sketch, Adobe Creative Suite',
-        'Expérience en design thinking et recherche utilisateur',
-        'Connaissance des principes d\'accessibilité'
-      ],
-      benefits: [
-        'Horaires flexibles',
-        'Budget formation',
-        'Espaces créatifs',
-        'Team building réguliers'
-      ],
-      featured: false
-    },
-    {
-      id: '3',
-      title: 'Product Manager',
-      department: 'product',
-      location: 'Paris / Lyon',
-      type: 'CDI',
-      experience: '4+ ans',
-      salary: '55k - 75k €',
-      description: 'Pilotez le développement produit et définissez la stratégie de nos fonctionnalités.',
-      requirements: [
-        'Expérience en product management dans la tech',
-        'Compétences analytiques et data-driven',
-        'Excellente communication et leadership',
-        'Connaissance des méthodes agiles'
-      ],
-      benefits: [
-        'Participation aux bénéfices',
-        'Conférences internationales',
-        'Mentorat personnalisé',
-        'Congés sabbatiques'
-      ],
-      featured: true
-    },
-    {
-      id: '4',
-      title: 'Ingénieur DevOps',
-      department: 'engineering',
-      location: 'Remote',
-      type: 'CDI',
-      experience: '3-6 ans',
-      salary: '55k - 70k €',
-      description: 'Assurez la scalabilité et la fiabilité de notre infrastructure.',
-      requirements: [
-        'Expertise Docker, Kubernetes, CI/CD',
-        'Expérience cloud AWS/Azure/GCP',
-        'Monitoring et observabilité',
-        'Sécurité des systèmes'
-      ],
-      benefits: [
-        '100% télétravail',
-        'Matériel haut de gamme',
-        'Formations certifiantes',
-        'Stock options'
-      ],
-      featured: false
-    },
-    {
-      id: '5',
-      title: 'Stage - Développeur Frontend',
-      department: 'engineering',
-      location: 'Paris',
-      type: 'Stage',
-      experience: 'Étudiant',
-      salary: '1200 € / mois',
-      description: 'Découvrez le développement web moderne dans une équipe dynamique.',
-      requirements: [
-        'Formation en informatique (Bac+3/4)',
-        'Connaissances en JavaScript, React',
-        'Passion pour le frontend',
-        'Anglais courant'
-      ],
-      benefits: [
-        'Mentorat dédié',
-        'Projets concrets',
-        'Environnement startup',
-        'Possibilité d\'embauche'
-      ],
-      featured: false
+  const handleNewsletterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newsletterEmail.trim()) {
+      setNewsletterFeedback('Please provide a valid email address.');
+      return;
     }
-  ];
 
-  const companyValues = [
-    {
-      icon: <Heart className="w-8 h-8" />,
-      title: 'Passion',
-      description: 'Nous croyons en l\'impact transformateur de l\'éducation'
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: 'Collaboration',
-      description: 'L\'intelligence collective nous rend plus forts'
-    },
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: 'Excellence',
-      description: 'Nous visons toujours la qualité dans nos réalisations'
-    },
-    {
-      icon: <Zap className="w-8 h-8" />,
-      title: 'Innovation',
-      description: 'Nous repoussons les limites de l\'apprentissage en ligne'
+    setNewsletterFeedback(null);
+
+    try {
+      const response = await subscribeToNewsletter({
+        email: newsletterEmail.trim(),
+        sourcePage: 'careers',
+      }).unwrap();
+
+      setNewsletterFeedback(response.message || 'Subscription successful.');
+      setNewsletterEmail('');
+    } catch (error) {
+      const payload = error as { data?: { message?: string; error?: string } };
+      setNewsletterFeedback(payload?.data?.message || payload?.data?.error || 'Unable to subscribe right now.');
     }
-  ];
-
-  const filteredJobs = jobPositions.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = selectedDepartment === 'all' || job.department === selectedDepartment;
-    const matchesLocation = selectedLocation === 'all' || 
-                           job.location.toLowerCase().includes(selectedLocation);
-    
-    return matchesSearch && matchesDepartment && matchesLocation;
-  });
-
-  const featuredJobs = filteredJobs.filter(job => job.featured);
-  const regularJobs = filteredJobs.filter(job => !job.featured);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Rejoignez l'équipe Stream Éducatif
-            </h1>
-            <p className="text-xl text-green-100 mb-8">
-              Construisez l'avenir de l'éducation avec nous. Nous recherchons des talents 
-              passionnés pour révolutionner l'apprentissage en ligne.
-            </p>
-            
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold">50+</div>
-                <div className="text-green-200">Collaborateurs</div>
+    <div className="cr-page">
+      <PublicHeaderBar currentPath="/careers" onNavigate={onNavigate} />
+
+      <main className="cr-main">
+        <section className="cr-hero">
+          <div className="cr-shell cr-hero-grid">
+            <div className="cr-hero-copy">
+              <div className="cr-badge">
+                <span className="cr-badge-dot" />
+                WE ARE HIRING
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">15</div>
-                <div className="text-green-200">Nationalités</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">4.8★</div>
-                <div className="text-green-200">Glassdoor</div>
+
+              <h1 className="cr-hero-title">
+                Join the Future of <span>Education</span>
+              </h1>
+
+              <p className="cr-hero-subtitle">
+                Shape the next generation of learners. We are looking for passionate minds to redefine
+                digital academia with technology and empathy.
+              </p>
+
+              <div className="cr-hero-actions">
+                <button
+                  className="cr-btn cr-btn-primary"
+                  onClick={() => document.getElementById('jobs')?.scrollIntoView({ behavior: 'smooth' })}
+                  type="button"
+                >
+                  View Openings
+                </button>
+                <button
+                  className="cr-btn cr-btn-secondary"
+                  onClick={() => document.getElementById('mission')?.scrollIntoView({ behavior: 'smooth' })}
+                  type="button"
+                >
+                  Our Mission
+                </button>
               </div>
             </div>
 
-            <Button 
-              size="lg" 
-              className="bg-white text-green-600 hover:bg-gray-100"
-              onClick={() => document.getElementById('jobs')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Voir nos offres
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </section>
+            <div className="cr-hero-visual">
+              <div className="cr-hero-image-wrap">
+                <ImageWithFallback
+                  alt="Team collaboration"
+                  className="cr-hero-image"
+                  src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&auto=format&fit=crop"
+                />
+                <div className="cr-hero-overlay" />
+              </div>
 
-      {/* Company Values */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Nos Valeurs</h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Ces valeurs guident nos décisions quotidiennes et définissent notre culture d'entreprise
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {companyValues.map((value, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-8">
-                  <div className="text-primary mb-4 flex justify-center">
-                    {value.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{value.title}</h3>
-                  <p className="text-muted-foreground">{value.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Pourquoi nous rejoindre ?</h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Laptop className="w-6 h-6" />,
-                title: 'Télétravail Flexible',
-                description: 'Travaillez d\'où vous voulez, quand vous voulez'
-              },
-              {
-                icon: <TrendingUp className="w-6 h-6" />,
-                title: 'Évolution Rapide',
-                description: 'Opportunités de progression dans une startup en croissance'
-              },
-              {
-                icon: <Star className="w-6 h-6" />,
-                title: 'Formation Continue',
-                description: 'Budget formation et accès illimité à nos cours'
-              },
-              {
-                icon: <Coffee className="w-6 h-6" />,
-                title: 'Environnement Startup',
-                description: 'Café illimité, baby-foot et ambiance détendue'
-              },
-              {
-                icon: <Globe className="w-6 h-6" />,
-                title: 'Impact Global',
-                description: 'Votre travail impacte des millions d\'apprenants'
-              },
-              {
-                icon: <Heart className="w-6 h-6" />,
-                title: 'Équilibre Vie Pro/Perso',
-                description: 'Congés illimités et horaires flexibles'
-              }
-            ].map((benefit, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="p-3 bg-primary/10 text-primary rounded-lg">
-                      {benefit.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2">{benefit.title}</h3>
-                      <p className="text-muted-foreground text-sm">{benefit.description}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Job Listings */}
-      <section id="jobs" className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Offres d'Emploi</h2>
-            <p className="text-xl text-muted-foreground">
-              Trouvez le poste qui correspond à vos ambitions
-            </p>
-          </div>
-
-          {/* Search and Filters */}
-          <div className="mb-12">
-            <div className="grid lg:grid-cols-4 gap-4 mb-6">
-              <div className="lg:col-span-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                  <Input
-                    placeholder="Rechercher un poste..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="cr-floating-card">
+                <div className="cr-floating-icon">
+                  <Verified className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="cr-floating-label">Remote Friendly</p>
+                  <p className="cr-floating-value">100+ Global Team</p>
                 </div>
               </div>
-              <select 
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="px-3 py-2 border border-border rounded-md bg-background"
-              >
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name} ({dept.count})
-                  </option>
-                ))}
-              </select>
-              <select 
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="px-3 py-2 border border-border rounded-md bg-background"
-              >
-                {locations.map(loc => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
+        </section>
 
-          {/* Featured Jobs */}
-          {featuredJobs.length > 0 && (
-            <div className="mb-12">
-              <h3 className="text-2xl font-semibold mb-6 flex items-center">
-                <Star className="w-6 h-6 mr-2 text-yellow-500" />
-                Postes Prioritaires
-              </h3>
-              <div className="grid lg:grid-cols-2 gap-6">
-                {featuredJobs.map((job) => (
-                  <Card key={job.id} className="hover:shadow-lg transition-shadow border-primary/20">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl">{job.title}</CardTitle>
-                          <CardDescription className="flex items-center space-x-4 mt-2">
-                            <span className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
-                              {job.location}
-                            </span>
-                            <Badge variant={job.type === 'CDI' ? 'default' : 'secondary'}>
-                              {job.type}
-                            </Badge>
-                          </CardDescription>
-                        </div>
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          Prioritaire
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground mb-4">{job.description}</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                        <div>
-                          <span className="font-medium">Expérience:</span> {job.experience}
-                        </div>
-                        <div>
-                          <span className="font-medium">Salaire:</span> {job.salary}
-                        </div>
-                      </div>
+        <section className="cr-values">
+          <div className="cr-shell">
+            <div className="cr-section-head">
+              <h2>Our Core Values</h2>
+              <p>These principles guide every decision we make, from engineering to curriculum design.</p>
+            </div>
 
-                      <div className="flex justify-between items-center">
-                        <div className="text-sm text-muted-foreground">
-                          Département: {departments.find(d => d.id === job.department)?.name}
-                        </div>
-                        <Button>
-                          Postuler
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+            <div className="cr-values-grid">
+              {valueCards.map((value) => {
+                const Icon = value.icon;
+                return (
+                  <article className="cr-value-card" key={value.title}>
+                    <div className="cr-value-icon">
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <h3>{value.title}</h3>
+                    <p>{value.description}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="cr-mission" id="mission">
+          <div className="cr-shell cr-mission-grid">
+            <div className="cr-gallery-grid">
+              <div className="cr-gallery-col">
+                <ImageWithFallback
+                  alt="Team meeting"
+                  className="cr-gallery-image is-lg"
+                  src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&auto=format&fit=crop"
+                />
+                <ImageWithFallback
+                  alt="Office workspace"
+                  className="cr-gallery-image is-md"
+                  src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&auto=format&fit=crop"
+                />
+              </div>
+              <div className="cr-gallery-col is-offset">
+                <ImageWithFallback
+                  alt="Collaboration"
+                  className="cr-gallery-image is-md"
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&auto=format&fit=crop"
+                />
+                <ImageWithFallback
+                  alt="Workshop"
+                  className="cr-gallery-image is-lg"
+                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&auto=format&fit=crop"
+                />
               </div>
             </div>
-          )}
 
-          {/* Regular Jobs */}
-          <div>
-            <h3 className="text-2xl font-semibold mb-6">
-              Toutes les offres ({filteredJobs.length})
-            </h3>
-            
-            {regularJobs.length > 0 ? (
-              <div className="space-y-6">
-                {regularJobs.map((job) => (
-                  <Card key={job.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="grid lg:grid-cols-4 gap-6 items-center">
-                        <div className="lg:col-span-2">
-                          <h3 className="text-xl font-semibold mb-2">{job.title}</h3>
-                          <p className="text-muted-foreground mb-2">{job.description}</p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
-                              {job.location}
-                            </span>
-                            <span className="flex items-center">
-                              <Briefcase className="w-4 h-4 mr-1" />
-                              {job.experience}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Badge variant={job.type === 'CDI' ? 'default' : 'secondary'}>
-                            {job.type}
-                          </Badge>
-                          <div className="text-sm">
-                            <div className="font-medium">{job.salary}</div>
-                            <div className="text-muted-foreground">
-                              {departments.find(d => d.id === job.department)?.name}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end">
-                          <Button variant="outline">
-                            Voir le poste
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </div>
+            <div className="cr-mission-copy">
+              <h2>Life at EduFuture</h2>
+              <p>
+                We are a community of educators, builders, and dreamers. Growth happens when people are
+                challenged, supported, and trusted to experiment.
+              </p>
+              <ul className="cr-checklist">
+                <li>
+                  <CheckCircle className="h-5 w-5" />
+                  Flexible remote-first environment
+                </li>
+                <li>
+                  <CheckCircle className="h-5 w-5" />
+                  Annual learning stipend (3000+ USD)
+                </li>
+                <li>
+                  <CheckCircle className="h-5 w-5" />
+                  Equity options for full-time employees
+                </li>
+                <li>
+                  <CheckCircle className="h-5 w-5" />
+                  Weekly innovation sprint for side projects
+                </li>
+              </ul>
+
+              <blockquote className="cr-quote">
+                <p>
+                  "The scale of impact here is incredible. You build something today, and tomorrow thousands
+                  of students learn better because of it."
+                </p>
+                <cite>Sarah Chen, Senior Product Designer</cite>
+              </blockquote>
+            </div>
+          </div>
+        </section>
+
+        <section className="cr-jobs" id="jobs">
+          <div className="cr-shell">
+            <div className="cr-jobs-head">
+              <div>
+                <h2>Open Positions</h2>
+                <p>Join our team in London, San Francisco, New York, or Remote.</p>
+              </div>
+
+              <div className="cr-filters">
+                <div className="cr-select-wrap">
+                  <Filter className="cr-select-icon h-4 w-4" />
+                  <select
+                    className="cr-select"
+                    onChange={(event) => setSelectedDepartment(event.target.value as typeof selectedDepartment)}
+                    value={selectedDepartment}
+                  >
+                    <option value="All">All Departments</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Design">Design</option>
+                    <option value="Marketing">Marketing</option>
+                  </select>
+                </div>
+
+                <div className="cr-select-wrap">
+                  <Search className="cr-select-icon h-4 w-4" />
+                  <select
+                    className="cr-select"
+                    onChange={(event) => setSelectedLocation(event.target.value as typeof selectedLocation)}
+                    value={selectedLocation}
+                  >
+                    <option value="All">All Locations</option>
+                    <option value="Remote">Remote</option>
+                    <option value="London">London</option>
+                    <option value="San Francisco">San Francisco</option>
+                    <option value="New York">New York</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {filteredRoles.length > 0 ? (
+              <div className="cr-job-list">
+                {filteredRoles.map((role) => (
+                  <article className="cr-job-card" key={role.id}>
+                    <div>
+                      <span className="cr-job-department">{role.department}</span>
+                      <h3>{role.title}</h3>
+                      <div className="cr-job-meta">
+                        <span>
+                          <MapPin className="h-4 w-4" />
+                          {role.location}
+                        </span>
+                        <span>
+                          <Clock3 className="h-4 w-4" />
+                          {role.type}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+
+                    <button
+                      className="cr-btn cr-btn-ghost"
+                      onClick={() => onNavigate('/contact')}
+                      type="button"
+                    >
+                      View Role
+                    </button>
+                  </article>
                 ))}
               </div>
             ) : (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Aucun poste trouvé</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Essayez de modifier vos critères de recherche.
-                  </p>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setSelectedDepartment('all');
-                      setSelectedLocation('all');
-                    }}
-                  >
-                    Réinitialiser les filtres
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="cr-empty-state">No role matches the selected filters.</div>
             )}
-          </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-green-600 to-teal-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Vous ne trouvez pas le poste idéal ?
-          </h2>
-          <p className="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
-            Envoyez-nous votre candidature spontanée. Nous serions ravis d'échanger 
-            avec vous sur les opportunités futures.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              className="bg-white text-green-600 hover:bg-gray-100"
-              onClick={() => onNavigate('/contact')}
-            >
-              Candidature spontanée
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-white text-white hover:bg-white/10"
-              onClick={() => onNavigate('/contact')}
-            >
-              Nous contacter
-            </Button>
+            <div className="cr-open-application">
+              <p>Do not see the right role?</p>
+              <button onClick={() => onNavigate('/contact')} type="button">
+                Send us an open application
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="cr-newsletter">
+          <div className="cr-shell">
+            <div className="cr-newsletter-panel">
+              <h2>Stay in the loop</h2>
+              <p>
+                Subscribe to our talent newsletter to get notified about new openings and life at EduFuture.
+              </p>
+
+              <form className="cr-newsletter-form" onSubmit={handleNewsletterSubmit}>
+                <input
+                  onChange={(event) => setNewsletterEmail(event.target.value)}
+                  placeholder="Enter your email"
+                  type="email"
+                  value={newsletterEmail}
+                />
+                <button disabled={isSubscribing} type="submit">
+                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                </button>
+              </form>
+
+              {newsletterFeedback && <p className="cr-newsletter-feedback">{newsletterFeedback}</p>}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <PublicFooterBar onNavigate={onNavigate} />
     </div>
   );
 }

@@ -1,0 +1,582 @@
+.biz-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 420px at 90% 4%, rgba(17, 82, 212, 0.1), transparent 65%),
+    radial-gradient(640px 320px at 8% 18%, rgba(14, 165, 233, 0.08), transparent 70%),
+    #f6f6f8;
+  color: #0f172a;
+}
+
+.dark .biz-page {
+  background:
+    radial-gradient(900px 420px at 90% 4%, rgba(17, 82, 212, 0.16), transparent 65%),
+    radial-gradient(640px 320px at 8% 18%, rgba(14, 165, 233, 0.12), transparent 70%),
+    #101622;
+  color: #e2e8f0;
+}
+
+.biz-main {
+  width: 100%;
+  overflow-x: clip;
+}
+
+.biz-shell {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.biz-hero {
+  padding: 5.5rem 0 5rem;
+}
+
+.biz-hero-grid {
+  display: grid;
+  align-items: center;
+  gap: 3.25rem;
+}
+
+.biz-hero-copy {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.biz-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(17, 82, 212, 0.25);
+  background: rgba(17, 82, 212, 0.1);
+  color: #1152d4;
+  border-radius: 9999px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.biz-hero-title {
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  line-height: 1.06;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  max-width: 16ch;
+}
+
+.biz-hero-title span {
+  color: #1152d4;
+}
+
+.biz-hero-subtitle {
+  max-width: 62ch;
+  color: #475569;
+  font-size: clamp(1rem, 1.8vw, 1.13rem);
+  line-height: 1.75;
+}
+
+.dark .biz-hero-subtitle {
+  color: #94a3b8;
+}
+
+.biz-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding-top: 0.35rem;
+}
+
+.biz-btn {
+  border: 1px solid transparent;
+  border-radius: 0.95rem;
+  padding: 0.85rem 1.35rem;
+  font-size: 0.96rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.biz-btn-primary {
+  background: #1152d4;
+  color: #fff;
+  box-shadow: 0 12px 28px -18px rgba(17, 82, 212, 0.8);
+}
+
+.biz-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 35px -22px rgba(17, 82, 212, 0.9);
+}
+
+.biz-btn-secondary {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #dbe2eb;
+}
+
+.biz-btn-secondary:hover {
+  border-color: #b7c2d0;
+  background: #f8fafc;
+}
+
+.dark .biz-btn-secondary {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark .biz-btn-secondary:hover {
+  background: #111d30;
+  border-color: #475569;
+}
+
+.biz-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.55rem;
+}
+
+.biz-stat-card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 0.95rem;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.dark .biz-stat-card {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: #334155;
+}
+
+.biz-stat-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.7rem;
+  background: rgba(17, 82, 212, 0.12);
+  color: #1152d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biz-stat-value {
+  font-size: 1.25rem;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.biz-stat-label {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.dark .biz-stat-label {
+  color: #94a3b8;
+}
+
+.biz-hero-visual {
+  position: relative;
+}
+
+.biz-hero-image-wrap {
+  border-radius: 1.6rem;
+  overflow: hidden;
+  border: 1px solid #dbe2eb;
+  box-shadow: 0 22px 50px -38px rgba(15, 23, 42, 0.65);
+}
+
+.dark .biz-hero-image-wrap {
+  border-color: #334155;
+}
+
+.biz-hero-image {
+  width: 100%;
+  height: clamp(300px, 45vw, 460px);
+  object-fit: cover;
+}
+
+.biz-floating-card {
+  position: absolute;
+  left: 1.15rem;
+  bottom: -1.2rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.95rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  box-shadow: 0 10px 28px -20px rgba(15, 23, 42, 0.75);
+}
+
+.dark .biz-floating-card {
+  border-color: #334155;
+  background: rgba(15, 23, 42, 0.96);
+}
+
+.biz-floating-icon {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.16);
+  color: #10b981;
+}
+
+.biz-floating-value {
+  font-size: 1.18rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.biz-floating-label {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.dark .biz-floating-label {
+  color: #94a3b8;
+}
+
+.biz-trust-strip {
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(241, 245, 249, 0.55);
+  padding: 2.7rem 0;
+}
+
+.dark .biz-trust-strip {
+  border-color: #1e293b;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.biz-strip-label {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  margin-bottom: 1.2rem;
+}
+
+.biz-logo-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.biz-logo-pill {
+  height: 2.1rem;
+  min-width: 7.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.95rem;
+  border-radius: 9999px;
+  border: 1px solid #dbe2eb;
+  background: #fff;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dark .biz-logo-pill {
+  border-color: #334155;
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+.biz-benefits {
+  padding: 5rem 0;
+}
+
+.biz-section-head {
+  max-width: 720px;
+  margin: 0 auto 2.6rem;
+  text-align: center;
+}
+
+.biz-section-head h3 {
+  color: #1152d4;
+  font-size: 0.75rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-weight: 800;
+  margin-bottom: 0.65rem;
+}
+
+.biz-section-head h2 {
+  font-size: clamp(1.65rem, 3.6vw, 2.7rem);
+  line-height: 1.18;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.biz-section-head p {
+  margin-top: 0.75rem;
+  color: #64748b;
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.dark .biz-section-head p {
+  color: #94a3b8;
+}
+
+.biz-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.biz-benefit-card {
+  border-radius: 1.2rem;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.3rem;
+  transition: all 0.2s ease;
+}
+
+.biz-benefit-card:hover {
+  border-color: rgba(17, 82, 212, 0.26);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -25px rgba(15, 23, 42, 0.75);
+}
+
+.dark .biz-benefit-card {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #334155;
+}
+
+.biz-benefit-icon {
+  width: 3.1rem;
+  height: 3.1rem;
+  border-radius: 1rem;
+  background: rgba(17, 82, 212, 0.1);
+  color: #1152d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.biz-benefit-card h4 {
+  font-size: 1.14rem;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.biz-benefit-card p {
+  margin-top: 0.55rem;
+  color: #64748b;
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.dark .biz-benefit-card p {
+  color: #94a3b8;
+}
+
+.biz-case {
+  padding: 1rem 0 5.5rem;
+}
+
+.biz-case-panel {
+  border-radius: 2rem;
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+  box-shadow: 0 26px 40px -32px rgba(2, 6, 23, 0.75);
+}
+
+.biz-case-image-wrap {
+  position: relative;
+  min-height: 280px;
+}
+
+.biz-case-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.82;
+}
+
+.biz-case-content {
+  color: #e2e8f0;
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.6rem 1.5rem 1.9rem;
+}
+
+.biz-case-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #60a5fa;
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.biz-case-content h2 {
+  font-size: clamp(1.45rem, 2.6vw, 2.15rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.biz-case-quote {
+  color: #cbd5e1;
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.biz-case-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.biz-case-author-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 2px solid rgba(148, 163, 184, 0.35);
+}
+
+.biz-case-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.biz-case-author-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.biz-case-author-role {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.biz-case-link {
+  border: none;
+  width: fit-content;
+  background: transparent;
+  color: #60a5fa;
+  font-size: 0.92rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.biz-case-link:hover {
+  color: #93c5fd;
+}
+
+.biz-cta {
+  padding: 0 0 6.2rem;
+}
+
+.biz-cta-shell {
+  text-align: center;
+  max-width: 920px;
+}
+
+.biz-cta-icon-wrap {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  border-radius: 1rem;
+  background: rgba(17, 82, 212, 0.08);
+  color: #1152d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biz-cta h2 {
+  font-size: clamp(1.75rem, 4vw, 3.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+}
+
+.biz-cta p {
+  max-width: 62ch;
+  margin: 0.95rem auto 1.6rem;
+  color: #64748b;
+  font-size: clamp(1rem, 2.1vw, 1.2rem);
+  line-height: 1.75;
+}
+
+.dark .biz-cta p {
+  color: #94a3b8;
+}
+
+.biz-cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.biz-cta-footnote {
+  margin-top: 1rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .biz-shell {
+    padding: 0 2rem;
+  }
+
+  .biz-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .biz-benefits-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .biz-hero-grid {
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+
+  .biz-case-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .biz-case-content {
+    padding: 2.3rem 2.15rem;
+  }
+}
