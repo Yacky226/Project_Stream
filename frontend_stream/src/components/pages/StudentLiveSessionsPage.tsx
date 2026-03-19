@@ -108,71 +108,74 @@ export function StudentLiveSessionsPage({
   const renderSessionCard = (
     session: (typeof enrichedSessions)[number],
     emphasis: 'primary' | 'secondary',
-  ) => (
-    <div
-      key={`${emphasis}-${session.id}`}
-      className={`rounded-[28px] border p-5 shadow-sm ${
-        emphasis === 'primary'
-          ? 'border-[#1152d4]/15 bg-white dark:border-slate-800 dark:bg-slate-900'
-          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
-      }`}
-    >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge variant={getSessionStatusVariant(session.status, session.isLive)}>
-              {session.isLive || session.status === 'LIVE' ? <Radio className="h-3 w-3 animate-pulse" /> : null}
-              {getSessionStatusLabel(session.status, session.isLive)}
-            </Badge>
-            {enrolledCourseIds.has(String(session.courseId)) ? (
-              <Badge variant="outline">Enrolled course</Badge>
-            ) : null}
-          </div>
-          <h3 className="text-lg font-bold text-slate-950 dark:text-white">{session.title}</h3>
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-300">
-            <span className="inline-flex items-center gap-2">
-              <CalendarClock className="h-4 w-4" />
-              {formatSessionDate(session.scheduledAt)}
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Video className="h-4 w-4" />
-              Session #{session.id}
-            </span>
-          </div>
-        </div>
+  ) => {
+    const isEnrolledCourse = enrolledCourseIds.has(String(session.courseId));
+    const isLive = session.isLive || session.status === 'LIVE';
 
-        <div className="flex shrink-0 flex-col gap-2 lg:w-44">
-          <Button
-            className="rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]"
-            onClick={() =>
-              session.isLive || session.status === 'LIVE'
-                ? onNavigate(`/courses/${session.courseId}/live/${session.id}`)
-                : onNavigate(`/courses/${session.courseId}`)
-            }
-          >
-            {session.isLive || session.status === 'LIVE' ? (
-              <>
-                <Radio className="mr-2 h-4 w-4" />
-                Join now
-              </>
-            ) : (
-              <>
-                <ArrowRight className="mr-2 h-4 w-4" />
-                View course
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-2xl"
-            onClick={() => onNavigate(`/courses/${session.courseId}`)}
-          >
-            Course details
-          </Button>
+    return (
+      <div
+        key={`${emphasis}-${session.id}`}
+        className={`rounded-[28px] border p-5 shadow-sm ${
+          emphasis === 'primary'
+            ? 'border-[#1152d4]/15 bg-white dark:border-slate-800 dark:bg-slate-900'
+            : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+        }`}
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge variant={getSessionStatusVariant(session.status, session.isLive)}>
+                {isLive ? <Radio className="h-3 w-3 animate-pulse" /> : null}
+                {getSessionStatusLabel(session.status, session.isLive)}
+              </Badge>
+              {isEnrolledCourse ? <Badge variant="outline">Enrolled course</Badge> : null}
+            </div>
+            <h3 className="text-lg font-bold text-slate-950 dark:text-white">{session.title}</h3>
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-300">
+              <span className="inline-flex items-center gap-2">
+                <CalendarClock className="h-4 w-4" />
+                {formatSessionDate(session.scheduledAt)}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Session #{session.id}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-2 lg:w-44">
+            <Button
+              className="rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]"
+              onClick={() =>
+                isEnrolledCourse && isLive
+                  ? onNavigate(`/courses/${session.courseId}/live/${session.id}`)
+                  : onNavigate(`/courses/${session.courseId}`)
+              }
+            >
+              {isEnrolledCourse && isLive ? (
+                <>
+                  <Radio className="mr-2 h-4 w-4" />
+                  Join now
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  {isLive ? 'Enroll to join' : 'View course'}
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => onNavigate(`/courses/${session.courseId}`)}
+            >
+              Course details
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <StudentSpaceShell

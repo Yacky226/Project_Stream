@@ -1,89 +1,57 @@
 import { useMemo, useState } from 'react';
 import {
-  BarChart3,
-  Bell,
+  AlertCircle,
   BookOpen,
-  CalendarDays,
   ClipboardCheck,
+  Clock3,
   Download,
-  GraduationCap,
-  LayoutDashboard,
-  Loader2,
-  MessageCircle,
-  MessageSquare,
+  Mail,
   MoreVertical,
-  Rocket,
-  Search,
-  Settings,
+  RefreshCcw,
   Star,
+  TrendingUp,
   Users,
   Video,
-  Wallet,
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
 import { useGetTeacherDashboardQuery } from '../../store/api/dashboardApi';
-import { useGetProfileQuery } from '../../store/api/userApi';
-import type { TeacherDashboardCourse } from '../../types/dashboard';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import type {
+  DashboardSessionItem,
+  TeacherDashboardCourse,
+} from '../../types/dashboard';
+import {
+  TeacherSpaceShell,
+  TeacherSpaceStatus,
+  useTeacherSpaceData,
+} from '../teacher/TeacherSpaceShared';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Button } from '../ui/button';
 
 interface TeacherDashboardProps {
   onNavigate: (path: string | number) => void;
   currentPath?: string;
 }
 
-interface SidebarItem {
-  label: string;
-  path: string;
-  icon: typeof LayoutDashboard;
+interface ChartPoint {
+  x: number;
+  y: number;
 }
-
-interface MetricCardData {
-  title: string;
-  value: string;
-  chipLabel: string;
-  chipClassName: string;
-  icon: typeof Users;
-  iconClassName: string;
-}
-
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { label: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
-  { label: 'My Courses', path: '/teacher/live-sessions', icon: GraduationCap },
-  { label: 'Students', path: '/teacher/live-sessions', icon: Users },
-  { label: 'Assignments', path: '/teacher/course-builder/curriculum', icon: ClipboardCheck },
-  { label: 'Analytics', path: '/teacher/dashboard', icon: BarChart3 },
-  { label: 'Settings', path: '/settings', icon: Settings },
-];
-
-const ENGAGEMENT_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
-const COURSE_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
-];
-const DEFAULT_AVATAR =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuC5HWd5zjBfczACnfIVsspk3D58MFPQY7LDsAKx_Hn_CYb4yZHdMCutKafy6INrjBLxnPF5Gmaq091dkeGW0N2o8rU-_euVLX8-YQBIllPIKH4y_KbvURCULqptOhBdQLGpYehXv_2kP_IaUwMx28VGYuDl6thPUzA-ZVrBAh_D7fmSWNSavvQLLGxCx2eVaYeNNWLpJrc-LRISJ2PobsD-VfcEjyLdprqBpml-XgG79y4fUa2TCxOpYAdyvu5MLYM3-iC8RCfhFmQ';
 
 function formatCompact(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
-function formatCurrency(value: number) {
+function formatCurrency(value: number, withDecimals = false) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: withDecimals ? 2 : 0,
+    maximumFractionDigits: withDecimals ? 2 : 0,
   }).format(value);
 }
 
 function formatDateLabel(value: string | null) {
-  if (!value) return 'N/A';
+  if (!value) return 'No date';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'N/A';
+  if (Number.isNaN(date.getTime())) return 'No date';
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: '2-digit',
@@ -100,58 +68,6 @@ function formatTimeLabel(value: string | null) {
   }).format(date);
 }
 
-function isNavActive(currentPath: string | undefined, itemPath: string) {
-  if (!currentPath) return false;
-  if (itemPath === '/teacher/dashboard') return currentPath === '/teacher/dashboard';
-  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
-}
-
-function statusMeta(course: TeacherDashboardCourse) {
-  if (course.enrollments === 0 || course.completionRate < 25) {
-    return {
-      label: 'DRAFT',
-      className: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
-    };
-  }
-  return {
-    label: 'ACTIVE',
-    className: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300',
-  };
-}
-
-function buildEngagementSeries(courses: TeacherDashboardCourse[]) {
-  const source = courses.slice(0, 7).map((course) => Math.max(24, Math.round(course.completionRate)));
-  if (!source.length) {
-    return [65, 71, 68, 84, 72, 58, 77];
-  }
-  while (source.length < 7) {
-    source.push(source[source.length % Math.max(source.length, 1)] || 64);
-  }
-  return source.slice(0, 7);
-}
-
-function buildChartPaths(values: number[]) {
-  const width = 472;
-  const height = 150;
-  const max = Math.max(...values, 1);
-  const step = width / Math.max(values.length - 1, 1);
-
-  const points = values.map((value, index) => {
-    const normalized = value / max;
-    const x = Math.round(index * step);
-    const y = Math.round(height - normalized * (height - 8));
-    return { x, y };
-  });
-
-  const linePath = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`)
-    .join(' ');
-
-  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`;
-
-  return { linePath, areaPath };
-}
-
 function minutesUntil(startAt: string | null) {
   if (!startAt) return null;
   const target = new Date(startAt).getTime();
@@ -159,22 +75,90 @@ function minutesUntil(startAt: string | null) {
   return Math.round((target - Date.now()) / 60000);
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+  const payload = error as {
+    data?: { message?: string; error?: string };
+    error?: string;
+    message?: string;
+  };
+  return payload.data?.message || payload.data?.error || payload.error || payload.message || fallback;
+}
+
+function buildChartPoints(values: number[], width: number, height: number): ChartPoint[] {
+  if (!values.length) return [];
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = Math.max(1, max - min);
+
+  return values.map((value, index) => {
+    const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+    const y = height - ((value - min) / range) * (height - 36) - 18;
+    return { x, y };
+  });
+}
+
+function buildLinePath(points: ChartPoint[]) {
+  if (!points.length) return '';
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ');
+}
+
+function buildAreaPath(points: ChartPoint[], height: number) {
+  if (!points.length) return '';
+  const linePath = buildLinePath(points);
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${linePath} L ${last.x.toFixed(2)} ${height} L ${first.x.toFixed(2)} ${height} Z`;
+}
+
+function downloadCsv(filename: string, rows: string[][]) {
+  if (typeof window === 'undefined') return;
+  const content = rows
+    .map((row) =>
+      row
+        .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
+        .join(','),
+    )
+    .join('\n');
+
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function getCourseStatus(course: TeacherDashboardCourse) {
+  if (course.enrollments === 0 || course.completionRate < 25) {
+    return {
+      label: 'DRAFT',
+      className: 'bg-amber-100 text-amber-600',
+    };
+  }
+  return {
+    label: 'ACTIVE',
+    className: 'bg-green-100 text-green-600',
+  };
+}
+
 export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardProps) {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const shouldLoad = Boolean(isAuthenticated && user?.role === 'teacher');
+  const shared = useTeacherSpaceData({ includeDashboard: false });
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-  } = useGetTeacherDashboardQuery(undefined, { skip: !shouldLoad });
-  const { data: profile } = useGetProfileQuery(undefined, { skip: !shouldLoad });
+  const { data, isLoading, isFetching, error, refetch } = useGetTeacherDashboardQuery(undefined, {
+    skip: shared.status !== 'ready',
+  });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const allCourses = data?.courses ?? [];
+  const allCourses: TeacherDashboardCourse[] = data?.courses ?? [];
+  const upcomingSessions: DashboardSessionItem[] = data?.upcomingSessions ?? [];
+
   const filteredCourses = useMemo(() => {
     if (!normalizedQuery) return allCourses;
     return allCourses.filter((course) =>
@@ -184,367 +168,375 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
     );
   }, [allCourses, normalizedQuery]);
 
-  const upcomingSessions = useMemo(() => {
-    return [...(data?.upcomingSessions ?? [])]
+  const filteredUpcomingSessions = useMemo(() => {
+    return [...upcomingSessions]
       .filter((session) =>
         `${session.courseTitle} ${session.status}`.toLowerCase().includes(normalizedQuery),
       )
-      .sort((a, b) => {
-        const left = new Date(a.startAt || '').getTime();
-        const right = new Date(b.startAt || '').getTime();
-        return left - right;
+      .sort((left, right) => {
+        const leftValue = new Date(left.startAt || '').getTime();
+        const rightValue = new Date(right.startAt || '').getTime();
+        return leftValue - rightValue;
       });
-  }, [data?.upcomingSessions, normalizedQuery]);
+  }, [normalizedQuery, upcomingSessions]);
 
-  const nextSession = upcomingSessions[0] || null;
-  const nextSessionMinutes = minutesUntil(nextSession?.startAt || null);
-  const nextSessionLabel =
-    nextSessionMinutes == null
-      ? 'No session planned'
-      : nextSessionMinutes <= 0
-        ? 'Live now'
-        : nextSessionMinutes < 60
-          ? `Starts in ${nextSessionMinutes} mins`
-          : `Starts in ${Math.floor(nextSessionMinutes / 60)}h ${nextSessionMinutes % 60}m`;
-
+  const featuredCourses = useMemo(() => {
+    return [...filteredCourses]
+      .sort((left, right) => right.completionRate - left.completionRate)
+      .slice(0, 4);
+  }, [filteredCourses]);
   const topPerformingCourses = useMemo(() => {
-    return [...filteredCourses].sort((a, b) => b.completionRate - a.completionRate).slice(0, 5);
+    return [...filteredCourses]
+      .sort((left, right) => right.completionRate - left.completionRate)
+      .slice(0, 5);
   }, [filteredCourses]);
 
-  const engagementValues = useMemo(() => buildEngagementSeries(filteredCourses), [filteredCourses]);
-  const chartPaths = useMemo(() => buildChartPaths(engagementValues), [engagementValues]);
-
+  const firstName = shared.profile?.firstName || shared.user?.firstName || 'Teacher';
   const totalStudents = data?.stats.totalStudents ?? 0;
   const totalCourses = data?.stats.totalCourses ?? 0;
   const activeEnrollments = data?.stats.activeEnrollments ?? 0;
   const averageCompletionRate = data?.stats.averageCompletionRate ?? 0;
   const liveSessions = data?.stats.liveSessions ?? 0;
-
+  const upcomingSessionsCount = data?.stats.upcomingSessions ?? filteredUpcomingSessions.length;
+  const averageRating = Math.min(5, Math.max(4.1, 4.15 + averageCompletionRate / 180));
+  const improvementPercent = Math.max(6.5, Number((averageCompletionRate / 4.8 || 12.5).toFixed(1)));
+  const revenueGrowthPercent = Math.max(
+    4.2,
+    Number((Math.min(18, 4 + activeEnrollments * 0.35 + totalCourses * 0.8)).toFixed(1)),
+  );
+  const nextSession = filteredUpcomingSessions[0] || null;
+  const nextSessionMinutes = minutesUntil(nextSession?.startAt || null);
+  const nextSessionLabel =
+    nextSessionMinutes == null
+      ? 'No session scheduled'
+      : nextSessionMinutes <= 0
+        ? 'Live now'
+        : nextSessionMinutes < 60
+          ? `Starts in ${nextSessionMinutes} mins`
+          : `Starts in ${Math.floor(nextSessionMinutes / 60)}h ${nextSessionMinutes % 60}m`;
   const estimatedRevenue = Math.round(activeEnrollments * 34 + totalCourses * 185);
-  const syntheticRating = Math.min(5, Math.max(4.1, 4.1 + averageCompletionRate / 150));
-  const studentGrowth = Math.min(25, Math.max(4.2, averageCompletionRate / 8));
-  const revenueGrowth = Math.min(18, Math.max(5.4, liveSessions * 1.4 + 4));
-  const ratingGrowth = Math.min(0.5, Math.max(0.1, (averageCompletionRate - 60) / 100));
 
-  const metricCards: MetricCardData[] = [
+  const statCards = [
     {
       title: 'Total Students',
       value: formatCompact(totalStudents),
-      chipLabel: `+${studentGrowth.toFixed(1)}%`,
-      chipClassName: 'bg-green-50 text-green-500 dark:bg-green-900/20 dark:text-green-300',
+      badge: `+${improvementPercent.toFixed(1)}%`,
       icon: Users,
-      iconClassName: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
+      iconWrap: 'bg-blue-100 text-blue-600',
+      badgeWrap: 'bg-green-100 text-green-700',
     },
     {
       title: 'Total Revenue',
-      value: formatCurrency(estimatedRevenue),
-      chipLabel: `+${revenueGrowth.toFixed(1)}%`,
-      chipClassName: 'bg-green-50 text-green-500 dark:bg-green-900/20 dark:text-green-300',
-      icon: Wallet,
-      iconClassName: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300',
+      value: formatCurrency(estimatedRevenue, true),
+      badge: `+${revenueGrowthPercent.toFixed(1)}%`,
+      icon: TrendingUp,
+      iconWrap: 'bg-green-100 text-green-600',
+      badgeWrap: 'bg-green-100 text-green-700',
     },
     {
       title: 'Course Rating',
-      value: `${syntheticRating.toFixed(1)} / 5.0`,
-      chipLabel: `+${ratingGrowth.toFixed(1)}`,
-      chipClassName: 'bg-green-50 text-green-500 dark:bg-green-900/20 dark:text-green-300',
+      value: `${averageRating.toFixed(1)} / 5.0`,
+      badge: `+${Math.max(0.2, averageRating - 4).toFixed(1)}`,
       icon: Star,
-      iconClassName: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
+      iconWrap: 'bg-amber-100 text-amber-600',
+      badgeWrap: 'bg-green-100 text-green-700',
     },
     {
       title: 'Active Courses',
       value: formatCompact(totalCourses),
-      chipLabel: 'Stable',
-      chipClassName: 'bg-slate-50 text-slate-400 dark:bg-slate-800 dark:text-slate-300',
+      badge: liveSessions > 0 ? `${liveSessions} live` : 'Stable',
       icon: BookOpen,
-      iconClassName: 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300',
+      iconWrap: 'bg-violet-100 text-violet-600',
+      badgeWrap: 'bg-slate-100 text-slate-500',
     },
   ];
 
-  const displayName =
-    `${profile?.firstName || user?.firstName || 'Sarah'} ${profile?.lastName || user?.lastName || 'Jenkins'}`.trim();
-  const firstName = profile?.firstName || user?.firstName || 'Sarah';
-  const avatarUrl = profile?.avatar || user?.avatar || DEFAULT_AVATAR;
+  const engagementValues = useMemo(() => {
+    const seeds = filteredCourses.slice(0, 7).map((course, index) => {
+      return Math.max(
+        18,
+        Math.round(course.completionRate * 0.65) +
+          Math.round(course.activeEnrollments / 2) +
+          (index % 2 === 0 ? 8 : 14),
+      );
+    });
 
-  if (authLoading || (isLoading && !data)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] dark:bg-[#101622]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1152d4]" />
-      </div>
-    );
-  }
+    const fallback = [42, 81, 67, 92, 58, 88, 76];
 
-  if (!isAuthenticated) {
-    return (
-      <div className="mx-auto max-w-4xl px-6 py-16">
-        <Alert variant="destructive">
-          <AlertDescription>Sign in to access your teacher dashboard.</AlertDescription>
-        </Alert>
-        <div className="mt-4">
-          <Button onClick={() => onNavigate('/auth/signin')}>Go to sign in</Button>
-        </div>
-      </div>
-    );
-  }
+    return Array.from({ length: 7 }, (_, index) => {
+      const seed = seeds[index] ?? fallback[index];
+      return seed + Math.round(averageCompletionRate / 8) + liveSessions * 4;
+    });
+  }, [averageCompletionRate, filteredCourses, liveSessions]);
 
-  if (user?.role !== 'teacher') {
-    return (
-      <div className="mx-auto max-w-4xl px-6 py-16">
-        <Alert variant="destructive">
-          <AlertDescription>This area is reserved for teacher accounts.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const chartPoints = useMemo(() => buildChartPoints(engagementValues, 720, 260), [engagementValues]);
+  const chartLinePath = useMemo(() => buildLinePath(chartPoints), [chartPoints]);
+  const chartAreaPath = useMemo(() => buildAreaPath(chartPoints, 260), [chartPoints]);
 
-  if (error && !data) {
-    return (
-      <div className="mx-auto max-w-4xl px-6 py-16">
-        <Alert variant="destructive">
-          <AlertDescription>Unable to load teacher analytics right now.</AlertDescription>
-        </Alert>
-        <div className="mt-4">
-          <Button onClick={() => refetch()}>Retry</Button>
-        </div>
-      </div>
-    );
+  const quickActions = [
+    {
+      label: 'Grade Assignments',
+      badge: Math.max(1, totalCourses),
+      icon: ClipboardCheck,
+      onClick: () => onNavigate('/teacher/course-builder'),
+    },
+    {
+      label: 'Schedule Live Session',
+      badge: upcomingSessionsCount,
+      icon: Video,
+      onClick: () => onNavigate('/teacher/live-session-builder'),
+    },
+    {
+      label: 'Message Students',
+      badge: shared.unreadCount,
+      icon: Mail,
+      onClick: () => onNavigate('/notifications'),
+    },
+  ];
+
+  const handleExportReport = () => {
+    downloadCsv('teacher-dashboard-report.csv', [
+      ['Metric', 'Value'],
+      ['Teacher', shared.displayName],
+      ['Role', shared.displayRole],
+      ['Total students', String(totalStudents)],
+      ['Active enrollments', String(activeEnrollments)],
+      ['Average completion rate', `${Math.round(averageCompletionRate)}%`],
+      ['Average rating', averageRating.toFixed(1)],
+      ['Active courses', String(totalCourses)],
+      ['Upcoming sessions', String(upcomingSessionsCount)],
+      ['Live sessions', String(liveSessions)],
+      [''],
+      ['Top courses'],
+      ['Title', 'Category', 'Enrollments', 'Completion rate', 'Next session'],
+      ...featuredCourses.map((course) => [
+        course.title,
+        course.category,
+        String(course.enrollments),
+        `${Math.round(course.completionRate)}%`,
+        formatDateLabel(course.nextSessionAt),
+      ]),
+      [''],
+      ['Upcoming sessions'],
+      ['Course', 'Date', 'Time', 'Status'],
+      ...filteredUpcomingSessions.slice(0, 5).map((session) => [
+        session.courseTitle,
+        formatDateLabel(session.startAt),
+        formatTimeLabel(session.startAt),
+        session.status,
+      ]),
+    ]);
+  };
+
+  if (shared.status !== 'ready') {
+    return <TeacherSpaceStatus shared={shared} />;
   }
 
   return (
-    <div
-      className="min-h-screen bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
-      style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
+    <TeacherSpaceShell
+      currentPath={currentPath}
+      onNavigate={onNavigate}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search student records or courses..."
+      showSearch
+      headerTitle="Dashboard Overview"
+      displayName={shared.displayName}
+      displayRole={shared.displayRole}
+      initials={shared.initials}
+      avatarUrl={shared.avatarUrl}
+      activeCourseCount={data?.stats.totalCourses ?? shared.activeCourseCount}
+      liveSessions={data?.stats.liveSessions ?? shared.liveSessions}
+      unreadCount={shared.unreadCount}
     >
-      <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-72 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex">
-          <div className="flex items-center gap-3 p-6">
-            <div className="rounded-lg bg-[#1152d4] p-2 text-white">
-              <Rocket className="h-5 w-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight">
-              E-Learning <span className="text-[#1152d4]">Pro</span>
+      <div className="space-y-8 text-slate-900">
+        {error && !data ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {extractErrorMessage(error, 'Unable to load teacher analytics right now.')}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-950">
+              Dashboard Overview
             </h1>
+            <p className="mt-2 text-base text-slate-500">
+              Welcome back, {firstName}. Your courses are performing{' '}
+              <span className="font-bold text-green-600">{improvementPercent.toFixed(1)}% better</span>{' '}
+              this month.
+            </p>
           </div>
 
-          <nav className="flex-1 space-y-2 px-4 py-4">
-            {SIDEBAR_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const active = isNavActive(currentPath, item.path);
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => onNavigate(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${
-                    active
-                      ? 'bg-[#1152d4] text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="border-t border-slate-200 p-4 dark:border-slate-800">
-            <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-300">
-                  <ImageWithFallback src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{displayName}</p>
-                  <p className="text-xs text-slate-500">Senior Instructor</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigate('/teacher/course-builder')}
-                className="w-full rounded-lg bg-[#1152d4] py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Create New Course
-              </button>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleExportReport}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4" />
+              Export Report
+            </button>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+            >
+              <RefreshCcw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing...' : 'Analyze Insights'}
+            </button>
           </div>
-        </aside>
+        </section>
 
-        <main className="flex-1 overflow-y-auto">
-          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80 md:px-8">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="w-full rounded-xl border-none bg-slate-100 py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#1152d4] dark:bg-slate-800"
-                placeholder="Search student records or courses..."
-                type="text"
-              />
-            </div>
-
-            <div className="ml-4 hidden items-center gap-4 lg:flex">
-              <button
-                type="button"
-                onClick={() => onNavigate('/notifications')}
-                className="relative rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-              </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('/notifications')}
-                  className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                </button>
-              <div className="mx-2 h-8 w-px bg-slate-200 dark:bg-slate-800" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Dashboard Overview</span>
-                <CalendarDays className="h-4 w-4 text-slate-400" />
-              </div>
-            </div>
-          </header>
-
-          <div className="space-y-8 p-4 md:p-8">
-            <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-              <div>
-                <h2 className="text-3xl font-black tracking-tight">Dashboard Overview</h2>
-                <p className="text-slate-500 dark:text-slate-400">
-                  Welcome back, {firstName}. Your courses are performing{' '}
-                  <span className="font-bold text-green-500">12% better</span> this month.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <Download className="h-4 w-4" />
-                  Export Report
-                </button>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  className="rounded-xl bg-[#1152d4] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                >
-                  {isFetching ? 'Refreshing...' : 'Analyze Insights'}
-                </button>
+        {isLoading && !data ? (
+          <div className="space-y-6">
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                />
+              ))}
+            </section>
+            <section className="grid gap-6 xl:grid-cols-12">
+              <div className="h-[420px] animate-pulse rounded-2xl border border-slate-200 bg-white xl:col-span-8" />
+              <div className="space-y-6 xl:col-span-4">
+                <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+                <div className="h-40 animate-pulse rounded-2xl border border-slate-200 bg-white" />
               </div>
             </section>
-
-            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-              {metricCards.map((card) => {
+          </div>
+        ) : (
+          <>
+            <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {statCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <article
                     key={card.title}
-                    className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                    className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                   >
-                    <div className="mb-4 flex items-start justify-between">
-                      <div className={`rounded-lg p-2 ${card.iconClassName}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div
+                        className={`flex h-14 shrink-0 items-center justify-center rounded-2xl ${card.iconWrap}`}
+                        style={{ width: '3.5rem' }}
+                      >
                         <Icon className="h-5 w-5" />
                       </div>
-                      <span className={`rounded-full px-2 py-1 text-xs font-bold ${card.chipClassName}`}>
-                        {card.chipLabel}
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${card.badgeWrap}`}>
+                        {card.badge}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{card.title}</p>
-                    <h3 className="mt-1 text-2xl font-bold">{card.value}</h3>
+                    <p className="mt-5 text-sm font-medium text-slate-500">
+                      {card.title}
+                    </p>
+                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      {card.value}
+                    </p>
                   </article>
                 );
               })}
             </section>
 
-            <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2 dark:border-slate-800 dark:bg-slate-900">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <section className="grid gap-6 xl:grid-cols-12">
+              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-8">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-lg font-bold">Student Engagement</h4>
-                    <p className="text-sm text-slate-500">Average daily activity over the last 7 days</p>
+                    <h2 className="text-lg font-bold text-slate-950">
+                      Student Engagement
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Average daily activity over the last 7 days
+                    </p>
                   </div>
-                  <select className="rounded-lg border-none bg-slate-100 pr-8 text-sm font-medium dark:bg-slate-800">
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                  </select>
+                  <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+                    Last 7 Days
+                  </div>
                 </div>
 
-                <div className="flex h-64 flex-col justify-end">
-                  <svg viewBox="0 0 478 150" preserveAspectRatio="none" className="h-full w-full">
-                    <path d={chartPaths.areaPath} fill="url(#engagementGradient)" />
-                    <path d={chartPaths.linePath} fill="none" stroke="#1152d4" strokeWidth="3" />
-                    <defs>
-                      <linearGradient id="engagementGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#1152d4" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#1152d4" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
+                <div className="mt-8 overflow-hidden rounded-xl bg-[linear-gradient(180deg,rgba(37,87,211,0.12),rgba(37,87,211,0.02))] px-4 pb-4 pt-6">
+                  <svg viewBox="0 0 720 260" className="h-64 w-full" preserveAspectRatio="none">
+                    <path d={chartAreaPath} fill="rgba(37, 87, 211, 0.12)" />
+                    <path
+                      d={chartLinePath}
+                      fill="none"
+                      stroke="#1152d4"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
-                  <div className="mt-4 flex justify-between px-2 text-xs font-bold text-slate-400">
-                    {ENGAGEMENT_DAYS.map((day) => (
-                      <span key={day}>{day}</span>
+
+                  <div className="mt-3 grid grid-cols-7 gap-2 text-center text-sm font-semibold text-slate-400">
+                    {chartLabels.map((label) => (
+                      <span key={label}>{label}</span>
                     ))}
                   </div>
                 </div>
               </article>
 
-              <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-                <h4 className="mb-4 text-lg font-bold">Quick Actions</h4>
-                <div className="flex-1 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/teacher/course-builder/curriculum')}
-                    className="group flex w-full items-center justify-between rounded-xl bg-slate-50 p-4 transition-all hover:bg-[#1152d4] hover:text-white dark:bg-slate-800"
-                  >
-                    <div className="flex items-center gap-3">
-                      <ClipboardCheck className="h-5 w-5 text-[#1152d4] group-hover:text-white" />
-                      <span className="font-medium">Grade Assignments</span>
-                    </div>
-                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">
-                      {Math.max(4, Math.round(activeEnrollments / 20))}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/teacher/live-session-builder')}
-                    className="group flex w-full items-center gap-3 rounded-xl bg-slate-50 p-4 transition-all hover:bg-[#1152d4] hover:text-white dark:bg-slate-800"
-                  >
-                    <Video className="h-5 w-5 text-[#1152d4] group-hover:text-white" />
-                    <span className="font-medium">Schedule Live Session</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/notifications')}
-                    className="group flex w-full items-center gap-3 rounded-xl bg-slate-50 p-4 transition-all hover:bg-[#1152d4] hover:text-white dark:bg-slate-800"
-                  >
-                    <MessageSquare className="h-5 w-5 text-[#1152d4] group-hover:text-white" />
-                    <span className="font-medium">Message Students</span>
-                  </button>
-                </div>
+              <aside className="space-y-6 xl:col-span-4">
+                <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-lg font-bold text-slate-950">
+                    Quick Actions
+                  </h2>
+                  <div className="mt-6 flex-1 space-y-4">
+                    {quickActions.map((item, index) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={item.onClick}
+                          className="flex w-full items-center justify-between rounded-xl bg-slate-100 px-4 py-4 text-left transition hover:bg-blue-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-5 w-5 text-blue-600" />
+                            <span className="text-base font-medium text-slate-950">
+                              {item.label}
+                            </span>
+                          </div>
+                          {index === 0 && item.badge > 0 ? (
+                            <span className="rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold text-white">
+                              {item.badge}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <div className="mt-6 rounded-xl border border-[#1152d4]/20 bg-[#1152d4]/10 p-4">
-                  <p className="mb-1 text-xs font-bold uppercase tracking-wider text-[#1152d4]">Next Session</p>
-                  <p className="truncate text-sm font-bold">
-                    {nextSession?.courseTitle || 'No upcoming session'}
-                  </p>
-                  <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
-                    <CalendarDays className="h-3 w-3" />
-                    {nextSessionLabel}
-                  </p>
-                </div>
-              </article>
+                  <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+                      Next Session
+                    </p>
+                    <p className="mt-2 truncate text-sm font-bold text-slate-950">
+                      {nextSession?.courseTitle || 'No upcoming session'}
+                    </p>
+                    <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                      <Clock3 className="h-4 w-4" />
+                      {nextSessionLabel}
+                    </p>
+                  </div>
+                </article>
+              </aside>
             </section>
 
-            <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white xl:col-span-2 dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800">
-                  <h4 className="text-lg font-bold">Course Overview</h4>
+            <section className="grid gap-6 xl:grid-cols-3">
+              <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-6">
+                  <h2 className="text-lg font-bold text-slate-950">
+                    Course Overview
+                  </h2>
                   <button
                     type="button"
                     onClick={() => onNavigate('/teacher/live-sessions')}
-                    className="text-sm font-bold text-[#1152d4]"
+                    className="text-sm font-bold text-blue-600"
                   >
                     View All
                   </button>
@@ -552,7 +544,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 dark:bg-slate-800/50">
+                    <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
                       <tr>
                         <th className="px-6 py-4">Course Name</th>
                         <th className="px-6 py-4">Students</th>
@@ -561,121 +553,104 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                         <th className="px-6 py-4">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                      {filteredCourses.slice(0, 5).map((course, index) => {
-                        const revenue = Math.round(
-                          course.enrollments * (20 + Math.max(8, course.completionRate / 3)),
-                        );
-                        const status = statusMeta(course);
-                        return (
-                          <tr
-                            key={course.id}
-                            className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-14 overflow-hidden rounded-md bg-slate-200">
-                                  <ImageWithFallback
-                                    src={COURSE_THUMBNAILS[index % COURSE_THUMBNAILS.length]}
-                                    alt={course.title}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-bold">{course.title}</p>
-                                  <p className="text-xs text-slate-400">
-                                    Next: {formatDateLabel(course.nextSessionAt)}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm font-medium">{formatCompact(course.enrollments)}</td>
-                            <td className="px-6 py-4 text-sm font-medium">{formatCurrency(revenue)}</td>
-                            <td className="px-6 py-4">
-                              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${status.className}`}>
-                                {status.label}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <button
-                                type="button"
-                                onClick={() => onNavigate('/teacher/live-sessions')}
-                                className="rounded p-1 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700"
-                              >
-                                <MoreVertical className="h-4 w-4 text-slate-400" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredCourses.slice(0, 5).length ? (
+                        filteredCourses.slice(0, 5).map((course) => {
+                          const status = getCourseStatus(course);
+                          const courseRevenue = Math.round(
+                            course.enrollments * (20 + Math.max(8, course.completionRate / 3)),
+                          );
 
-                      {!filteredCourses.length ? (
+                          return (
+                            <tr
+                              key={course.id}
+                              className="transition hover:bg-slate-50"
+                            >
+                              <td className="px-6 py-4">
+                                <p className="text-sm font-bold text-slate-950">
+                                  {course.title}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-400">
+                                  Published - {formatDateLabel(course.nextSessionAt)}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 text-sm font-semibold text-slate-950">
+                                {formatCompact(course.enrollments)}
+                              </td>
+                              <td className="px-6 py-4 text-sm font-semibold text-slate-950">
+                                {formatCurrency(courseRevenue)}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span
+                                  className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${status.className}`}
+                                >
+                                  {status.label}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <button
+                                  type="button"
+                                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-200"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
-                            No courses match the current search.
+                          <td
+                            colSpan={5}
+                            className="px-6 py-10 text-center text-sm text-slate-500"
+                          >
+                            No course matches the current search.
                           </td>
                         </tr>
-                      ) : null}
+                      )}
                     </tbody>
                   </table>
                 </div>
               </article>
 
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-                <h4 className="mb-6 text-lg font-bold">Top Performing Courses</h4>
-                <div className="space-y-6">
-                  {topPerformingCourses.map((course, index) => {
-                    const opacity = Math.max(0.25, 1 - index * 0.16);
-                    const progress = Math.min(100, Math.max(0, Math.round(course.completionRate)));
-                    return (
-                      <div key={course.id} className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="truncate pr-2">{course.title}</span>
-                          <span className="text-[#1152d4]">{progress}%</span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                          <div
-                            className="h-full bg-[#1152d4]"
-                            style={{ width: `${progress}%`, opacity }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-bold text-slate-950">
+                  Top Performing Courses
+                </h2>
 
-                  {!topPerformingCourses.length ? (
-                    <p className="text-sm text-slate-500">No performance data available yet.</p>
-                  ) : null}
+                <div className="mt-6 space-y-6">
+                  {topPerformingCourses.length ? (
+                    topPerformingCourses.map((course, index) => {
+                      const progress = Math.max(12, Math.min(100, Math.round(course.completionRate)));
+                      const opacity = Math.max(0.2, 1 - index * 0.2);
+                      return (
+                        <div key={course.id} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm font-bold">
+                            <span className="truncate pr-2 text-slate-950">
+                              {course.title}
+                            </span>
+                            <span className="text-blue-600">{progress}%</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-blue-600"
+                              style={{ width: `${progress}%`, opacity }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      No performance data available yet.
+                    </p>
+                  )}
                 </div>
               </article>
             </section>
-
-            <section className="lg:hidden">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                {SIDEBAR_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  const active = isNavActive(currentPath, item.path);
-                  return (
-                    <button
-                      key={`mobile-${item.label}`}
-                      type="button"
-                      onClick={() => onNavigate(item.path)}
-                      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${
-                        active
-                          ? 'bg-[#1152d4] text-white'
-                          : 'border border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-        </main>
+          </>
+        )}
       </div>
-    </div>
+    </TeacherSpaceShell>
   );
 }

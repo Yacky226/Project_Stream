@@ -790,6 +790,16 @@
     opacity: .5;
   }
 
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  a[href],
+  summary,
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
   button:focus-visible, .btn:focus-visible {
     outline-style: var(--tw-outline-style);
     outline-offset: 2px;

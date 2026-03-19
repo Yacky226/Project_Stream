@@ -8,23 +8,27 @@ import {
   CheckCircle2,
   ChevronDown,
   CopyPlus,
-  GraduationCap,
   ImagePlus,
   Layers3,
   LayoutTemplate,
   Rocket,
   Save,
-  Search,
   Settings2,
   Sparkles,
   Trash2,
   Upload,
 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { useAuth } from '../../hooks/useAuth';
-import { useCreateCourseMutation } from '../../store/api/liveApi';
-import { getInitials } from '../../lib/utils';
+import {
+  useCreateCourseMutation,
+  useCreateLessonMutation,
+  useCreateSectionMutation,
+} from '../../store/api/liveApi';
+import {
+  TeacherSpaceShell,
+  TeacherSpaceStatus,
+  useTeacherSpaceData,
+} from '../teacher/TeacherSpaceShared';
 
 interface CourseBuilderPageProps {
   onNavigate: (path: string) => void;
@@ -131,18 +135,6 @@ function createDefaultDraft(): CourseBuilderDraft {
   };
 }
 
-function getDashboardPath(role?: string) {
-  switch (role) {
-    case 'admin':
-      return '/admin';
-    case 'teacher':
-      return '/teacher/dashboard';
-    case 'student':
-    default:
-      return '/dashboard';
-  }
-}
-
 function formatDurationFromMinutes(totalMinutes: number) {
   if (totalMinutes <= 0) {
     return '0h';
@@ -155,6 +147,24 @@ function formatDurationFromMinutes(totalMinutes: number) {
   }
 
   return `${hours}h ${minutes}m`;
+}
+
+function toBackendLessonType(type: LessonType): 'VIDEO' | 'TEXTE' | 'QUIZ' {
+  if (type === 'QUIZ') {
+    return 'QUIZ';
+  }
+  if (type === 'VIDEO') {
+    return 'VIDEO';
+  }
+  return 'TEXTE';
+}
+
+function parseLessonDurationMinutes(value: string): number | undefined {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return Math.round(parsed);
 }
 
 function stepLabel(step: BuilderStep) {
@@ -187,14 +197,18 @@ function stepFromPath(path?: string): BuilderStep {
 }
 
 export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPageProps) {
-  const { user, isAuthenticated } = useAuth();
-  const [createCourse, { isLoading: isPublishing }] = useCreateCourseMutation();
+  const teacherShared = useTeacherSpaceData({ includeDashboard: true });
+  const [createCourse, { isLoading: isPublishingCourse }] = useCreateCourseMutation();
+  const [createSection, { isLoading: isPublishingSections }] = useCreateSectionMutation();
+  const [createLesson, { isLoading: isPublishingLessons }] = useCreateLessonMutation();
   const [draft, setDraft] = useState<CourseBuilderDraft>(() => createDefaultDraft());
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [publishedCourseId, setPublishedCourseId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isPublishing = isPublishingCourse || isPublishingSections || isPublishingLessons;
+  const teacherId = teacherShared.user?.id ? String(teacherShared.user.id) : '';
 
   const progress = draft.step * 25;
 
@@ -439,7 +453,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
   };
 
   const publishCourse = async () => {
-    if (!user?.id) {
+    if (!teacherId) {
       setErrorMessage('Impossible d identifier l enseignant. Reconnectez-vous.');
       return;
     }
@@ -448,18 +462,61 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
       return;
     }
 
+    let createdCourseId: string | null = null;
+
     try {
       setErrorMessage(null);
+
       const createdCourse = await createCourse({
         title: draft.title,
         description: draft.subtitle,
         category: draft.category,
         scheduledAt: draft.launchDate,
-        teacherId: user.id,
+        teacherId,
       }).unwrap();
 
+      createdCourseId = createdCourse.id;
+
+      for (let sectionIndex = 0; sectionIndex < draft.sections.length; sectionIndex += 1) {
+        const sectionDraft = draft.sections[sectionIndex];
+        const createdSection = await createSection({
+          courseId: createdCourse.id,
+          title: sectionDraft.title.trim() || `Section ${sectionIndex + 1}`,
+          description: sectionDraft.description.trim() || undefined,
+          order: sectionIndex + 1,
+        }).unwrap();
+
+        for (let lessonIndex = 0; lessonIndex < sectionDraft.lessons.length; lessonIndex += 1) {
+          const lessonDraft = sectionDraft.lessons[lessonIndex];
+          const normalizedMeta = lessonDraft.meta.trim();
+
+          await createLesson({
+            courseId: createdCourse.id,
+            sectionId: createdSection.id,
+            title: lessonDraft.title.trim() || `Lecon ${lessonIndex + 1}`,
+            description:
+              lessonDraft.type === 'ARTICLE' || lessonDraft.type === 'QUIZ'
+                ? normalizedMeta || undefined
+                : undefined,
+            type: toBackendLessonType(lessonDraft.type),
+            durationMinutes: parseLessonDurationMinutes(lessonDraft.duration),
+            contentUrl:
+              lessonDraft.type === 'VIDEO' || lessonDraft.type === 'PDF'
+                ? normalizedMeta || undefined
+                : undefined,
+            contentText:
+              lessonDraft.type === 'ARTICLE' || lessonDraft.type === 'QUIZ'
+                ? normalizedMeta || undefined
+                : undefined,
+            order: lessonIndex + 1,
+          }).unwrap();
+        }
+      }
+
       setPublishedCourseId(createdCourse.id);
-      setStatusMessage('Cours publie avec succes. Les contenus de curriculum et settings restent sauvegardes localement tant que les endpoints dedies ne sont pas exposes.');
+      setStatusMessage(
+        'Cours publie avec succes. Le programme, les sections et les lecons sont maintenant enregistres dans le backend. Les options de miniature, SEO et pricing restent locales tant qu elles ne sont pas supportees cote API.',
+      );
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(COURSE_BUILDER_STORAGE_KEY, JSON.stringify(draft));
       }
@@ -471,90 +528,36 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
         typeof payload?.data === 'string'
           ? payload.data
           : payload?.data?.message || payload?.data?.error;
+      if (createdCourseId) {
+        setPublishedCourseId(createdCourseId);
+        setStatusMessage(
+          'Le cours principal existe deja dans le backend, mais la synchronisation complete du programme a rencontre une erreur.',
+        );
+      }
       setErrorMessage(message || 'Publication impossible pour le moment.');
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="mx-auto flex min-h-[70vh] max-w-5xl items-center px-6 py-16">
-        <div className="w-full rounded-[32px] border border-slate-200 bg-white p-10 shadow-xl shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40">
-          <Sparkles className="h-10 w-10 text-[#1152d4]" />
-          <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-            Connexion requise
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-500 dark:text-slate-300">
-            Connectez-vous avec un compte enseignant pour acceder au course builder.
-          </p>
-          <Button onClick={() => onNavigate('/auth/signin')} className="mt-8 rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]">
-            Se connecter
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (user?.role !== 'teacher') {
-    return (
-      <div className="mx-auto flex min-h-[70vh] max-w-5xl items-center px-6 py-16">
-        <div className="w-full rounded-[32px] border border-slate-200 bg-white p-10 shadow-xl shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-slate-950/40">
-          <Sparkles className="h-10 w-10 text-[#1152d4]" />
-          <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-            Acces reserve aux enseignants
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-500 dark:text-slate-300">
-            Cette interface sert a construire un cours avant publication et n est disponible que pour les profils enseignant.
-          </p>
-          <Button variant="outline" onClick={() => onNavigate(getDashboardPath(user?.role))} className="mt-8 rounded-2xl">
-            Retour
-          </Button>
-        </div>
-      </div>
-    );
+  if (teacherShared.status !== 'ready') {
+    return <TeacherSpaceStatus shared={teacherShared} />;
   }
 
   return (
-    <div
-      className="min-h-screen bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
-      style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
+    <TeacherSpaceShell
+      currentPath={currentPath}
+      onNavigate={(path) => onNavigate(typeof path === 'number' ? String(path) : path)}
+      showSearch={false}
+      headerTitle="Course Builder"
+      headerDescription="Créez, structurez et publiez vos cours dans une interface unifiée avec le reste de votre espace enseignant."
+      displayName={teacherShared.displayName}
+      displayRole={teacherShared.displayRole}
+      initials={teacherShared.initials}
+      avatarUrl={teacherShared.avatarUrl}
+      activeCourseCount={teacherShared.activeCourseCount}
+      liveSessions={teacherShared.liveSessions}
+      unreadCount={teacherShared.unreadCount}
     >
-      <div className="fixed left-[-10%] top-[-10%] -z-10 h-[40%] w-[40%] rounded-full bg-[#1152d4]/5 blur-[100px]" />
-      <div className="fixed bottom-[-10%] right-[-10%] -z-10 h-[40%] w-[40%] rounded-full bg-[#1152d4]/10 blur-[100px]" />
-
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-xl dark:border-slate-800 dark:bg-[#101622]/80 lg:px-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-[#1152d4] p-2 text-white">
-              <GraduationCap className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                EduMaster <span className="text-[#1152d4]">Studio</span>
-              </h1>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Course builder</p>
-            </div>
-          </div>
-
-          <div className="hidden items-center gap-8 md:flex">
-            <nav className="flex items-center gap-6">
-              <button type="button" onClick={() => onNavigate('/teacher/dashboard')} className="text-sm font-medium transition-colors hover:text-[#1152d4]">
-                Dashboard
-              </button>
-              <button type="button" className="border-b-2 border-[#1152d4] pb-1 text-sm font-medium text-[#1152d4]">
-                Course Builder
-              </button>
-              <button type="button" onClick={() => onNavigate('/teacher/live-sessions')} className="text-sm font-medium transition-colors hover:text-[#1152d4]">
-                Sessions
-              </button>
-            </nav>
-            <button type="button" onClick={() => onNavigate('/profile')} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#1152d4]/20 bg-[#1152d4]/10 text-sm font-bold text-[#1152d4]">
-              {getInitials(user.firstName || user.email || 'TE')}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-4 py-12 lg:px-20">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center py-6">
         <div className="mb-12 w-full max-w-4xl">
           <div className="mb-8 flex items-center justify-between">
             <div className="flex flex-col gap-1">
@@ -740,8 +743,8 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     </div>
                     <h3 className="mt-2 text-2xl font-bold">Organisez sections et lecons</h3>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      Structurez votre programme maintenant. Les elements restent en brouillon local
-                      jusqu a l exposition d endpoints dedies cote backend.
+                      Structurez votre programme maintenant. Cette partie du wizard sera publiee
+                      elle aussi dans le backend avec le cours.
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
@@ -1544,8 +1547,9 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     </div>
                   ) : (
                     <div className="mt-5 rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
-                      Publication actuelle: seules les donnees supportees par `createCourse`
-                      sont envoyees au backend. Le reste du wizard reste en brouillon local.
+                      Publication actuelle: le cours, les sections et les lecons sont envoyes au
+                      backend. Les reglages avances encore non supportes par l API restent en
+                      brouillon local.
                     </div>
                   )}
 
@@ -1593,7 +1597,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
             </div>
           </>
         ) : null}
-      </main>
-    </div>
+      </div>
+    </TeacherSpaceShell>
   );
 }

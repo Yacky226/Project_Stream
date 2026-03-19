@@ -26,6 +26,9 @@ function AppContent() {
   const isLiveSessionRoute = /^\/courses\/[^/]+\/session\/[^/]+$/.test(currentPath);
   const isTeacherProfileRoute = /^\/profile\/teacher\/[^/]+$/.test(currentPath);
   const isProfileRoute = currentPath === '/profile';
+  const isPublicStudentProfileRoute = currentPath === '/profile/public';
+  const isSettingsRoute = currentPath === '/settings';
+  const isNotificationsRoute = currentPath === '/notifications';
   const isCourseBuilderRoute =
     currentPath === '/teacher/course-builder' ||
     currentPath.startsWith('/teacher/course-builder/');
@@ -33,6 +36,8 @@ function AppContent() {
     currentPath === '/teacher/live-session-builder' ||
     currentPath.startsWith('/teacher/live-session-builder/');
   const isTeacherDashboardRoute = currentPath === '/teacher/dashboard';
+  const isTeacherLiveSessionsRoute = currentPath === '/teacher/live-sessions';
+  const isTeacherLiveStudioRoute = /^\/teacher\/live\/[^/]+(?:\/[^/]+)?$/.test(currentPath);
   const isAdminSpaceRoute = currentPath === '/admin' || currentPath.startsWith('/admin/');
   const isStudentSpaceRoute =
     currentPath === '/dashboard' || currentPath.startsWith('/student/');
@@ -67,9 +72,14 @@ function AppContent() {
     isLiveSessionRoute ||
     isTeacherProfileRoute ||
     isProfileRoute ||
+    isPublicStudentProfileRoute ||
+    isSettingsRoute ||
+    isNotificationsRoute ||
     isCourseBuilderRoute ||
     isLiveSessionBuilderRoute ||
     isTeacherDashboardRoute ||
+    isTeacherLiveSessionsRoute ||
+    isTeacherLiveStudioRoute ||
     isAdminSpaceRoute ||
     isStudentSpaceRoute;
 

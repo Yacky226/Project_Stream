@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { useGetStudentDashboardQuery } from '../../store/api/dashboardApi';
 import {
   useGetProfileQuery,
@@ -24,7 +25,6 @@ import {
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
-import { useAppSelector } from '../../hooks/redux';
 
 type StudentSpaceStatusType =
   | 'auth-loading'
@@ -58,9 +58,12 @@ export interface StudentSpaceData {
 interface StudentSpaceShellProps {
   currentPath?: string;
   onNavigate: (path: string | number) => void;
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  showSearch?: boolean;
+  headerTitle?: string;
+  headerDescription?: string;
   displayName: string;
   displayLevel: string;
   initials: string;
@@ -81,8 +84,13 @@ const MAIN_NAV_ITEMS: StudentShellNavItem[] = [
 
 const ACCOUNT_NAV_ITEMS: StudentShellNavItem[] = [
   { label: 'My Profile', path: '/profile', icon: User },
+  { label: 'Notifications', path: '/notifications', icon: Bell },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
+
+interface UseStudentSpaceDataOptions {
+  includeDashboard?: boolean;
+}
 
 export function getStudentSpaceErrorMessage(error: unknown, fallback: string): string {
   if (!error || typeof error !== 'object') return fallback;
@@ -242,17 +250,21 @@ function isActiveNavItem(currentPath: string | undefined, itemPath: string): boo
   return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
 
-export function useStudentSpaceData(): StudentSpaceData {
+export function useStudentSpaceData(
+  options: UseStudentSpaceDataOptions = {},
+): StudentSpaceData {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { includeDashboard = true } = options;
   const isStudent = user?.role === 'student';
   const shouldLoad = Boolean(isAuthenticated && isStudent && user?.id);
+  const shouldLoadDashboard = shouldLoad && includeDashboard;
 
   const {
     data: dashboard,
     isLoading: dashboardLoading,
     error: dashboardError,
   } = useGetStudentDashboardQuery(undefined, {
-    skip: !shouldLoad,
+    skip: !shouldLoadDashboard,
   });
   const {
     data: profile,
@@ -284,9 +296,13 @@ export function useStudentSpaceData(): StudentSpaceData {
     status = 'unauthenticated';
   } else if (!isStudent) {
     status = 'wrong-role';
-  } else if (dashboardLoading || profileLoading) {
+  } else if (profileLoading || (includeDashboard && dashboardLoading)) {
     status = 'loading';
-  } else if (!dashboard || !profile || dashboardError || profileError) {
+  } else if (
+    !profile ||
+    profileError ||
+    (includeDashboard && (!dashboard || dashboardError))
+  ) {
     status = 'error';
   }
 
@@ -315,10 +331,7 @@ export function useStudentSpaceData(): StudentSpaceData {
 }
 
 export function StudentSpaceStatus({ shared }: { shared: StudentSpaceData }) {
-  const theme = useAppSelector((state) => state.ui.theme);
-  const prefersDark =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  const { isDark } = useResolvedTheme();
 
   if (shared.status === 'auth-loading' || shared.status === 'loading') {
     return (
@@ -369,9 +382,12 @@ export function StudentSpaceStatus({ shared }: { shared: StudentSpaceData }) {
 export function StudentSpaceShell({
   currentPath,
   onNavigate,
-  searchQuery,
+  searchQuery = '',
   onSearchChange,
   searchPlaceholder = 'Search courses, sessions, articles...',
+  showSearch = true,
+  headerTitle,
+  headerDescription,
   displayName,
   displayLevel,
   initials,
@@ -380,107 +396,137 @@ export function StudentSpaceShell({
   unreadCount,
   children,
 }: StudentSpaceShellProps) {
-  const theme = useAppSelector((state) => state.ui.theme);
-  const prefersDark =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  const { isDark } = useResolvedTheme();
+  const handleSearchChange = onSearchChange || (() => undefined);
+  const allNavItems = [...MAIN_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS];
+  const rootClass = isDark
+    ? 'bg-[#09111f] text-[#e2e8f0]'
+    : 'bg-[#eef4ff] text-[#0f172a]';
+  const shellPanelClass = isDark
+    ? 'border-[#1e293b] bg-[#0f172a]/95'
+    : 'border-white/70 bg-white/95';
+  const headerClass = isDark
+    ? 'border-[#1e293b] bg-[#09111f]/88'
+    : 'border-white/60 bg-[#eef4ff]/82';
+  const searchClass = isDark
+    ? 'border border-[#334155] bg-[#162033] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
+    : 'border border-[#dbe6ff] bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
+  const mutedTextClass = isDark ? 'text-[#94a3b8]' : 'text-[#64748b]';
+  const secondaryPanelClass = isDark
+    ? 'border border-[#203049] bg-[#101a2d]/90'
+    : 'border border-[#dbe6ff] bg-[#f8fbff]';
 
   return (
     <div
-      className={`min-h-screen ${
-        isDark ? 'bg-[#101622] text-[#e2e8f0]' : 'bg-[#f6f6f8] text-[#0f172a]'
-      }`}
+      className={`relative min-h-screen overflow-hidden ${rootClass}`}
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
-      <div className="flex min-h-screen overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(17,82,212,0.18),transparent_42%),radial-gradient(circle_at_top_right,rgba(67,165,255,0.12),transparent_30%)]" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] overflow-hidden">
         <aside
-          className={`hidden w-72 shrink-0 border-r lg:flex lg:flex-col ${
-            isDark ? 'border-[#1e293b] bg-[#0f172a]' : 'border-[#1152d4]/10 bg-white'
-          }`}
+          className={`hidden w-80 shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}
         >
-          <div className="flex items-center gap-3 p-6">
-            <div className="rounded-2xl bg-[#1152d4] p-2 text-white">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-[#1152d4]">EduFlow</h2>
-          </div>
-
-          <nav className="mt-4 flex-1 space-y-2 px-4">
-            {MAIN_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const active = isActiveNavItem(currentPath, item.path);
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => onNavigate(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
-                    active
-                      ? 'bg-[#1152d4] text-white'
-                      : isDark
-                        ? 'text-[#cbd5e1] hover:bg-[#1152d4]/15 hover:text-[#8fb5ff]'
-                        : 'text-[#475569] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-
-            <div
-              className={`px-4 pt-8 text-[10px] font-bold uppercase tracking-[0.2em] ${
-                isDark ? 'text-[#94a3b8]' : 'text-[#94a3b8]'
-              }`}
-            >
-              Account
+          <div className="sticky top-0 flex h-screen flex-col px-5 pb-5 pt-6">
+            <div className="flex items-center gap-3 px-1">
+              <div className="rounded-2xl bg-[#1152d4] p-2.5 text-white shadow-lg shadow-[#1152d4]/25">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+                  Student Space
+                </p>
+                <h2 className="text-xl font-black tracking-tight text-[#1152d4]">EduFlow</h2>
+              </div>
             </div>
 
-            {ACCOUNT_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const active = isActiveNavItem(currentPath, item.path);
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => onNavigate(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors ${
-                    active
-                      ? 'bg-[#1152d4] text-white'
-                      : isDark
-                        ? 'text-[#cbd5e1] hover:bg-[#1152d4]/15 hover:text-[#8fb5ff]'
-                        : 'text-[#475569] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="p-4">
-            <div className={`rounded-[24px] border p-4 ${isDark ? 'border-[#1152d4]/20 bg-[#1152d4]/10' : 'border-[#1152d4]/10 bg-[#1152d4]/5'}`}>
-              <div className="mb-3 flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+            <div className={`mt-6 rounded-[28px] p-4 ${secondaryPanelClass}`}>
+              <div className="mb-4 flex items-center gap-3">
+                <Avatar className="h-12 w-12 border border-[#1152d4]/15">
                   <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="bg-[#1152d4]/10 text-[#1152d4]">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-bold">{displayName}</p>
-                  <p
-                    className={`text-[10px] font-semibold uppercase ${
-                      isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'
-                    }`}
-                  >
+                  <p className="truncate text-sm font-bold">{displayName}</p>
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${mutedTextClass}`}>
                     {displayLevel}
                   </p>
                 </div>
               </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em]">
+                  <span className={mutedTextClass}>Goal Progress</span>
+                  <span className="text-[#1152d4]">{goalProgress}%</span>
+                </div>
+                <div className={`h-2 overflow-hidden rounded-full ${isDark ? 'bg-[#23314a]' : 'bg-[#dbe6ff]'}`}>
+                  <div
+                    className="h-full rounded-full bg-[#1152d4]"
+                    style={{ width: `${Math.max(0, Math.min(goalProgress, 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <nav className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
+              {MAIN_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = isActiveNavItem(currentPath, item.path);
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => onNavigate(item.path)}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                      active
+                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
+                        : isDark
+                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
+                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{item.label}</span>
+                  </button>
+                );
+              })}
+
+              <div className={`px-4 pt-6 text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+                Account
+              </div>
+
+              {ACCOUNT_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = isActiveNavItem(currentPath, item.path);
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => onNavigate(item.path)}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                      active
+                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
+                        : isDark
+                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
+                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className={`mt-5 rounded-[28px] p-4 ${secondaryPanelClass}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+                Public Identity
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                Keep your learning profile polished and share-ready.
+              </p>
               <Button
-                className="w-full rounded-xl bg-[#1152d4] text-xs font-bold text-white hover:bg-[#0f47b9]"
+                className="mt-4 w-full rounded-xl bg-[#1152d4] text-xs font-bold text-white hover:bg-[#0f47b9]"
                 onClick={() => onNavigate('/profile/public')}
               >
                 View public profile
@@ -489,60 +535,66 @@ export function StudentSpaceShell({
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto">
-          <header
-            className={`sticky top-0 z-20 border-b px-4 py-4 backdrop-blur-md md:px-8 ${
-              isDark ? 'border-[#1e293b] bg-[#101622]/90' : 'border-[#1152d4]/5 bg-[#f6f6f8]/85'
-            }`}
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="relative w-full md:max-w-md">
-                <Search
-                  className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${
-                    isDark ? 'text-[#94a3b8]' : 'text-[#94a3b8]'
-                  }`}
-                />
-                <input
-                  value={searchQuery}
-                  onChange={(event) => onSearchChange(event.target.value)}
-                  className={`h-11 w-full rounded-2xl border-none pl-10 pr-4 text-sm shadow-sm focus:ring-2 focus:ring-[#1152d4]/20 ${
-                    isDark
-                      ? 'bg-[#1e293b] text-[#e2e8f0] placeholder:text-[#94a3b8]'
-                      : 'bg-white text-[#0f172a] placeholder:text-[#94a3b8]'
-                  }`}
-                  placeholder={searchPlaceholder}
-                  type="text"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`relative rounded-2xl ${
-                    isDark
-                      ? 'border-[#334155] bg-[#1e293b] text-[#e2e8f0] hover:bg-[#334155]'
-                      : 'border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]'
-                  }`}
-                  onClick={() => onNavigate('/notifications')}
-                >
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 ? (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-                  ) : null}
-                </Button>
-                <div
-                  className={`hidden h-8 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#1152d4]/10'}`}
-                />
-                <div className="hidden text-right sm:block">
-                  <p className="text-xs font-bold">Today's Goal</p>
-                  <p className="text-[10px] font-bold text-[#1152d4]">{goalProgress}% Complete</p>
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <header className={`sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              {showSearch ? (
+                <div className="relative w-full xl:max-w-xl">
+                  <Search
+                    className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${mutedTextClass}`}
+                  />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => handleSearchChange(event.target.value)}
+                    className={`h-12 w-full rounded-2xl pl-11 pr-4 text-sm shadow-sm transition focus:border-[#1152d4] focus:outline-none focus:ring-4 focus:ring-[#1152d4]/15 ${searchClass}`}
+                    placeholder={searchPlaceholder}
+                    type="text"
+                  />
                 </div>
+              ) : (
+                <div className="min-w-0">
+                  <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+                    {displayLevel}
+                  </p>
+                  <h1 className="mt-1 truncate text-2xl font-black tracking-tight">
+                    {headerTitle || displayName}
+                  </h1>
+                  {headerDescription ? (
+                    <p className={`mt-1 max-w-2xl text-sm ${mutedTextClass}`}>{headerDescription}</p>
+                  ) : null}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3 xl:justify-end">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={`relative rounded-2xl ${
+                      isDark
+                        ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
+                        : 'border-[#dbe6ff] bg-white text-[#0f172a] hover:bg-[#f8fbff]'
+                    }`}
+                    onClick={() => onNavigate('/notifications')}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 ? (
+                      <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+                    ) : null}
+                  </Button>
+                  <div className={`hidden h-10 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#dbe6ff]'}`} />
+                  <div className="hidden text-right sm:block">
+                    <p className="text-xs font-bold">Today's Goal</p>
+                    <p className="text-[10px] font-bold text-[#1152d4]">{goalProgress}% Complete</p>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => onNavigate('/profile')}
                   className="rounded-full"
                 >
-                  <Avatar className="h-10 w-10 border-2 border-[#1152d4]/20">
+                  <Avatar className="h-11 w-11 border-2 border-[#1152d4]/20 shadow-sm">
                     <AvatarImage src={avatarUrl || undefined} />
                     <AvatarFallback className="bg-[#1152d4]/10 text-[#1152d4]">
                       {initials}
@@ -551,9 +603,37 @@ export function StudentSpaceShell({
                 </button>
               </div>
             </div>
+
+            <nav className="mt-4 lg:hidden">
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                {allNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActiveNavItem(currentPath, item.path);
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => onNavigate(item.path)}
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        active
+                          ? 'bg-[#1152d4] text-white'
+                          : isDark
+                            ? 'bg-[#162033] text-[#cbd5e1]'
+                            : 'bg-white text-[#475569] shadow-sm'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
           </header>
 
-          <div className="mx-auto max-w-7xl p-4 md:p-8">{children}</div>
+          <div className="mx-auto w-full max-w-[1280px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
+            {children}
+          </div>
         </main>
       </div>
     </div>

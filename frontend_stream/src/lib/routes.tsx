@@ -1,6 +1,5 @@
 ﻿import { lazy, Suspense } from 'react';
 import { LoadingSpinner } from '../components/ui/loading-spinner';
-import { Bell } from 'lucide-react';
 
 // Lazy load all page components for better performance
 const HomePage = lazy(() => import('../components/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -15,9 +14,15 @@ const StudentLiveSessionsPage = lazy(() => import('../components/pages/StudentLi
 const StudentAchievementsPage = lazy(() => import('../components/pages/StudentAchievementsPage').then(m => ({ default: m.StudentAchievementsPage })));
 const StudentCommunityPage = lazy(() => import('../components/pages/StudentCommunityPage').then(m => ({ default: m.StudentCommunityPage })));
 const TeacherDashboard = lazy(() => import('../components/pages/TeacherDashboard').then(m => ({ default: m.TeacherDashboard })));
+const TeacherLiveSessionsPage = lazy(() => import('../components/pages/TeacherLiveSessionsPage').then(m => ({ default: m.TeacherLiveSessionsPage })));
 const AdminDashboard = lazy(() => import('../components/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminUsersPage = lazy(() => import('../components/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
+const AdminCoursesPage = lazy(() => import('../components/pages/AdminCoursesPage').then(m => ({ default: m.AdminCoursesPage })));
+const AdminSupportPage = lazy(() => import('../components/pages/AdminSupportPage').then(m => ({ default: m.AdminSupportPage })));
 const ProfilePage = lazy(() => import('../components/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const PublicStudentProfilePage = lazy(() => import('../components/pages/PublicStudentProfilePage').then(m => ({ default: m.PublicStudentProfilePage })));
 const SettingsPage = lazy(() => import('../components/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const NotificationsPage = lazy(() => import('../components/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const SearchPage = lazy(() => import('../components/pages/SearchPage').then(m => ({ default: m.SearchPage })));
 const LiveSession = lazy(() => import('../components/pages/LiveSession').then(m => ({ default: m.LiveSession })));
 const TeacherProfile = lazy(() => import('../components/pages/TeacherProfile').then(m => ({ default: m.TeacherProfile })));
@@ -26,7 +31,6 @@ const NotFoundPage = lazy(() => import('../components/pages/NotFoundPage').then(
 // Live streaming components
 const SimpleLiveStudio = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveStudio })));
 const SimpleLiveViewer = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveViewer })));
-const SimpleLiveManager = lazy(() => import('../components/live/SimpleLiveComponents').then(m => ({ default: m.SimpleLiveManager })));
 
 // Static pages
 const ContactPage = lazy(() => import('../components/pages/ContactPage').then(m => ({ default: m.ContactPage })));
@@ -220,6 +224,30 @@ export const routes: RouteConfig[] = [
     title: 'Administration',
     description: 'Panneau d\'administration'
   },
+  {
+    path: '/admin/users',
+    component: withSuspense(AdminUsersPage),
+    requireAuth: true,
+    allowedRoles: ['admin'],
+    title: 'Administration utilisateurs',
+    description: 'Gestion detaillee des utilisateurs'
+  },
+  {
+    path: '/admin/courses',
+    component: withSuspense(AdminCoursesPage),
+    requireAuth: true,
+    allowedRoles: ['admin'],
+    title: 'Administration cours',
+    description: 'Gestion detaillee des cours'
+  },
+  {
+    path: '/admin/support',
+    component: withSuspense(AdminSupportPage),
+    requireAuth: true,
+    allowedRoles: ['admin'],
+    title: 'Administration support',
+    description: 'Centre de support et operations'
+  },
   
   // Profile routes
   {
@@ -230,6 +258,14 @@ export const routes: RouteConfig[] = [
     description: 'GÃ©rez votre profil utilisateur'
   },
   {
+    path: '/profile/public',
+    component: withSuspense(PublicStudentProfilePage),
+    requireAuth: true,
+    allowedRoles: ['student'],
+    title: 'Profil public Ã©tudiant',
+    description: 'Previsualisez votre profil public etudiant'
+  },
+  {
     path: '/settings',
     component: withSuspense(SettingsPage),
     requireAuth: true,
@@ -238,18 +274,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/notifications',
-    component: withSuspense((props: any) => (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl mb-2">Notifications</h1>
-          <p className="text-muted-foreground">GÃ©rez vos notifications</p>
-        </div>
-        <div className="p-8 text-center text-muted-foreground">
-          <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Votre centre de notifications sera bientÃ´t disponible.</p>
-        </div>
-      </div>
-    )),
+    component: withSuspense(NotificationsPage),
     requireAuth: true,
     title: 'Notifications',
     description: 'Vos notifications'
@@ -264,15 +289,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/teacher/live-sessions',
-    component: withSuspense((props: any) => (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl mb-2">Cours et Sessions Live</h1>
-          <p className="text-muted-foreground">Creer vos cours puis programmer plusieurs sessions live par cours</p>
-        </div>
-        <SimpleLiveManager courseId="all" {...props} />
-      </div>
-    )),
+    component: withSuspense(TeacherLiveSessionsPage),
     requireAuth: true,
     allowedRoles: ['teacher'],
     title: 'Cours et Sessions Live',

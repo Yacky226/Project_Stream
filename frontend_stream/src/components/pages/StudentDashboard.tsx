@@ -10,7 +10,11 @@ import {
   Star,
 } from 'lucide-react';
 import { useGetCoursesQuery } from '../../store/api/liveApi';
-import type { StudentDashboardCourse } from '../../types/dashboard';
+import type {
+  DashboardActivityItem,
+  DashboardSessionItem,
+  StudentDashboardCourse,
+} from '../../types/dashboard';
 import { useAppSelector } from '../../hooks/redux';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
@@ -117,9 +121,9 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
   const profile = shared.profile;
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const firstName = profile?.firstName || shared.displayName.split(' ')[0] || 'Student';
-  const dashboardCourses = dashboard?.courses ?? [];
-  const dashboardSessions = dashboard?.upcomingSessions ?? [];
-  const recentActivity = dashboard?.recentActivity ?? [];
+  const dashboardCourses: StudentDashboardCourse[] = dashboard?.courses ?? [];
+  const dashboardSessions: DashboardSessionItem[] = dashboard?.upcomingSessions ?? [];
+  const recentActivity: DashboardActivityItem[] = dashboard?.recentActivity ?? [];
   const dashboardStats = dashboard?.stats;
   const activeCoursesCount =
     dashboardStats?.activeCourses ??

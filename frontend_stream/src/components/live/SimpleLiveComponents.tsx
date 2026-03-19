@@ -36,14 +36,15 @@ import {
   useCreateSessionMutation,
   useFetchSessionVodMutation,
   useGetChatHistoryQuery,
+  useGetCourseDetailsQuery,
   useGetCourseLiveSessionQuery,
   useGetCourseSessionsQuery,
-  useGetCoursesQuery,
   useGetCurrentSpeakerQuery,
   useGetHandRaiseQueueQuery,
   useGetQuestionsQuery,
   useGetSessionByIdQuery,
   useGetSessionStreamUrlQuery,
+  useGetTeacherCoursesQuery,
   useGetTeacherSessionsQuery,
   useGrantSpeakingMutation,
   useJoinSessionMutation,
@@ -80,6 +81,7 @@ interface BaseLiveProps {
 interface SimpleLiveManagerProps {
   courseId: string;
   onNavigate: (path: string) => void;
+  embedded?: boolean;
 }
 
 type MutationLikeError =
@@ -1220,7 +1222,11 @@ function HandRaisePanel({
   );
 }
 
-export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerProps) {
+export function SimpleLiveManager({
+  courseId,
+  onNavigate,
+  embedded = false,
+}: SimpleLiveManagerProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const isTeacher = user?.role === 'teacher';
   const teacherId = parseNumericId(user?.id);
@@ -1236,20 +1242,13 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
   });
 
   const {
-    data: allCourses = [],
+    data: teacherCourses = [],
     isLoading: isLoadingCourses,
     refetch: refetchCourses,
     error: coursesError,
-  } = useGetCoursesQuery(undefined, {
+  } = useGetTeacherCoursesQuery(undefined, {
     skip: !isAuthenticated || !isTeacher,
   });
-
-  const teacherCourses = useMemo(() => {
-    if (!teacherId) {
-      return [] as LiveCourse[];
-    }
-    return allCourses.filter((course) => Number(course.teacherId) === teacherId);
-  }, [allCourses, teacherId]);
 
   const [createCourse, { isLoading: isCreatingCourse }] = useCreateCourseMutation();
   const [createSession, { isLoading: isCreating }] = useCreateSessionMutation();
@@ -1472,9 +1471,16 @@ export function SimpleLiveManager({ courseId, onNavigate }: SimpleLiveManagerPro
     );
   }
 
+  const surfaceClass = embedded
+    ? 'overflow-hidden rounded-[32px] border border-[#dbe6ff] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-8 pt-5 shadow-sm dark:border-slate-800 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900'
+    : 'min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-10 pt-5 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900';
+  const containerClass = embedded
+    ? 'space-y-6 px-4 md:px-6'
+    : 'container mx-auto max-w-[1440px] space-y-6 px-4';
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-10 pt-5 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="container mx-auto max-w-[1440px] space-y-6 px-4">
+    <div className={surfaceClass}>
+      <div className={containerClass}>
         <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
           <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.15fr_0.85fr] lg:p-8">
             <div className="space-y-4">
@@ -2484,8 +2490,18 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
     isAuthenticated,
   });
   const canUseLivePlayer = Boolean(session && (session.isLive || session.status === 'LIVE'));
+  const { data: courseDetails, isLoading: isLoadingCourseAccess } = useGetCourseDetailsQuery(
+    {
+      courseId,
+      studentId: isStudent ? user?.id || undefined : undefined,
+    },
+    {
+      skip: !isAuthenticated || !isStudent || !parseNumericId(courseId),
+    },
+  );
+  const studentHasCourseAccess = !isStudent || Boolean(courseDetails?.isEnrolled);
   const { data: streamUrl } = useGetSessionStreamUrlQuery(session?.id || '', {
-    skip: !isAuthenticated || !session || !canUseLivePlayer,
+    skip: !isAuthenticated || !session || !studentHasCourseAccess || !canUseLivePlayer,
   });
   const sessionPath = session ? `/courses/${session.courseId}/live/${session.id}` : null;
   const sessionAbsoluteUrl =
@@ -2497,6 +2513,9 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
   useEffect(() => {
     const join = async () => {
       if (!session || !isStudent || !isAuthenticated) {
+        return;
+      }
+      if (!studentHasCourseAccess) {
         return;
       }
       if (!session.isLive && session.status !== 'LIVE') {
@@ -2516,7 +2535,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
     };
 
     void join();
-  }, [session, isStudent, isAuthenticated, joinSession]);
+  }, [session, isStudent, isAuthenticated, joinSession, studentHasCourseAccess]);
 
   if (!isAuthenticated) {
     return (
@@ -2559,6 +2578,18 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
           </div>
         </div>
 
+        {isStudent && !isLoadingCourseAccess && !studentHasCourseAccess ? (
+          <Alert className="mb-4 border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="space-y-2">
+              <p>Vous devez etre inscrit a ce cours avant de rejoindre le live.</p>
+              <Button size="sm" variant="outline" onClick={() => onNavigate(`/courses/${courseId}`)}>
+                Voir le cours
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {joinError ? (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
@@ -2582,7 +2613,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
           </Alert>
         ) : null}
 
-        {isLoading ? (
+        {isLoading || isLoadingCourseAccess ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Chargement du live...
@@ -2600,7 +2631,23 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
         ) : (
           <div className="space-y-5">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <SessionVideoCard session={session} streamUrl={streamUrl} />
+              {studentHasCourseAccess ? (
+                <SessionVideoCard session={session} streamUrl={streamUrl} />
+              ) : (
+                <Card className="overflow-hidden border-amber-300 bg-amber-50 text-amber-950 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                  <CardContent className="flex min-h-[360px] flex-col items-center justify-center gap-4 p-8 text-center">
+                    <CircleOff className="h-12 w-12 text-amber-500" />
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-semibold">Acces reserve aux inscrits</h2>
+                      <p className="max-w-md text-sm text-amber-900/80 dark:text-amber-100/80">
+                        Le live est pret, mais l acces au flux et aux interactions est disponible
+                        uniquement apres inscription au cours.
+                      </p>
+                    </div>
+                    <Button onClick={() => onNavigate(`/courses/${courseId}`)}>Voir le cours</Button>
+                  </CardContent>
+                </Card>
+              )}
 
               <div className="space-y-5">
                 <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
@@ -2648,7 +2695,14 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
                     <CardTitle className="text-base">Interactions live</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <LiveInteractionTabs sessionId={session.id} userId={user?.id || null} isTeacher={false} />
+                    {studentHasCourseAccess ? (
+                      <LiveInteractionTabs sessionId={session.id} userId={user?.id || null} isTeacher={false} />
+                    ) : (
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
+                        Inscrivez-vous au cours pour acceder au chat, aux questions et a la file
+                        de prise de parole.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -2673,7 +2727,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
                     copyToClipboard(sessionAbsoluteUrl);
                   }
                 }}
-                disabled={!sessionAbsoluteUrl}
+                disabled={!sessionAbsoluteUrl || !studentHasCourseAccess}
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Copier lien
@@ -2697,7 +2751,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
           </div>
         )}
 
-        {isStudent && session?.isLive ? (
+        {isStudent && studentHasCourseAccess && session?.isLive ? (
           <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-700 dark:text-red-300">
             <span className="inline-flex items-center gap-1">
               <Radio className="h-3 w-3 animate-pulse" />

@@ -3,10 +3,8 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  Bell,
   CalendarClock,
   CheckCircle2,
-  GraduationCap,
   ImagePlus,
   Info,
   MessageSquare,
@@ -14,18 +12,24 @@ import {
   Radio,
   Rocket,
   Save,
-  Search,
   Shield,
   Users,
   Video,
   X,
   Zap,
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { useCreateCourseMutation, useCreateSessionMutation, useGetCoursesQuery } from '../../store/api/liveApi';
-import { useGetProfileQuery, useGetUnreadNotificationCountQuery } from '../../store/api/userApi';
+import {
+  useCreateCourseMutation,
+  useCreateSessionMutation,
+  useGetTeacherCoursesQuery,
+} from '../../store/api/liveApi';
 import type { LiveCourse } from '../../types/live';
 import { toLocalDateTimeInput } from '../live/liveSession.utils';
+import {
+  TeacherSpaceShell,
+  TeacherSpaceStatus,
+  useTeacherSpaceData,
+} from '../teacher/TeacherSpaceShared';
 
 interface LiveSessionBuilderPageProps {
   onNavigate: (path: string) => void;
@@ -113,10 +117,6 @@ const TARGET_LEVEL_OPTIONS: Array<{ value: AudienceLevel; label: string }> = [
   { value: 'intermediate', label: 'Intermediate only' },
   { value: 'advanced', label: 'Advanced only' },
 ];
-
-function getInitials(firstName?: string | null, lastName?: string | null) {
-  return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.trim().toUpperCase() || 'TE';
-}
 
 function createDefaultDraft(): LiveBuilderDraft {
   const targetDate = new Date(Date.now() + 48 * 60 * 60 * 1000);
@@ -256,13 +256,9 @@ function validateStepThree(draft: LiveBuilderDraft) {
 }
 
 export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionBuilderPageProps) {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const shouldLoad = Boolean(isAuthenticated && user?.role === 'teacher');
-  const { data: profile } = useGetProfileQuery(undefined, { skip: !shouldLoad });
-  const { data: unreadCount = 0 } = useGetUnreadNotificationCountQuery(undefined, {
-    skip: !shouldLoad,
-  });
-  const { data: allCourses = [], isLoading: isLoadingCourses, error: coursesError } = useGetCoursesQuery(
+  const teacherShared = useTeacherSpaceData({ includeDashboard: true });
+  const shouldLoad = teacherShared.status === 'ready';
+  const { data: teacherCourses = [], isLoading: isLoadingCourses, error: coursesError } = useGetTeacherCoursesQuery(
     undefined,
     { skip: !shouldLoad },
   );
@@ -270,7 +266,6 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
   const [draft, setDraft] = useState<LiveBuilderDraft>(() => createDefaultDraft());
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [headerSearch, setHeaderSearch] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [prerequisiteInput, setPrerequisiteInput] = useState('');
@@ -278,13 +273,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasHydratedDraft = useRef(false);
 
-  const displayName = `${profile?.firstName || user?.firstName || 'Instructor'} ${profile?.lastName || user?.lastName || ''}`.trim();
-  const avatarUrl = profile?.avatar || user?.avatar || null;
-  const teacherId = String(profile?.id || user?.id || '');
-  const teacherCourses = useMemo(
-    () => allCourses.filter((course) => course.teacherId === teacherId),
-    [allCourses, teacherId],
-  );
+  const displayName = teacherShared.displayName || 'Instructor';
+  const avatarUrl = teacherShared.avatarUrl;
+  const teacherId = teacherShared.user?.id ? String(teacherShared.user.id) : '';
   const selectedCourse = useMemo(
     () => teacherCourses.find((course) => course.id === draft.selectedCourseId) || null,
     [teacherCourses, draft.selectedCourseId],
@@ -447,6 +438,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
     setErrorMessage(null);
     setStatusMessage(null);
+    let createdCourseId: string | null = null;
+    let createdCourseTitle: string | null = null;
 
     try {
       let courseId = draft.selectedCourseId;
@@ -463,6 +456,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
         courseId = createdCourse.id;
         linkedCourseTitle = createdCourse.title;
+        createdCourseId = createdCourse.id;
+        createdCourseTitle = createdCourse.title;
       }
 
       const createdSession = await createSession({
@@ -504,7 +499,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         window.localStorage.removeItem(LIVE_BUILDER_STORAGE_KEY);
       }
 
-      setStatusMessage('Live session published. Redirecting to the studio...');
+      setStatusMessage(
+        'Live session published. Course and session are saved in the backend. Redirecting to the studio...',
+      );
       onNavigate(`/teacher/live/${courseId}/${createdSession.id}`);
     } catch (error) {
       const payload = error as {
@@ -512,6 +509,16 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         error?: string;
         message?: string;
       };
+      if (createdCourseId) {
+        setDraft((current) => ({
+          ...current,
+          sessionMode: 'existing',
+          selectedCourseId: createdCourseId,
+        }));
+        setStatusMessage(
+          `The course "${createdCourseTitle || createdCourseId}" was created, but the live session still needs to be published.`,
+        );
+      }
       setErrorMessage(
         payload.data?.message ||
           payload.data?.error ||
@@ -522,54 +529,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] dark:bg-[#101622]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#1152d4]/20 border-t-[#1152d4]" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] px-6 dark:bg-[#101622]">
-        <div className="w-full max-w-xl rounded-[28px] border border-red-200 bg-white p-8 text-center shadow-sm dark:border-red-900/30 dark:bg-slate-900">
-          <AlertCircle className="mx-auto h-10 w-10 text-red-500" />
-          <h1 className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">Sign in required</h1>
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">
-            Connect to your instructor account to create a live session.
-          </p>
-          <button
-            type="button"
-            onClick={() => onNavigate('/auth/signin')}
-            className="mt-6 rounded-2xl bg-[#1152d4] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0f47b9]"
-          >
-            Go to sign in
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (user?.role !== 'teacher') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] px-6 dark:bg-[#101622]">
-        <div className="w-full max-w-xl rounded-[28px] border border-red-200 bg-white p-8 text-center shadow-sm dark:border-red-900/30 dark:bg-slate-900">
-          <AlertCircle className="mx-auto h-10 w-10 text-red-500" />
-          <h1 className="mt-4 text-2xl font-bold text-slate-950 dark:text-white">Teacher access only</h1>
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">
-            Only instructors can open the live session creation wizard.
-          </p>
-          <button
-            type="button"
-            onClick={() => onNavigate('/')}
-            className="mt-6 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Return home
-          </button>
-        </div>
-      </div>
-    );
+  if (teacherShared.status !== 'ready') {
+    return <TeacherSpaceStatus shared={teacherShared} />;
   }
 
   const stepOneContent = (
@@ -1266,9 +1227,19 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   );
 
   return (
-    <div
-      className="min-h-screen bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
-      style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
+    <TeacherSpaceShell
+      currentPath={currentPath}
+      onNavigate={(path) => onNavigate(typeof path === 'number' ? String(path) : path)}
+      showSearch={false}
+      headerTitle="Live Session Builder"
+      headerDescription="Planifiez et publiez vos sessions live depuis le même cadre visuel que votre dashboard enseignant."
+      displayName={teacherShared.displayName}
+      displayRole={teacherShared.displayRole}
+      initials={teacherShared.initials}
+      avatarUrl={teacherShared.avatarUrl}
+      activeCourseCount={teacherShared.activeCourseCount}
+      liveSessions={teacherShared.liveSessions}
+      unreadCount={teacherShared.unreadCount}
     >
       <input
         ref={fileInputRef}
@@ -1278,72 +1249,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         onChange={handleThumbnailChange}
       />
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-6 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/90 md:px-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6">
-          <div className="flex items-center gap-4 text-[#1152d4]">
-            <button
-              type="button"
-              onClick={() => onNavigate('/teacher/live-sessions')}
-              className="flex items-center gap-3 transition hover:opacity-80"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1152d4]/10">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1152d4]/70">EduLive</p>
-                <h1 className="text-lg font-bold tracking-tight text-slate-950 dark:text-white">Live Session Builder</h1>
-              </div>
-            </button>
-            <nav className="hidden items-center gap-8 pl-4 md:flex">
-              <button type="button" onClick={() => onNavigate('/teacher/dashboard')} className="text-sm font-medium text-slate-500 transition hover:text-[#1152d4] dark:text-slate-400">
-                Dashboard
-              </button>
-              <button type="button" onClick={() => onNavigate('/teacher/course-builder')} className="text-sm font-medium text-slate-500 transition hover:text-[#1152d4] dark:text-slate-400">
-                Courses
-              </button>
-              <button type="button" onClick={() => onNavigate('/teacher/live-sessions')} className="border-b-2 border-[#1152d4] pb-1 text-sm font-semibold text-[#1152d4]">
-                Sessions
-              </button>
-            </nav>
-          </div>
-
-          <div className="flex flex-1 items-center justify-end gap-4">
-            <label className="relative hidden sm:block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={headerSearch}
-                onChange={(event) => setHeaderSearch(event.target.value)}
-                placeholder="Search your courses..."
-                className="h-10 w-64 rounded-xl border-none bg-slate-100 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#1152d4]/20 dark:bg-slate-800"
-                type="text"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => onNavigate('/notifications')}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" /> : null}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('/teacher/live-sessions')}
-              className="overflow-hidden rounded-full border border-slate-200 bg-slate-200 dark:border-slate-700 dark:bg-slate-700"
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="h-10 w-10 object-cover" />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center bg-[#1152d4]/10 text-sm font-bold text-[#1152d4]">
-                  {getInitials(profile?.firstName || user?.firstName, profile?.lastName || user?.lastName)}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-6xl flex-col px-4 pb-36 pt-8 md:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col px-2 pb-16 pt-6 md:px-4">
         <div className="mb-6 flex items-center justify-between gap-4">
           <button
             type="button"
@@ -1372,9 +1278,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         {draft.step === 1 ? stepOneContent : null}
         {draft.step === 2 ? stepTwoContent : null}
         {draft.step === 3 ? stepThreeContent : null}
-      </main>
+      </div>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/90 md:px-10">
+      <footer className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/90 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/90 md:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -1442,6 +1348,6 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
           We could not refresh your course inventory. You can still create a new course and live session from this wizard.
         </div>
       ) : null}
-    </div>
+    </TeacherSpaceShell>
   );
 }

@@ -229,6 +229,9 @@ export function CourseDetail({ courseId, onNavigate }: CourseDetailProps) {
   const coverImage = courseDetails?.coverImage || DEFAULT_COVER_IMAGE;
   const lastUpdated = formatMonthYear(courseDetails?.scheduledAt);
   const enrolledCount = courseDetails?.enrolledCount || 0;
+  const canAccessLiveSession =
+    courseDetails.isEnrolled || user?.role === 'teacher' || user?.role === 'admin';
+  const activeLiveSession = liveSession && (liveSession.isLive || liveSession.status === 'LIVE') ? liveSession : null;
 
   const previewReviews = useMemo(() => {
     return reviews.slice(0, 2);
@@ -465,10 +468,19 @@ export function CourseDetail({ courseId, onNavigate }: CourseDetailProps) {
             <div className="cdp-enroll-card">
               <div className="cdp-preview">
                 <ImageWithFallback alt="Course preview" src={coverImage} />
-                <button onClick={() => onNavigate(`/courses/${courseId}/live`)} type="button">
+                <button
+                  onClick={() => {
+                    if (canAccessLiveSession) {
+                      onNavigate(activeLiveSession ? `/courses/${courseId}/live/${activeLiveSession.id}` : `/courses/${courseId}/live`);
+                      return;
+                    }
+                    void handleEnroll();
+                  }}
+                  type="button"
+                >
                   <Play size={18} />
                 </button>
-                <p>Preview this course</p>
+                <p>{canAccessLiveSession ? 'Preview this course' : 'Enroll to access live'}</p>
               </div>
 
               <div className="cdp-enroll-body">
@@ -507,10 +519,10 @@ export function CourseDetail({ courseId, onNavigate }: CourseDetailProps) {
                   </ul>
                 </div>
 
-                {liveSession && (liveSession.isLive || liveSession.status === 'LIVE') && (
+                {activeLiveSession && canAccessLiveSession && (
                   <button
                     className="cdp-live-btn"
-                    onClick={() => onNavigate(`/courses/${courseId}/live/${liveSession.id}`)}
+                    onClick={() => onNavigate(`/courses/${courseId}/live/${activeLiveSession.id}`)}
                     type="button"
                   >
                     Join Live Session

@@ -1,9 +1,28 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { AlertCircle, Bell, Download, Globe, Loader2, Monitor, Save, Settings, Shield, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useAppDispatch } from '../../hooks/redux';
 import { useTranslation } from '../../lib/i18n';
+import { uiStorage } from '../../lib/localStorage';
+import { normalizeUserRole } from '../../lib/roleUtils';
 import { useGetPreferencesQuery, useUpdatePreferencesMutation } from '../../store/api/userApi';
+import { setLanguage as setUiLanguage, setTheme } from '../../store/slices/uiSlice';
 import type { UserPreferences } from '../../types/user';
+import {
+  AdminSpaceShell,
+  AdminSpaceStatus,
+  useAdminSpaceData,
+} from '../admin/AdminSpaceShared';
+import {
+  StudentSpaceShell,
+  StudentSpaceStatus,
+  useStudentSpaceData,
+} from '../student/StudentSpaceShared';
+import {
+  TeacherSpaceShell,
+  TeacherSpaceStatus,
+  useTeacherSpaceData,
+} from '../teacher/TeacherSpaceShared';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -16,18 +35,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface SettingsPageProps {
   onNavigate: (path: string | number) => void;
+  currentPath?: string;
 }
 
 function applyTheme(theme: UserPreferences['theme']) {
   if (theme === 'dark') {
     document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
+    uiStorage.saveTheme('dark');
     return;
   }
 
   if (theme === 'light') {
     document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
+    uiStorage.saveTheme('light');
     return;
   }
 
@@ -37,7 +57,7 @@ function applyTheme(theme: UserPreferences['theme']) {
   } else {
     document.documentElement.classList.remove('dark');
   }
-  localStorage.setItem('theme', 'system');
+  uiStorage.saveTheme('system');
 }
 
 function createPreferencesExport(preferences: UserPreferences): string {
@@ -51,9 +71,17 @@ function createPreferencesExport(preferences: UserPreferences): string {
   );
 }
 
-export function SettingsPage({ onNavigate }: SettingsPageProps) {
-  const { t, setLanguage } = useTranslation();
+export function SettingsPage({ onNavigate, currentPath }: SettingsPageProps) {
+  const dispatch = useAppDispatch();
+  const { t, setLanguage: setI18nLanguage } = useTranslation();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const studentShared = useStudentSpaceData({ includeDashboard: false });
+  const teacherShared = useTeacherSpaceData();
+  const adminShared = useAdminSpaceData({ includeDashboard: false });
+  const normalizedRole = normalizeUserRole(user?.role);
+  const isStudentAccountPage = normalizedRole === 'student';
+  const isTeacherAccountPage = normalizedRole === 'teacher';
+  const isAdminAccountPage = normalizedRole === 'admin';
 
   const {
     data: remotePreferences,
@@ -83,9 +111,11 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
 
     setLocalPreferences(remotePreferences);
     applyTheme(remotePreferences.theme);
-    setLanguage(remotePreferences.language);
+    dispatch(setTheme(remotePreferences.theme));
+    dispatch(setUiLanguage(remotePreferences.language));
+    setI18nLanguage(remotePreferences.language);
     document.documentElement.lang = remotePreferences.language;
-  }, [remotePreferences, setLanguage]);
+  }, [dispatch, remotePreferences, setI18nLanguage]);
 
   const canSave = useMemo(() => {
     if (!localPreferences || !remotePreferences) {
@@ -111,7 +141,9 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
       const saved = await updatePreferences(localPreferences).unwrap();
 
       applyTheme(saved.theme);
-      setLanguage(saved.language);
+      dispatch(setTheme(saved.theme));
+      dispatch(setUiLanguage(saved.language));
+      setI18nLanguage(saved.language);
       document.documentElement.lang = saved.language;
       setLocalPreferences(saved);
       setSubmitSuccess('Parametres sauvegardes avec succes.');
@@ -138,18 +170,24 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
     window.URL.revokeObjectURL(url);
   };
 
-  if (authLoading || preferencesLoading || !localPreferences) {
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="flex min-h-[360px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </div>
-    );
+  if (isStudentAccountPage && studentShared.status !== 'ready') {
+    return <StudentSpaceStatus shared={studentShared} />;
   }
 
-  return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+  if (isTeacherAccountPage && teacherShared.status !== 'ready') {
+    return <TeacherSpaceStatus shared={teacherShared} />;
+  }
+
+  if (isAdminAccountPage && adminShared.status !== 'ready') {
+    return <AdminSpaceStatus shared={adminShared} />;
+  }
+
+  const pageContent = authLoading || preferencesLoading || !localPreferences ? (
+    <div className="flex min-h-[360px] items-center justify-center rounded-[28px] border border-dashed border-border bg-card">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  ) : (
+    <div className="space-y-6">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="mb-2 text-3xl">{t('common.settings')}</h1>
@@ -451,6 +489,72 @@ export function SettingsPage({ onNavigate }: SettingsPageProps) {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+
+  if (isStudentAccountPage && studentShared.status === 'ready') {
+    return (
+      <StudentSpaceShell
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        showSearch={false}
+        headerTitle="Settings"
+        headerDescription="Ajustez vos preferences de lecture, notifications et confidentialite depuis un espace coherent avec votre parcours etudiant."
+        displayName={studentShared.displayName}
+        displayLevel={studentShared.displayLevel}
+        initials={studentShared.initials}
+        avatarUrl={studentShared.avatarUrl}
+        goalProgress={studentShared.goalProgress}
+        unreadCount={studentShared.unreadCount}
+      >
+        {pageContent}
+      </StudentSpaceShell>
+    );
+  }
+
+  if (isTeacherAccountPage && teacherShared.status === 'ready') {
+    return (
+      <TeacherSpaceShell
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        showSearch={false}
+        headerTitle="Settings"
+        headerDescription="Ajustez vos preferences de lecture, notifications et confidentialite depuis un espace enseignant coherent avec le reste de votre studio."
+        displayName={teacherShared.displayName}
+        displayRole={teacherShared.displayRole}
+        initials={teacherShared.initials}
+        avatarUrl={teacherShared.avatarUrl}
+        activeCourseCount={teacherShared.activeCourseCount}
+        liveSessions={teacherShared.liveSessions}
+        unreadCount={teacherShared.unreadCount}
+      >
+        {pageContent}
+      </TeacherSpaceShell>
+    );
+  }
+
+  if (isAdminAccountPage && adminShared.status === 'ready') {
+    return (
+      <AdminSpaceShell
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        showSearch={false}
+        headerTitle="Settings"
+        headerDescription="Gardez vos preferences, notifications et options de confidentialite dans le meme cadre que le reste de l espace administrateur."
+        displayName={adminShared.displayName}
+        displayRole={adminShared.displayRole}
+        initials={adminShared.initials}
+        avatarUrl={adminShared.avatarUrl}
+        unreadCount={adminShared.unreadCount}
+      >
+        {pageContent}
+      </AdminSpaceShell>
+    );
+  }
+
+  return (
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      {pageContent}
     </div>
   );
 }

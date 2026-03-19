@@ -3,6 +3,8 @@ import { baseQueryWithAuth } from './apiClient';
 import type {
   BackendCourseDetailsDTO,
   BackendCourseDTO,
+  BackendCourseLessonDTO,
+  BackendCourseSectionDTO,
   BackendLiveChatMessageDTO,
   BackendLiveHandRaiseDTO,
   BackendLiveQuestionDTO,
@@ -11,6 +13,8 @@ import type {
   LiveCourseLite,
   LiveCourse,
   LiveCourseDetails,
+  LiveCourseLesson,
+  LiveCourseSection,
   LiveHandRaise,
   LiveQuestion,
   LiveSession,
@@ -40,6 +44,27 @@ export interface CreateCoursePayload {
   category: string;
   scheduledAt: string;
   teacherId: string | number;
+}
+
+type BackendLessonType = 'VIDEO' | 'TEXTE' | 'QUIZ';
+
+export interface CreateCourseSectionPayload {
+  courseId: string | number;
+  title: string;
+  description?: string;
+  order: number;
+}
+
+export interface CreateCourseLessonPayload {
+  courseId?: string | number;
+  sectionId: string | number;
+  title: string;
+  description?: string;
+  type: BackendLessonType;
+  durationMinutes?: number;
+  contentUrl?: string;
+  contentText?: string;
+  order: number;
 }
 
 export interface UpdateLiveSessionPayload {
@@ -79,6 +104,30 @@ function toBackendDateTime(value: string): string {
   return value;
 }
 
+function mapCourseSection(section: BackendCourseSectionDTO): LiveCourseSection {
+  return {
+    id: String(section.id),
+    title: section.titre || `Section #${section.id}`,
+    description: section.description || null,
+    order: section.ordre || 0,
+    lessons: (section.lecons || []).map(mapCourseLesson),
+  };
+}
+
+function mapCourseLesson(lesson: BackendCourseLessonDTO): LiveCourseLesson {
+  return {
+    id: String(lesson.id),
+    title: lesson.titre || `Lecon #${lesson.id}`,
+    description: lesson.description || null,
+    type: lesson.type || 'VIDEO',
+    contentUrl: lesson.contenuUrl || null,
+    contentText: lesson.contenuTexte || null,
+    durationMinutes: typeof lesson.dureeMinutes === 'number' ? lesson.dureeMinutes : null,
+    order: lesson.ordre || 0,
+    completed: Boolean(lesson.isCompleted),
+  };
+}
+
 export const liveApi = createApi({
   reducerPath: 'liveApi',
   baseQuery: baseQueryWithAuth,
@@ -103,6 +152,13 @@ export const liveApi = createApi({
       transformResponse: (response: BackendLiveSessionDTO[]): LiveSession[] =>
         (response || []).map(mapLiveSession),
       providesTags: ['LiveSession'],
+    }),
+
+    getTeacherCourses: builder.query<LiveCourse[], void>({
+      query: () => '/api/enseignant/mes-cours',
+      transformResponse: (response: BackendCourseDTO[]): LiveCourse[] =>
+        (response || []).map(mapCourse),
+      providesTags: ['LiveCourse'],
     }),
 
     getCourseSessions: builder.query<LiveSession[], string | number>({
@@ -237,6 +293,48 @@ export const liveApi = createApi({
       }),
       transformResponse: (response: BackendCourseDTO): LiveCourse => mapCourse(response),
       invalidatesTags: ['LiveCourse'],
+    }),
+
+    createSection: builder.mutation<LiveCourseSection, CreateCourseSectionPayload>({
+      query: (payload) => ({
+        url: '/api/sections',
+        method: 'POST',
+        body: {
+          titre: payload.title.trim(),
+          description: payload.description?.trim() || undefined,
+          ordre: payload.order,
+          coursId: Number(payload.courseId),
+        },
+      }),
+      transformResponse: (response: BackendCourseSectionDTO): LiveCourseSection =>
+        mapCourseSection(response),
+      invalidatesTags: (_result, _error, arg) => [
+        'LiveCourse',
+        { type: 'LiveCourse', id: `DETAILS-${arg.courseId}` },
+      ],
+    }),
+
+    createLesson: builder.mutation<LiveCourseLesson, CreateCourseLessonPayload>({
+      query: (payload) => ({
+        url: '/api/lecons',
+        method: 'POST',
+        body: {
+          titre: payload.title.trim(),
+          description: payload.description?.trim() || undefined,
+          type: payload.type,
+          contenuUrl: payload.contentUrl?.trim() || undefined,
+          contenuTexte: payload.contentText?.trim() || undefined,
+          dureeMinutes: payload.durationMinutes,
+          ordre: payload.order,
+          sectionId: Number(payload.sectionId),
+        },
+      }),
+      transformResponse: (response: BackendCourseLessonDTO): LiveCourseLesson =>
+        mapCourseLesson(response),
+      invalidatesTags: (_result, _error, arg) => [
+        'LiveCourse',
+        ...(arg.courseId ? [{ type: 'LiveCourse' as const, id: `DETAILS-${arg.courseId}` }] : []),
+      ],
     }),
 
     getCoursesLite: builder.query<LiveCourseLite[], void>({
@@ -416,6 +514,7 @@ export const {
   useGetAllSessionsQuery,
   useGetActiveSessionsQuery,
   useGetTeacherSessionsQuery,
+  useGetTeacherCoursesQuery,
   useGetCourseSessionsQuery,
   useGetCourseLiveSessionQuery,
   useGetSessionByIdQuery,
@@ -427,6 +526,8 @@ export const {
   useJoinSessionMutation,
   useFetchSessionVodMutation,
   useCreateCourseMutation,
+  useCreateSectionMutation,
+  useCreateLessonMutation,
   useGetCoursesLiteQuery,
   useGetCoursesQuery,
   useGetCourseDetailsQuery,
