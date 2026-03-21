@@ -1,0 +1,22 @@
+.teacher-space-shell {
+  font-family: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.teacher-space-shell *,
+.teacher-space-shell *::before,
+.teacher-space-shell *::after {
+  box-sizing: border-box;
+}
+
+/* Keeps teacher pages visually stable even if broad global typography rules evolve. */
+.teacher-space-shell :where(h1, h2, h3, h4, p, label, button, input, textarea, select, a, span) {
+  letter-spacing: normal;
+}
+
+.teacher-space-shell :where(button, a[href], [role="button"]) {
+  cursor: pointer;
+}
+
+.teacher-space-shell :where(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}

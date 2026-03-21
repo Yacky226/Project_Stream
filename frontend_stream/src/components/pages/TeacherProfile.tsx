@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Bell,
   BookOpen,
-  GraduationCap,
+  Globe,
   Link as LinkIcon,
   Mail,
   MapPin,
   MessageSquare,
   Plus,
-  Search,
   Share2,
   Star,
+  User,
   UserPlus,
   Verified,
+  Zap,
 } from 'lucide-react';
 import { useAppSelector } from '../../hooks/redux';
 import { buildApiUrl } from '../../lib/api-base-url';
@@ -21,10 +21,14 @@ import { useGetProfileQuery, useGetTeacherSpecialtyQuery } from '../../store/api
 import type { BackendCourseDetailsDTO, LiveCourse, LiveCourseDetails } from '../../types/live';
 import { mapCourseDetails } from '../../types/live';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { HeaderRedux } from '../layout/HeaderRedux';
+import { PublicFooterBar } from '../layout/PublicFooterBar';
+import './TeacherProfile.css';
 
 interface TeacherProfileProps {
   teacherId: string;
   onNavigate: (path: string) => void;
+  currentPath?: string;
 }
 
 interface BackendReview {
@@ -35,6 +39,105 @@ interface BackendReview {
   etudiantPhoto?: string | null;
   note?: number | null;
 }
+
+interface DisplayCourseCard {
+  id: string;
+  title: string;
+  category: string;
+  coverImage: string | null;
+  rating: number | null;
+  reviewCount: number;
+  badge: string | null;
+  bottomLabel: string;
+  navigatePath: string;
+}
+
+interface DisplayReviewCard {
+  id: string;
+  studentName: string;
+  studentPhoto: string | null;
+  dateLabel: string;
+  rating: number;
+  comment: string;
+  courseLabel: string;
+}
+
+const MOCK_AVATAR_IMAGE = 'https://picsum.photos/seed/teacher-profile-avatar/420/420';
+
+const MOCK_PROFILE_STATS = {
+  totalStudents: 45200,
+  totalCourses: 32,
+  averageRating: 4.9,
+  yearsExperience: '12+',
+};
+
+const MOCK_ABOUT_PARAGRAPHS = [
+  'With over a decade of experience in Silicon Valley, I specialize in bridging the gap between complex user needs and elegant interface solutions.',
+  'My teaching philosophy focuses on project-based learning and industry-standard workflows that prepare students for real-world challenges in UX/UI design. I believe design is not just how it looks, but how it works for the people using it.',
+];
+
+const MOCK_EXPERTISE = [
+  'User Experience (UX)',
+  'Interface Design (UI)',
+  'Prototyping',
+  'User Research',
+  'Figma Mastery',
+  'Design Systems',
+  'Accessibility',
+];
+
+const MOCK_SOCIAL_LINK_ROWS = [
+  { icon: Globe, value: 'alexstrathmore.design' },
+  { icon: LinkIcon, value: 'linkedin.com/in/alexux' },
+];
+
+const MOCK_COURSE_CARDS: DisplayCourseCard[] = [
+  {
+    id: 'mock-course-ux-foundations',
+    title: 'UX Design Foundations: Mastering User Research',
+    category: 'Design',
+    coverImage: 'https://picsum.photos/seed/mock-ux-course/960/560',
+    rating: 4.9,
+    reviewCount: 12450,
+    badge: 'BESTSELLER',
+    bottomLabel: '$89.99',
+    navigatePath: '/catalog',
+  },
+  {
+    id: 'mock-course-figma-systems',
+    title: 'Advanced Figma: Design Systems & Auto-Layout',
+    category: 'Design',
+    coverImage: 'https://picsum.photos/seed/mock-figma-course/960/560',
+    rating: 4.8,
+    reviewCount: 8920,
+    badge: null,
+    bottomLabel: '$124.99',
+    navigatePath: '/catalog',
+  },
+];
+
+const MOCK_REVIEWS: DisplayReviewCard[] = [
+  {
+    id: 'mock-review-sarah',
+    studentName: 'Sarah Jenkins',
+    studentPhoto: 'https://picsum.photos/seed/mock-review-sarah/120/120',
+    dateLabel: '2 months ago',
+    rating: 5,
+    comment:
+      "Alex is hands down the best instructor I've encountered. His ability to explain complex UI concepts with simple, real-world analogies is incredible.",
+    courseLabel: 'Advanced Figma: Design Systems & Auto-Layout',
+  },
+  {
+    id: 'mock-review-marcus',
+    studentName: 'Marcus Chen',
+    studentPhoto: 'https://picsum.photos/seed/mock-review-marcus/120/120',
+    dateLabel: '5 months ago',
+    rating: 5,
+    comment:
+      "The insights into the actual industry workflow are what makes Alex's courses stand out. It's not just about tools; it's about the mindset of a senior designer.",
+    courseLabel: 'UX Design Foundations: Mastering User Research',
+  },
+];
 
 function formatDate(value?: string | null): string {
   if (!value) {
@@ -49,17 +152,6 @@ function formatDate(value?: string | null): string {
     day: 'numeric',
     year: 'numeric',
   }).format(parsed);
-}
-
-function initialsFromName(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
-    return 'IN';
-  }
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
-  }
-  return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
 }
 
 function categoryColor(category: string): string {
@@ -80,18 +172,22 @@ function safeNumber(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-export function TeacherProfile({ teacherId, onNavigate }: TeacherProfileProps) {
-  const { token, isAuthenticated } = useAppSelector((state) => state.auth);
+export function TeacherProfile({ teacherId, onNavigate, currentPath = `/profile/teacher/${teacherId}` }: TeacherProfileProps) {
+  const { token, isAuthenticated, user } = useAppSelector((state) => state.auth);
   const numericTeacherId = Number(teacherId);
   const teacherIdValid = Number.isFinite(numericTeacherId);
 
   const { data: profile } = useGetProfileQuery(undefined, { skip: !isAuthenticated });
-  const ownProfileIsTeacher = profile?.id === teacherId;
+  const authenticatedUserId = profile?.id ?? user?.id;
+  const ownProfileIsTeacher =
+    authenticatedUserId !== undefined &&
+    authenticatedUserId !== null &&
+    String(authenticatedUserId) === teacherId;
   const { data: ownTeacherSpecialty } = useGetTeacherSpecialtyQuery(undefined, {
     skip: !ownProfileIsTeacher,
   });
 
-  const { data: allCourses = [], isLoading: coursesLoading, error: coursesError } = useGetCoursesQuery();
+  const { data: allCourses = [], isLoading: coursesLoading } = useGetCoursesQuery();
 
   const teacherCourses = useMemo(() => {
     if (!teacherIdValid) {
@@ -293,212 +389,273 @@ export function TeacherProfile({ teacherId, onNavigate }: TeacherProfileProps) {
     return `${teacherName} currently teaches ${teacherCourses.length} course(s) focused on ${specialization}. All metrics on this page come from the live course catalog and student feedback.`;
   }, [teacherCourses.length, teacherName, teacherRole]);
 
+  const profileLocation = ownProfileIsTeacher ? profile?.location?.trim() || '' : '';
+  const profileMetaLine =
+    profileLocation ||
+    (totalStudents > 0
+      ? `${totalStudents.toLocaleString()} learners reached`
+      : `${MOCK_PROFILE_STATS.totalStudents.toLocaleString()} learners reached`);
+  const featuredCourses = topCourses.slice(0, 2);
+  const showMockProfileContent = featuredCourses.length < 2 || reviewsPreview.length === 0 || expertise.length === 0;
+
+  const displayStats = {
+    totalStudents: totalStudents > 0 ? totalStudents : MOCK_PROFILE_STATS.totalStudents,
+    totalCourses: teacherCourses.length > 0 ? teacherCourses.length : MOCK_PROFILE_STATS.totalCourses,
+    averageRating: averageRating > 0 ? averageRating : MOCK_PROFILE_STATS.averageRating,
+    yearsExperience: teacherCourses.length > 0 ? '12+' : MOCK_PROFILE_STATS.yearsExperience,
+  };
+
+  const aboutParagraphs = showMockProfileContent
+    ? MOCK_ABOUT_PARAGRAPHS
+    : [
+        aboutCopy,
+        'Students get practical workflows, portfolio-ready projects, and mentoring designed for real-world product teams.',
+      ];
+
+  const displayExpertise = showMockProfileContent ? MOCK_EXPERTISE : expertise;
+
+  const socialLinkRows = showMockProfileContent
+    ? MOCK_SOCIAL_LINK_ROWS
+    : [
+        { icon: Globe, value: `/profile/teacher/${teacherId}` },
+        { icon: LinkIcon, value: `${teacherCourses.length} public course link(s)` },
+        {
+          icon: Mail,
+          value: ownProfileIsTeacher
+            ? (profile?.email || 'Email not available')
+            : 'Public contact data is not exposed by the API.',
+        },
+      ];
+
+  const realCourseCards: DisplayCourseCard[] = featuredCourses.map(({ course, detail, enrollments, rating, reviewCount }, index) => ({
+    id: course.id,
+    title: course.title,
+    category: course.category,
+    coverImage: detail?.coverImage || course.coverImage || null,
+    rating: rating > 0 ? rating : null,
+    reviewCount,
+    badge: index === 0 ? 'BESTSELLER' : null,
+    bottomLabel: `${enrollments.toLocaleString()} enrolled`,
+    navigatePath: `/courses/${course.id}`,
+  }));
+
+  const displayCourseCards = showMockProfileContent
+    ? MOCK_COURSE_CARDS
+    : [...realCourseCards, ...MOCK_COURSE_CARDS].slice(0, 2);
+
+  const realReviewCards: DisplayReviewCard[] = reviewsPreview.map((review, index) => {
+    const relatedCourse = teacherCourses.find((course) => course.id === review.courseIdString);
+    return {
+      id: `${review.courseIdString}-${review.dateCreation || index}`,
+      studentName: review.etudiantNom || 'Learner',
+      studentPhoto: review.etudiantPhoto || null,
+      dateLabel: formatDate(review.dateCreation),
+      rating: Math.max(0, Math.min(5, Math.round(safeNumber(review.note)))),
+      comment: review.commentaire || 'Great learning experience.',
+      courseLabel: relatedCourse?.title || `Course #${review.courseIdString}`,
+    };
+  });
+
+  const displayReviewCards = showMockProfileContent
+    ? MOCK_REVIEWS
+    : [...realReviewCards, ...MOCK_REVIEWS].slice(0, 2);
+
   if (!teacherIdValid) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+      <div className="teacher-profile-page mx-auto max-w-3xl px-6 py-16 text-center">
         <p className="text-slate-600">Invalid instructor identifier.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f6f8] font-[Lexend,sans-serif] text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-md lg:px-20">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-8">
-            <button className="flex items-center gap-2 text-[#1152d4]" onClick={() => onNavigate('/')} type="button">
-              <GraduationCap className="h-7 w-7" />
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">EduPremium</h2>
-            </button>
-            <nav className="hidden items-center gap-8 md:flex">
-              <button className="text-sm font-medium text-slate-600 hover:text-[#1152d4]" onClick={() => onNavigate('/catalog')} type="button">Browse</button>
-              <button className="text-sm font-medium text-slate-600 hover:text-[#1152d4]" onClick={() => onNavigate('/dashboard')} type="button">My Learning</button>
-              <button className="text-sm font-medium text-slate-600 hover:text-[#1152d4]" onClick={() => onNavigate('/teacher/dashboard')} type="button">Teach</button>
-            </nav>
-          </div>
+    <div className="teacher-profile-page min-h-screen bg-[#f6f6f8] text-slate-900">
+      <HeaderRedux onNavigate={onNavigate} currentPath={currentPath} />
 
-          <div className="flex items-center gap-4">
-            <label className="hidden w-64 items-center rounded-xl bg-slate-100 px-3 py-2 sm:flex">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input className="w-full border-0 bg-transparent px-2 text-sm text-slate-700 outline-none" placeholder="Search courses..." type="text" />
-            </label>
-            <button className="rounded-xl p-2 text-slate-600 hover:bg-slate-100" type="button">
-              <Bell className="h-5 w-5" />
-            </button>
-            <button className="h-10 w-10 overflow-hidden rounded-full border border-[#1152d4]/20 bg-[#1152d4]/10" onClick={() => onNavigate('/profile')} type="button">
-              {profile?.avatar ? <ImageWithFallback alt="User avatar" className="h-full w-full object-cover" src={profile.avatar} /> : <span className="text-xs font-bold text-[#1152d4]">{initialsFromName(teacherName)}</span>}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex-1 w-full max-w-7xl px-6 py-10 lg:px-20">
-        <div className="relative mb-8 overflow-hidden rounded-3xl bg-white shadow-xl shadow-[#1152d4]/5">
-          <div className="h-48 w-full bg-gradient-to-r from-[#1152d4]/80 to-sky-400/80 opacity-25" />
-          <div className="-mt-16 flex flex-col gap-6 px-8 pb-8 md:flex-row md:items-end">
-            <div className="relative">
-              <div className="h-40 w-40 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-lg">
-                {ownProfileIsTeacher && profile?.avatar ? (
-                  <ImageWithFallback alt={teacherName} className="h-full w-full object-cover" src={profile.avatar} />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#1152d4]/10 text-4xl font-bold text-[#1152d4]">
-                    {initialsFromName(teacherName)}
+      <main className="teacher-profile-main mx-auto w-full max-w-[1300px] px-4 py-8 lg:px-8">
+        <section className="teacher-profile-hero relative mb-8 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl shadow-[#1152d4]/5">
+          <div className="teacher-profile-hero__cover h-28 w-full bg-gradient-to-r from-[#cfdbf3] to-[#d7e2f5] md:h-32" />
+          <div className="teacher-profile-hero__content px-5 pb-5 md:px-8 md:pb-7">
+            <div className="teacher-profile-hero__row -mt-10 grid w-full gap-5 sm:-mt-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="teacher-profile-hero__identity flex flex-col gap-4 sm:flex-1 sm:flex-row sm:items-end sm:gap-5">
+                <div className="teacher-profile-hero__avatar relative h-24 w-24 shrink-0 rounded-2xl border-4 border-white bg-white shadow-lg sm:h-28 sm:w-28 md:h-32 md:w-32">
+                  <div className="teacher-profile-hero__avatar-media h-full w-full overflow-hidden rounded-[14px]">
+                    {ownProfileIsTeacher && profile?.avatar ? (
+                      <ImageWithFallback alt={teacherName} className="h-full w-full object-cover" src={profile.avatar} />
+                    ) : (
+                      <ImageWithFallback alt={teacherName} className="h-full w-full object-cover" src={MOCK_AVATAR_IMAGE} />
+                    )}
                   </div>
-                )}
+                  <span className="teacher-profile-hero__online-dot absolute -bottom-1 -right-1 h-6 w-6 rounded-full border-4 border-white bg-emerald-500" />
+                </div>
+                <div className="pb-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="teacher-profile-hero__name text-4xl font-bold leading-none tracking-tight text-slate-900">{teacherName}</h1>
+                    <Verified className="h-5 w-5 shrink-0 text-[#1152d4]" />
+                  </div>
+                  <p className="teacher-profile-hero__role mt-1.5 text-base font-medium text-slate-600">{teacherRole}</p>
+                  <p className="mt-1.5 flex items-center gap-2 text-sm text-slate-400">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    {profileMetaLine}
+                  </p>
+                </div>
               </div>
-              <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full border-4 border-white bg-emerald-500" />
-            </div>
 
-            <div className="flex-1 pb-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold text-slate-900">{teacherName}</h1>
-                <Verified className="h-5 w-5 text-[#1152d4]" />
-              </div>
-              <p className="text-lg text-slate-600">{teacherRole}</p>
-              <div className="mt-1 flex items-center gap-2 text-sm text-slate-400">
-                <MapPin className="h-4 w-4" />
-                <span>{totalStudents > 0 ? `${totalStudents.toLocaleString()} learners reached` : 'Learner metrics will appear once courses are enrolled.'}</span>
-              </div>
-            </div>
-
-            <div className="flex w-full gap-3 pb-2 md:w-auto">
-              <button
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-3 font-semibold text-slate-900 transition-all hover:bg-slate-200 md:flex-none"
-                onClick={() => setIsFollowing((value) => !value)}
-                type="button"
-              >
-                <UserPlus className="h-4 w-4" />
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-              <button className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1152d4] px-6 py-3 font-semibold text-white shadow-lg shadow-[#1152d4]/20 transition-all hover:bg-[#0f47b9] md:flex-none" type="button">
-                <Mail className="h-4 w-4" />
-                Message
-              </button>
+              {!ownProfileIsTeacher ? (
+                <div className="teacher-profile-hero__actions flex flex-col gap-3 sm:flex-row sm:justify-end sm:justify-self-end sm:self-end sm:pb-1">
+                  <button
+                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-3 text-base font-semibold text-slate-800 transition hover:bg-slate-200"
+                    onClick={() => setIsFollowing((value) => !value)}
+                    type="button"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                  <button className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#1152d4] px-6 py-3 text-base font-semibold text-white shadow-lg shadow-[#1152d4]/20 transition hover:bg-[#0f47b9]" type="button">
+                    <Mail className="h-4 w-4" />
+                    Message
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="mb-12 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-[#1152d4]/10 bg-white/80 p-6 text-center backdrop-blur-sm">
-            <span className="mb-1 block text-3xl font-bold text-[#1152d4]">{totalStudents.toLocaleString()}</span>
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-500">Total Students</span>
+        <section className="teacher-profile-stats mb-12 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="teacher-profile-stat-card glass-card rounded-2xl p-6 text-center">
+            <p className="mb-1 text-3xl font-bold text-[#1152d4]">{displayStats.totalStudents.toLocaleString()}+</p>
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-500">Total Students</p>
           </div>
-          <div className="rounded-2xl border border-[#1152d4]/10 bg-white/80 p-6 text-center backdrop-blur-sm">
-            <span className="mb-1 block text-3xl font-bold text-[#1152d4]">{teacherCourses.length}</span>
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-500">Total Courses</span>
+          <div className="teacher-profile-stat-card glass-card rounded-2xl p-6 text-center">
+            <p className="mb-1 text-3xl font-bold text-[#1152d4]">{displayStats.totalCourses}</p>
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-500">Total Courses</p>
           </div>
-          <div className="rounded-2xl border border-[#1152d4]/10 bg-white/80 p-6 text-center backdrop-blur-sm">
-            <span className="mb-1 block text-3xl font-bold text-[#1152d4]">{averageRating > 0 ? averageRating.toFixed(1) : 'N/A'}</span>
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-500">Average Rating</span>
+          <div className="teacher-profile-stat-card glass-card rounded-2xl p-6 text-center">
+            <div className="mb-1 flex items-center justify-center gap-1">
+              <p className="text-3xl font-bold text-[#1152d4]">
+                {displayStats.averageRating.toFixed(1)}
+              </p>
+              <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+            </div>
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-500">Average Rating</p>
           </div>
-          <div className="rounded-2xl border border-[#1152d4]/10 bg-white/80 p-6 text-center backdrop-blur-sm">
-            <span className="mb-1 block text-3xl font-bold text-[#1152d4]">{allReviews.length}</span>
-            <span className="text-sm font-medium uppercase tracking-wider text-slate-500">Total Reviews</span>
+          <div className="teacher-profile-stat-card glass-card rounded-2xl p-6 text-center">
+            <p className="mb-1 text-3xl font-bold text-[#1152d4]">{displayStats.yearsExperience}</p>
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-500">Years Exp.</p>
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-          <div className="space-y-10 lg:col-span-1">
-            <section>
-              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
-                <UserPlus className="h-5 w-5 text-[#1152d4]" />
-                About
+        <div className="teacher-profile-content-grid grid grid-cols-1 gap-12 lg:grid-cols-3">
+          <aside className="teacher-profile-sidebar lg:col-span-1">
+            <section className="teacher-profile-side-section teacher-profile-about-section">
+              <h3 className="teacher-profile-side-title mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
+                <User className="h-5 w-5 text-[#1152d4]" />
+                About Me
               </h3>
-              <p className="leading-relaxed text-slate-600">{aboutCopy}</p>
+              <div className="teacher-profile-about-list">
+                {aboutParagraphs.map((paragraph) => (
+                  <p className="teacher-profile-about-text leading-relaxed text-slate-600" key={paragraph}>
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
             </section>
 
-            <section>
-              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
-                <Star className="h-5 w-5 text-[#1152d4]" />
+            <section className="teacher-profile-side-section teacher-profile-expertise-section">
+              <h3 className="teacher-profile-side-title mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
+                <Zap className="h-5 w-5 text-[#1152d4]" />
                 Expertise
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {expertise.length > 0 ? (
-                  expertise.map((item) => (
-                    <span className="cursor-default rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-[#1152d4] hover:text-[#1152d4]" key={item}>
-                      {item}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-slate-500">No declared expertise yet.</span>
-                )}
+              <div className="teacher-profile-expertise-list flex flex-wrap gap-2">
+                {displayExpertise.map((item) => (
+                  <span className="teacher-profile-expertise-chip cursor-default rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-[#1152d4] hover:text-[#1152d4]" key={item}>
+                    {item}
+                  </span>
+                ))}
               </div>
             </section>
 
-            <section>
-              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
+            <section className="teacher-profile-side-section teacher-profile-social-section">
+              <h3 className="teacher-profile-side-title mb-4 flex items-center gap-2 text-xl font-bold text-slate-900">
                 <Share2 className="h-5 w-5 text-[#1152d4]" />
                 Social Presence
               </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-slate-600">
-                  <LinkIcon className="h-4 w-4" />
-                  <span className="text-sm">Profile link: /profile/teacher/{teacherId}</span>
-                </div>
-                <div className="flex items-center gap-3 text-slate-600">
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm">Public contact data is not exposed by the API.</span>
-                </div>
+              <div className="teacher-profile-social-list">
+                {socialLinkRows.map((row) => {
+                  const Icon = row.icon;
+                  return (
+                    <div className="teacher-profile-social-row flex items-center gap-3 text-slate-600 transition-colors hover:text-[#1152d4]" key={row.value}>
+                      <Icon className="h-4 w-4" />
+                      <span className="teacher-profile-social-text text-sm">{row.value}</span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
-          </div>
+          </aside>
 
-          <div className="space-y-12 lg:col-span-2">
-            <section>
+          <div className="teacher-profile-main-column space-y-12 lg:col-span-2">
+            <section className="teacher-profile-popular">
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-xl font-bold text-slate-900">
                   <BookOpen className="h-5 w-5 text-[#1152d4]" />
                   Popular Courses
                 </h3>
-                <button className="text-sm font-semibold text-[#1152d4] hover:underline" onClick={() => onNavigate('/catalog')} type="button">
+                <button className="cursor-pointer text-sm font-semibold text-[#1152d4] hover:underline" onClick={() => onNavigate('/catalog')} type="button">
                   View All
                 </button>
               </div>
 
               {coursesLoading || detailsLoading ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading courses...</div>
-              ) : coursesError ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Unable to load instructor courses.</div>
-              ) : topCourses.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                  This instructor does not have published courses yet.
-                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading courses...</div>
               ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  {topCourses.map(({ course, detail, enrollments, rating, reviewCount }) => (
-                    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl" key={course.id}>
-                      <div className={`relative h-44 overflow-hidden bg-gradient-to-br ${categoryColor(course.category)}`}>
-                        {detail?.coverImage ? (
-                          <ImageWithFallback alt={course.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" src={detail.coverImage} />
+                <div className="teacher-profile-course-grid grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {displayCourseCards.map((card) => (
+                    <article
+                      className={`teacher-profile-course-card group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${displayCourseCards.length === 1 ? 'md:col-span-2' : ''}`}
+                      key={card.id}
+                    >
+                      <div className={`teacher-profile-course-media relative h-44 overflow-hidden bg-gradient-to-br ${categoryColor(card.category)}`}>
+                        {card.coverImage ? (
+                          <ImageWithFallback alt={card.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" src={card.coverImage} />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <div className="rounded-xl border border-white/50 bg-white/70 px-4 py-3 text-sm font-semibold text-slate-700">
-                              {course.category}
-                            </div>
+                          <div className="teacher-profile-course-fallback flex h-full w-full flex-col justify-between p-4">
+                            <span className="inline-flex w-fit items-center rounded-full border border-white/80 bg-white/85 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">
+                              {card.category}
+                            </span>
+                            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600/80">
+                              Course Preview
+                            </span>
                           </div>
                         )}
-                        {enrollments > 0 && (
-                          <span className="absolute right-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-xs font-bold text-[#1152d4]">
-                            {enrollments.toLocaleString()} enrolled
+                        {card.badge ? (
+                          <span className="absolute right-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-xs font-bold text-[#1152d4] backdrop-blur">
+                            {card.badge}
                           </span>
-                        )}
+                        ) : null}
                       </div>
-
-                      <div className="p-5">
-                        <h4 className="font-bold text-slate-900 transition-colors group-hover:text-[#1152d4]">{course.title}</h4>
-                        <div className="mb-4 mt-2 flex items-center gap-1 text-sm">
-                          <Star className="h-4 w-4 text-amber-400" />
-                          <span className="font-bold text-slate-900">{rating > 0 ? rating.toFixed(1) : 'N/A'}</span>
-                          <span className="text-slate-400">({reviewCount} reviews)</span>
-                        </div>
+                      <div className="teacher-profile-course-body p-5">
+                        <h4 className="font-bold text-slate-900 transition-colors group-hover:text-[#1152d4]">{card.title}</h4>
+                        {card.rating ? (
+                          <div className="mb-4 mt-2 flex items-center gap-1">
+                            <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />
+                            <span className="text-sm font-bold text-slate-900">{card.rating.toFixed(1)}</span>
+                            <span className="text-sm text-slate-400">({card.reviewCount.toLocaleString()})</span>
+                          </div>
+                        ) : (
+                          <div className="mb-4 mt-2 flex items-center gap-2 text-sm text-slate-400">
+                            <Star className="h-4 w-4 shrink-0 text-slate-300" />
+                            No ratings yet
+                          </div>
+                        )}
                         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                          <span className="text-sm font-semibold text-slate-500">Category: {course.category}</span>
+                          <span className="text-xl font-bold text-slate-900">{card.bottomLabel}</span>
                           <button
-                            className="rounded-lg bg-[#1152d4]/10 p-2 text-[#1152d4] transition-colors hover:bg-[#1152d4] hover:text-white"
-                            onClick={() => onNavigate(`/courses/${course.id}`)}
+                            className="cursor-pointer rounded-lg bg-[#1152d4]/10 p-2 text-[#1152d4] transition-colors hover:bg-[#1152d4] hover:text-white"
+                            onClick={() => onNavigate(card.navigatePath)}
                             type="button"
                           >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
@@ -508,92 +665,65 @@ export function TeacherProfile({ teacherId, onNavigate }: TeacherProfileProps) {
               )}
             </section>
 
-            <section>
+            <section className="teacher-profile-reviews">
               <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-slate-900">
                 <MessageSquare className="h-5 w-5 text-[#1152d4]" />
                 What Students Are Saying
               </h3>
 
-              {reviewsLoading ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading reviews...</div>
-              ) : reviewsPreview.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                  No student review available for this instructor yet.
-                </div>
+              {reviewsLoading && !showMockProfileContent ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading reviews...</div>
               ) : (
-                <div className="space-y-6">
-                  {reviewsPreview.map((review, index) => {
-                    const relatedCourse = teacherCourses.find((course) => course.id === review.courseIdString);
-                    return (
-                      <article className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm" key={`${review.courseIdString}-${review.dateCreation || index}`}>
-                        <div className="mb-4 flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-200">
-                              {review.etudiantPhoto ? (
-                                <ImageWithFallback alt={review.etudiantNom || 'Student'} className="h-full w-full object-cover" src={review.etudiantPhoto} />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[#1152d4]">
-                                  {(review.etudiantNom || 'S').charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-900">{review.etudiantNom || 'Learner'}</p>
-                              <p className="text-xs text-slate-400">{formatDate(review.dateCreation)}</p>
-                            </div>
+                <div className="teacher-profile-review-list space-y-4">
+                  {displayReviewCards.map((review) => (
+                    <article className="teacher-profile-review-card rounded-2xl border border-slate-100 bg-white p-6 shadow-sm" key={review.id}>
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 overflow-hidden rounded-full bg-slate-200">
+                            {review.studentPhoto ? (
+                              <ImageWithFallback alt={review.studentName} className="h-full w-full object-cover" src={review.studentPhoto} />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center font-bold text-[#1152d4]">
+                                {review.studentName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex">
-                            {Array.from({ length: 5 }).map((_, starIndex) => (
-                              <Star
-                                className={`h-4 w-4 ${starIndex < Math.round(safeNumber(review.note)) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                key={starIndex}
-                              />
-                            ))}
+                          <div>
+                            <p className="font-bold text-slate-900">{review.studentName}</p>
+                            <p className="text-xs text-slate-400">{review.dateLabel}</p>
                           </div>
                         </div>
-                        <p className="italic text-slate-600">
-                          "{review.commentaire || 'Great learning experience.'}"
-                        </p>
-                        <p className="mt-3 text-xs text-slate-400">
-                          Course: {relatedCourse?.title || `Course #${review.courseIdString}`}
-                        </p>
-                      </article>
-                    );
-                  })}
+                        <div className="flex items-center">
+                          {Array.from({ length: 5 }).map((_, starIndex) => (
+                            <Star
+                              className={`h-4 w-4 ${starIndex < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                              key={`${review.id}-star-${starIndex}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="italic text-slate-600">"{review.comment}"</p>
+                      <p className="mt-3 text-sm text-slate-400">Course: {review.courseLabel}</p>
+                    </article>
+                  ))}
                 </div>
               )}
 
-              <button className="mt-6 w-full rounded-2xl border-2 border-dashed border-slate-200 py-4 font-semibold text-slate-400 transition-all hover:border-[#1152d4] hover:text-[#1152d4]" type="button">
-                Load More Reviews
-              </button>
+              {allReviews.length > displayReviewCards.length || showMockProfileContent ? (
+                <button
+                  className="mt-6 w-full cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 py-4 font-semibold text-slate-400 transition-all hover:border-[#1152d4] hover:text-[#1152d4]"
+                  onClick={() => onNavigate('/catalog')}
+                  type="button"
+                >
+                  Load More Reviews
+                </button>
+              ) : null}
             </section>
           </div>
         </div>
       </main>
 
-      <footer className="mt-12 border-t border-slate-200 bg-white px-6 py-12 lg:px-20">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="flex items-center gap-2 text-[#1152d4] opacity-60">
-            <GraduationCap className="h-6 w-6" />
-            <span className="font-bold text-slate-900">EduPremium</span>
-          </div>
-          <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-slate-500">
-            <button className="hover:text-[#1152d4]" onClick={() => onNavigate('/blog')} type="button">About Us</button>
-            <button className="hover:text-[#1152d4]" onClick={() => onNavigate('/careers')} type="button">Careers</button>
-            <button className="hover:text-[#1152d4]" onClick={() => onNavigate('/privacy')} type="button">Privacy Policy</button>
-            <button className="hover:text-[#1152d4]" onClick={() => onNavigate('/terms')} type="button">Terms of Service</button>
-          </div>
-          <div className="flex gap-4">
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-all hover:bg-[#1152d4] hover:text-white" type="button">
-              <Share2 className="h-4 w-4" />
-            </button>
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-all hover:bg-[#1152d4] hover:text-white" type="button">
-              <Mail className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        <p className="mt-12 text-center text-xs text-slate-400">Copyright {new Date().getFullYear()} EduPremium E-Learning Platform. All rights reserved.</p>
-      </footer>
+      <PublicFooterBar onNavigate={onNavigate} />
     </div>
   );
 }

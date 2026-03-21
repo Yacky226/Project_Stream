@@ -96,12 +96,59 @@ export interface GetCourseDetailsPayload {
   studentId?: string | number | null;
 }
 
+interface BackendTeacherCourseDTO {
+  id: number | string;
+  titre?: string;
+}
+
+interface BackendTeacherInscriptionDTO {
+  id: number | string;
+  etudiantId?: number | string;
+  etudiantNom?: string;
+  coursId?: number | string;
+  coursTitre?: string;
+  dateInscription?: string | null;
+  statut?: string | null;
+  progression?: number | null;
+  dateCompletion?: string | null;
+}
+
+export interface TeacherStudentEnrollment {
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseTitle: string;
+  enrolledAt: string | null;
+  status: string;
+  progress: number;
+  completedAt: string | null;
+}
+
+export interface TeacherStudentsData {
+  enrollments: TeacherStudentEnrollment[];
+  uniqueStudents: number;
+  activeEnrollments: number;
+  coursesCount: number;
+}
+
 function toBackendDateTime(value: string): string {
   // datetime-local usually gives YYYY-MM-DDTHH:mm, backend LocalDateTime expects seconds too
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
     return `${value}:00`;
   }
   return value;
+}
+
+function toIsoOrNull(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeProgress(value?: number | null): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function mapCourseSection(section: BackendCourseSectionDTO): LiveCourseSection {
@@ -158,6 +205,102 @@ export const liveApi = createApi({
       query: () => '/api/enseignant/mes-cours',
       transformResponse: (response: BackendCourseDTO[]): LiveCourse[] =>
         (response || []).map(mapCourse),
+      providesTags: ['LiveCourse'],
+    }),
+
+    getTeacherStudents: builder.query<TeacherStudentsData, void>({
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const coursesResult = await baseQuery({ url: '/api/enseignant/mes-cours' });
+        if (coursesResult.error) {
+          return { error: coursesResult.error };
+        }
+
+        const teacherCourses = Array.isArray(coursesResult.data)
+          ? (coursesResult.data as BackendTeacherCourseDTO[])
+          : [];
+
+        if (!teacherCourses.length) {
+          return {
+            data: {
+              enrollments: [],
+              uniqueStudents: 0,
+              activeEnrollments: 0,
+              coursesCount: 0,
+            },
+          };
+        }
+
+        const inscriptionResults = await Promise.all(
+          teacherCourses.map((course) =>
+            baseQuery({
+              url: `/api/inscriptions/cours/${course.id}`,
+            }),
+          ),
+        );
+
+        for (const result of inscriptionResults) {
+          if (result.error) {
+            return { error: result.error };
+          }
+        }
+
+        const enrollments: TeacherStudentEnrollment[] = [];
+
+        inscriptionResults.forEach((result, index) => {
+          const course = teacherCourses[index];
+          const fallbackCourseId = String(course.id);
+          const fallbackCourseTitle = course.titre || `Cours #${course.id}`;
+          const courseInscriptions = Array.isArray(result.data)
+            ? (result.data as BackendTeacherInscriptionDTO[])
+            : [];
+
+          courseInscriptions.forEach((inscription) => {
+            const studentId =
+              inscription.etudiantId !== null && inscription.etudiantId !== undefined
+                ? String(inscription.etudiantId)
+                : '';
+
+            if (!studentId) {
+              return;
+            }
+
+            enrollments.push({
+              enrollmentId: String(inscription.id),
+              studentId,
+              studentName: inscription.etudiantNom || `Etudiant #${studentId}`,
+              courseId:
+                inscription.coursId !== null && inscription.coursId !== undefined
+                  ? String(inscription.coursId)
+                  : fallbackCourseId,
+              courseTitle: inscription.coursTitre || fallbackCourseTitle,
+              enrolledAt: toIsoOrNull(inscription.dateInscription),
+              status: inscription.statut || 'ACTIF',
+              progress: normalizeProgress(inscription.progression),
+              completedAt: toIsoOrNull(inscription.dateCompletion),
+            });
+          });
+        });
+
+        enrollments.sort((left, right) => {
+          const leftDate = new Date(left.enrolledAt || 0).getTime();
+          const rightDate = new Date(right.enrolledAt || 0).getTime();
+          return rightDate - leftDate;
+        });
+
+        const uniqueStudents = new Set(enrollments.map((item) => item.studentId)).size;
+        const activeEnrollments = enrollments.filter(
+          (item) => item.status === 'ACTIF' || item.status === 'ACTIVE',
+        ).length;
+
+        return {
+          data: {
+            enrollments,
+            uniqueStudents,
+            activeEnrollments,
+            coursesCount: teacherCourses.length,
+          },
+        };
+      },
       providesTags: ['LiveCourse'],
     }),
 
@@ -515,6 +658,7 @@ export const {
   useGetActiveSessionsQuery,
   useGetTeacherSessionsQuery,
   useGetTeacherCoursesQuery,
+  useGetTeacherStudentsQuery,
   useGetCourseSessionsQuery,
   useGetCourseLiveSessionQuery,
   useGetSessionByIdQuery,

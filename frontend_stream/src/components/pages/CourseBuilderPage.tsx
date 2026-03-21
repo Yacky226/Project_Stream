@@ -12,6 +12,7 @@ import {
   Layers3,
   LayoutTemplate,
   Rocket,
+  Search,
   Save,
   Settings2,
   Sparkles,
@@ -320,9 +321,12 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
   const validateCurrentStep = () => {
     if (draft.step === 1) {
-      if (!draft.title.trim() || !draft.subtitle.trim() || !draft.launchDate) {
-        setErrorMessage('Renseignez le titre, le sous-titre et la date de lancement.');
+      if (!draft.title.trim() || !draft.subtitle.trim()) {
+        setErrorMessage('Renseignez le titre et le sous-titre.');
         return false;
+      }
+      if (!draft.launchDate) {
+        updateDraft({ launchDate: createDefaultDraft().launchDate });
       }
     }
 
@@ -466,12 +470,13 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
     try {
       setErrorMessage(null);
+      const scheduledAt = draft.launchDate || createDefaultDraft().launchDate;
 
       const createdCourse = await createCourse({
         title: draft.title,
         description: draft.subtitle,
         category: draft.category,
-        scheduledAt: draft.launchDate,
+        scheduledAt,
         teacherId,
       }).unwrap();
 
@@ -548,7 +553,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
       onNavigate={(path) => onNavigate(typeof path === 'number' ? String(path) : path)}
       showSearch={false}
       headerTitle="Course Builder"
-      headerDescription="Créez, structurez et publiez vos cours dans une interface unifiée avec le reste de votre espace enseignant."
+      headerDescription="Creez, structurez et publiez vos cours dans une interface unifiee avec le reste de votre espace enseignant."
       displayName={teacherShared.displayName}
       displayRole={teacherShared.displayRole}
       initials={teacherShared.initials}
@@ -558,32 +563,32 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
       unreadCount={teacherShared.unreadCount}
     >
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center py-6">
-        <div className="mb-12 w-full max-w-4xl">
-          <div className="mb-8 flex items-center justify-between">
+        <div className="mb-10 w-full max-w-5xl">
+          <div className="mb-7 flex items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <h2 className="text-3xl font-bold">Create New Course</h2>
-              <p className="text-slate-500 dark:text-slate-400">
+              <h2 className="text-4xl font-black tracking-tight text-slate-900">Create New Course</h2>
+              <p className="text-sm font-medium text-slate-500">
                 Step {draft.step} of 4: {stepLabel(draft.step)}
               </p>
             </div>
             <div className="hidden sm:block">
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                <span className="text-sm font-bold text-[#1152d4]">{progress}% Complete</span>
-                <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900">
-                  <div className="h-full rounded-full bg-[#1152d4]" style={{ width: `${progress}%` }} />
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                <span className="text-xs font-bold text-blue-600">{progress}% Complete</span>
+                <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${progress}%` }} />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="relative flex items-center justify-between">
-            <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-slate-200 dark:bg-slate-800" />
+          <div className="relative flex items-start justify-between">
+            <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-slate-200" />
             {([1, 2, 3, 4] as BuilderStep[]).map((step) => (
-              <div key={step} className="flex flex-col items-center gap-2">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${draft.step === step ? 'bg-[#1152d4] text-white ring-4 ring-[#1152d4]/20' : draft.step > step ? 'bg-[#1152d4]/10 text-[#1152d4] border border-[#1152d4]/20' : 'border-2 border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-800'}`}>
+              <div key={step} className="flex min-w-[78px] flex-col items-center gap-2">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${draft.step === step ? 'bg-blue-600 text-white ring-4 ring-blue-100' : draft.step > step ? 'border border-blue-200 bg-blue-50 text-blue-600' : 'border border-slate-200 bg-white text-slate-400'}`}>
                   {draft.step > step ? <Check className="h-4 w-4" /> : step}
                 </div>
-                <span className={`text-xs ${draft.step === step ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium text-slate-400'}`}>
+                <span className={`text-[11px] ${draft.step === step ? 'font-bold text-slate-900' : 'font-semibold text-slate-400'}`}>
                   {stepLabel(step)}
                 </span>
               </div>
@@ -592,28 +597,28 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
         </div>
 
         {errorMessage ? (
-          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
+          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {errorMessage}
           </div>
         ) : null}
 
         {statusMessage ? (
-          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {statusMessage}
           </div>
         ) : null}
 
         {draft.step === 1 ? (
           <>
-            <div className="w-full max-w-4xl rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70 lg:p-12">
-              <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-                <div className="space-y-8 lg:col-span-7">
+            <div className="w-full max-w-5xl rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm lg:p-10">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                <div className="space-y-7 lg:col-span-7">
                   <div>
                     <label className="mb-2 block text-sm font-semibold tracking-tight">Course Title</label>
                     <input
                       value={draft.title}
                       onChange={(event) => updateDraft({ title: event.target.value })}
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all placeholder:text-slate-400 focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/50"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                       placeholder="e.g. Masterclass in Modern Web Architecture"
                       type="text"
                     />
@@ -624,7 +629,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <textarea
                       value={draft.subtitle}
                       onChange={(event) => updateDraft({ subtitle: event.target.value })}
-                      className="w-full rounded-2xl border border-slate-200 bg-white p-4 outline-none transition-all placeholder:text-slate-400 focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/50"
+                      className="min-h-[112px] w-full rounded-xl border border-slate-200 bg-white p-4 text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                       placeholder="A brief hook that captures your student's attention immediately..."
                       rows={3}
                     />
@@ -636,7 +641,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                       <select
                         value={draft.category}
                         onChange={(event) => updateDraft({ category: event.target.value })}
-                        className="h-12 w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/50"
+                        className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                       >
                         {CATEGORY_OPTIONS.map((option) => (
                           <option key={option}>{option}</option>
@@ -646,35 +651,19 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
                     <div>
                       <label className="mb-2 block text-sm font-semibold tracking-tight">Difficulty Level</label>
-                      <div className="flex rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-900">
+                      <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                         {LEVEL_OPTIONS.map((option) => (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => updateDraft({ level: option.value })}
-                            className={`flex-1 rounded-xl px-2 py-2 text-[11px] font-bold transition ${draft.level === option.value ? 'bg-white text-[#1152d4] shadow-sm dark:bg-slate-800' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            className={`flex-1 rounded-xl px-2 py-2 text-[11px] font-bold transition ${draft.level === option.value ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                           >
                             {option.label}
                           </button>
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 flex items-center gap-2 text-sm font-semibold tracking-tight">
-                      <CalendarDays className="h-4 w-4 text-[#1152d4]" />
-                      Launch Date
-                    </label>
-                    <input
-                      value={draft.launchDate}
-                      onChange={(event) => updateDraft({ launchDate: event.target.value })}
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/50"
-                      type="datetime-local"
-                    />
-                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      Ce champ est requis par le backend actuel pour la creation du cours.
-                    </p>
                   </div>
                 </div>
 
@@ -684,28 +673,28 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="group relative flex flex-1 flex-col items-center justify-center rounded-[28px] border-2 border-dashed border-slate-300 bg-slate-50 p-8 transition-all hover:border-[#1152d4]/40 hover:bg-[#1152d4]/5 dark:border-slate-700 dark:bg-slate-900/30"
+                      className="group relative flex min-h-[360px] flex-1 cursor-pointer flex-col items-center justify-start rounded-[24px] border-2 border-dashed border-slate-300 bg-slate-50 p-6 transition-all hover:border-blue-300 hover:bg-blue-50"
                     >
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-md transition-transform group-hover:scale-110 dark:bg-slate-800">
-                        {thumbnailPreview ? <ImagePlus className="h-8 w-8 text-[#1152d4]" /> : <Upload className="h-8 w-8 text-[#1152d4]" />}
+                      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-md transition-transform group-hover:scale-110">
+                        {thumbnailPreview ? <ImagePlus className="h-8 w-8 text-blue-600" /> : <Upload className="h-8 w-8 text-blue-600" />}
                       </div>
-                      <p className="mb-1 text-sm font-medium">
+                      <p className="mb-1 text-sm font-semibold text-slate-900">
                         {thumbnailPreview ? 'Replace current image' : 'Drag and drop image'}
                       </p>
-                      <p className="text-xs text-slate-400">PNG, JPG, or WEBP (max 5MB)</p>
-                      <div className="mt-6 flex w-full aspect-video items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
+                      <p className="text-xs font-medium text-slate-400">PNG, JPG, or WEBP (max 5MB)</p>
+                      <div className="mt-6 flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                         {thumbnailPreview ? (
                           <ImageWithFallback src={thumbnailPreview} alt="Course thumbnail preview" className="h-full w-full object-cover" />
                         ) : (
                           <div className="text-center p-4">
-                            <LayoutTemplate className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+                            <LayoutTemplate className="mx-auto h-12 w-12 text-slate-300" />
                             <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-slate-400">Preview area</p>
                           </div>
                         )}
                       </div>
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleThumbnailChange} />
-                    <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-3 text-xs text-slate-500">
                       La miniature reste locale tant qu un endpoint upload n est pas expose.
                     </p>
                   </div>
@@ -713,16 +702,28 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
             </div>
 
-            <div className="mt-10 flex w-full max-w-4xl items-center justify-between gap-4">
-              <button type="button" onClick={discardDraft} className="rounded-full border-2 border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800">
+            <div className="mt-6 flex w-full max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="w-full cursor-pointer rounded-full border border-slate-300 bg-white px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 sm:w-auto"
+              >
                 Discard Changes
               </button>
-              <div className="flex items-center gap-4">
-                <button type="button" onClick={saveDraft} className="flex items-center gap-2 rounded-full border-2 border-[#1152d4] px-8 py-3 font-semibold text-[#1152d4] transition-all hover:bg-[#1152d4]/5">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={saveDraft}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-blue-600 bg-white px-8 py-3 font-semibold text-blue-600 transition-all hover:bg-blue-50 sm:w-auto"
+                >
                   <Save className="h-4 w-4" />
                   Save Draft
                 </button>
-                <button type="button" onClick={goNext} className="flex items-center gap-2 rounded-full bg-[#1152d4] px-10 py-3 font-semibold text-white shadow-lg shadow-[#1152d4]/30 transition-all hover:bg-[#1152d4]/90">
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="inline-flex h-12 w-full cursor-pointer shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-600 px-8 font-semibold text-white shadow-[0_10px_24px_rgba(17,82,212,0.35)] transition-all hover:bg-blue-700 sm:w-auto sm:min-w-[170px]"
+                >
                   Continue
                   <ArrowRight className="h-4 w-4" />
                 </button>
@@ -734,30 +735,30 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
         {draft.step === 2 ? (
           <>
             <div className="w-full max-w-4xl space-y-8">
-              <div className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70 lg:p-10">
+              <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm lg:p-10">
                 <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#1152d4]">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
                       <Layers3 className="h-4 w-4" />
                       Curriculum Builder
                     </div>
                     <h3 className="mt-2 text-2xl font-bold">Organisez sections et lecons</h3>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-2 text-sm text-slate-500">
                       Structurez votre programme maintenant. Cette partie du wizard sera publiee
                       elle aussi dans le backend avec le cours.
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center dark:border-slate-700 dark:bg-slate-900/70">
-                      <p className="text-2xl font-black text-[#1152d4]">{draft.sections.length}</p>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center">
+                      <p className="text-2xl font-black text-blue-600">{draft.sections.length}</p>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Sections</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center dark:border-slate-700 dark:bg-slate-900/70">
-                      <p className="text-2xl font-black text-[#1152d4]">{totalLessons}</p>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center">
+                      <p className="text-2xl font-black text-blue-600">{totalLessons}</p>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Lessons</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center dark:border-slate-700 dark:bg-slate-900/70">
-                      <p className="text-2xl font-black text-[#1152d4]">{formatDurationFromMinutes(totalVideoMinutes)}</p>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center">
+                      <p className="text-2xl font-black text-blue-600">{formatDurationFromMinutes(totalVideoMinutes)}</p>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Video</p>
                     </div>
                   </div>
@@ -765,12 +766,12 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
                 <div className="space-y-6">
                   {draft.sections.map((section, sectionIndex) => (
-                    <div key={section.id} className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                      <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/60">
+                    <div key={section.id} className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm">
+                      <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex-1">
                             <div className="mb-3 flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                                 <ChevronDown className="h-4 w-4" />
                               </div>
                               <div>
@@ -793,7 +794,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                               onChange={(event) =>
                                 updateSection(section.id, { description: event.target.value })
                               }
-                              className="min-h-[90px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900"
+                              className="min-h-[90px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                               placeholder="Ajoutez une courte description pour orienter les etudiants."
                               rows={3}
                             />
@@ -803,7 +804,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                             <button
                               type="button"
                               onClick={() => addLesson(section.id)}
-                              className="flex items-center gap-2 rounded-full border border-[#1152d4]/20 bg-[#1152d4]/10 px-4 py-2 text-sm font-semibold text-[#1152d4] transition hover:bg-[#1152d4]/15"
+                              className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100"
                             >
                               <CopyPlus className="h-4 w-4" />
                               Add lesson
@@ -812,7 +813,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                               type="button"
                               onClick={() => removeSection(section.id)}
                               disabled={draft.sections.length === 1}
-                              className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900/40 dark:hover:bg-rose-950/30"
+                              className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -824,18 +825,18 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         {section.lessons.map((lesson, lessonIndex) => (
                           <div
                             key={lesson.id}
-                            className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-800/50"
+                            className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4"
                           >
                             <div className="mb-3 flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#1152d4] shadow-sm dark:bg-slate-900">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
                                   <BookOpen className="h-4 w-4" />
                                 </div>
                                 <div>
                                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                                     Lesson {sectionIndex + 1}.{lessonIndex + 1}
                                   </p>
-                                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                  <p className="text-sm font-semibold text-slate-600">
                                     {lesson.type}
                                   </p>
                                 </div>
@@ -844,7 +845,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                                 type="button"
                                 onClick={() => removeLesson(section.id, lesson.id)}
                                 disabled={section.lessons.length === 1}
-                                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-900"
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -860,7 +861,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                                   onChange={(event) =>
                                     updateLesson(section.id, lesson.id, { title: event.target.value })
                                   }
-                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900"
+                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                                   placeholder="Nom de la lecon"
                                   type="text"
                                 />
@@ -877,7 +878,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                                       type: event.target.value as LessonType,
                                     })
                                   }
-                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900"
+                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                                 >
                                   {LESSON_TYPE_OPTIONS.map((option) => (
                                     <option key={option} value={option}>
@@ -896,7 +897,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                                   onChange={(event) =>
                                     updateLesson(section.id, lesson.id, { duration: event.target.value })
                                   }
-                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900"
+                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                                   min="0"
                                   placeholder="15"
                                   type="number"
@@ -912,7 +913,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                                   onChange={(event) =>
                                     updateLesson(section.id, lesson.id, { meta: event.target.value })
                                   }
-                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900"
+                                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                                   placeholder="PDF, 10 Q..."
                                   type="text"
                                 />
@@ -924,7 +925,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         <button
                           type="button"
                           onClick={() => addLesson(section.id)}
-                          className="flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500 transition hover:border-[#1152d4]/40 hover:bg-[#1152d4]/5 hover:text-[#1152d4] dark:border-slate-700 dark:hover:border-[#1152d4]/40 dark:hover:bg-[#1152d4]/10"
+                          className="flex w-full items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
                         >
                           <CopyPlus className="h-4 w-4" />
                           Add new lesson
@@ -936,11 +937,11 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   <button
                     type="button"
                     onClick={addSection}
-                    className="flex w-full flex-col items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-[#1152d4]/20 bg-[#1152d4]/5 px-6 py-8 text-[#1152d4] transition hover:bg-[#1152d4]/10"
+                    className="flex w-full flex-col items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-blue-200 bg-blue-50 px-6 py-8 text-blue-600 transition hover:bg-blue-100"
                   >
                     <Layers3 className="h-8 w-8" />
                     <span className="font-bold">Add new section</span>
-                    <span className="text-xs uppercase tracking-[0.18em] text-[#1152d4]/60">
+                    <span className="text-xs uppercase tracking-[0.18em] text-blue-500">
                       Create a new learning block
                     </span>
                   </button>
@@ -948,20 +949,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
             </div>
 
-            <div className="mt-10 flex w-full max-w-4xl items-center justify-between gap-4">
+            <div className="mt-10 flex w-full max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </button>
-              <div className="flex items-center gap-4">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={saveDraft}
-                  className="flex items-center gap-2 rounded-full border-2 border-[#1152d4] px-8 py-3 font-semibold text-[#1152d4] transition-all hover:bg-[#1152d4]/5"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-blue-600 px-8 py-3 font-semibold text-blue-600 transition-all hover:bg-blue-50 sm:w-auto"
                 >
                   <Save className="h-4 w-4" />
                   Save Draft
@@ -969,7 +970,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                 <button
                   type="button"
                   onClick={goNext}
-                  className="flex items-center gap-2 rounded-full bg-[#1152d4] px-10 py-3 font-semibold text-white shadow-lg shadow-[#1152d4]/30 transition-all hover:bg-[#1152d4]/90"
+                  className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-600 px-8 font-semibold text-white shadow-md transition-all hover:bg-blue-700 sm:w-auto sm:min-w-[170px]"
                 >
                   Continue
                   <ArrowRight className="h-4 w-4" />
@@ -983,14 +984,14 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
           <>
             <div className="grid w-full max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
               <div className="space-y-8 lg:col-span-2">
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                       <Settings2 className="h-5 w-5" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">Course Visibility & Access</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                      <p className="text-sm text-slate-500">
                         Choisissez qui peut voir et rejoindre ce cours.
                       </p>
                     </div>
@@ -1023,25 +1024,25 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         onClick={() => updateDraft({ visibility: option.value })}
                         className={`rounded-[24px] border-2 p-4 text-left transition ${
                           draft.visibility === option.value
-                            ? 'border-[#1152d4] bg-[#1152d4]/5'
-                            : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-slate-700'
+                            ? 'border-blue-600 bg-blue-50'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
                         <div className="flex items-start gap-4">
                           <div
                             className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border ${
                               draft.visibility === option.value
-                                ? 'border-[#1152d4] bg-[#1152d4] text-white'
-                                : 'border-slate-300 text-transparent dark:border-slate-700'
+                                ? 'border-blue-600 bg-blue-600 text-white'
+                                : 'border-slate-300 text-transparent'
                             }`}
                           >
                             <Check className="h-3 w-3" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-900 dark:text-slate-100">
+                            <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-900">
                               {option.title}
                             </p>
-                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 text-sm text-slate-500">
                               {option.description}
                             </p>
                           </div>
@@ -1056,7 +1057,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                       <input
                         value={draft.password}
                         onChange={(event) => updateDraft({ password: event.target.value })}
-                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         placeholder="Definissez un mot de passe d acces"
                         type="text"
                       />
@@ -1064,20 +1065,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   ) : null}
                 </section>
 
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                         <Sparkles className="h-5 w-5" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">Pricing Model</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-slate-500">
                           Definissez comment monetiser ce cours.
                         </p>
                       </div>
                     </div>
-                    <div className="flex rounded-2xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-900">
+                    <div className="flex rounded-2xl border border-slate-200 bg-slate-100 p-1">
                       {(['free', 'paid'] as PricingMode[]).map((mode) => (
                         <button
                           key={mode}
@@ -1085,7 +1086,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           onClick={() => updateDraft({ pricingMode: mode })}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                             draft.pricingMode === mode
-                              ? 'bg-white text-[#1152d4] shadow-sm dark:bg-slate-800'
+                              ? 'bg-white text-blue-600 shadow-sm'
                               : 'text-slate-500'
                           }`}
                         >
@@ -1104,7 +1105,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           <input
                             value={draft.regularPrice}
                             onChange={(event) => updateDraft({ regularPrice: event.target.value })}
-                            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                             placeholder="99.00"
                             type="number"
                             min="0"
@@ -1118,7 +1119,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         <select
                           value={draft.currency}
                           onChange={(event) => updateDraft({ currency: event.target.value })}
-                          className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                          className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         >
                           <option value="USD">USD - US Dollar</option>
                           <option value="EUR">EUR - Euro</option>
@@ -1135,33 +1136,33 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                             onChange={(event) =>
                               updateDraft({ discountedPrice: event.target.value })
                             }
-                            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                             placeholder="49.00"
                             type="number"
                             min="0"
                             step="0.01"
                           />
                         </div>
-                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 text-xs text-slate-500">
                           Laissez vide pour ne pas activer de promotion.
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
                       Le cours sera publie comme gratuit. Aucun prix ne sera envoye au backend actuel.
                     </div>
                   )}
                 </section>
 
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                       <Search className="h-5 w-5" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">SEO & Metadata</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                      <p className="text-sm text-slate-500">
                         Renseignez les informations qui serviront au referencement.
                       </p>
                     </div>
@@ -1173,7 +1174,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                       <input
                         value={draft.seoTitle}
                         onChange={(event) => updateDraft({ seoTitle: event.target.value })}
-                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         placeholder="Titre SEO du cours"
                         type="text"
                       />
@@ -1190,7 +1191,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         onChange={(event) =>
                           updateDraft({ metaDescription: event.target.value })
                         }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all focus:border-[#1152d4] focus:ring-2 focus:ring-[#1152d4]/30 dark:border-slate-700 dark:bg-slate-900/60"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition-all focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         placeholder="Resume visible dans les moteurs de recherche"
                         rows={4}
                       />
@@ -1204,16 +1205,16 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
 
               <div className="space-y-6">
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-6 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-4 flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-[#1152d4]" />
+                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
                     <h3 className="text-lg font-bold">Completion</h3>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-900/70">
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4">
                     <div>
                       <p className="text-sm font-semibold">Issue Certificate</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-xs text-slate-500">
                         Auto-generate after completion
                       </p>
                     </div>
@@ -1223,7 +1224,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         updateDraft({ issueCertificate: !draft.issueCertificate })
                       }
                       className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                        draft.issueCertificate ? 'bg-[#1152d4]' : 'bg-slate-300 dark:bg-slate-700'
+                        draft.issueCertificate ? 'bg-blue-600' : 'bg-slate-300'
                       }`}
                     >
                       <span
@@ -1235,16 +1236,16 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
                 </section>
 
-                <section className="rounded-[28px] border border-[#1152d4]/15 bg-[#1152d4]/5 p-6">
-                  <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#1152d4]">
+                <section className="rounded-[28px] border border-blue-200 bg-blue-50 p-6">
+                  <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">
                     Pro tip
                   </p>
-                  <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
                     Les cours entre 49 et 199 USD performent souvent mieux sur les competences
                     professionnelles. Pensez aussi a aligner le SEO sur le titre reel du cours.
                   </p>
-                  <div className="mt-5 rounded-[24px] border border-dashed border-[#1152d4]/25 bg-white/60 p-5 text-center dark:bg-slate-900/40">
-                    <Sparkles className="mx-auto h-8 w-8 text-[#1152d4]" />
+                  <div className="mt-5 rounded-[24px] border border-dashed border-blue-200 bg-white p-5 text-center">
+                    <Sparkles className="mx-auto h-8 w-8 text-blue-600" />
                     <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                       Live preview
                     </p>
@@ -1256,20 +1257,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
             </div>
 
-            <div className="mt-10 flex w-full max-w-5xl items-center justify-between gap-4">
+            <div className="mt-10 flex w-full max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </button>
-              <div className="flex items-center gap-4">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={saveDraft}
-                  className="flex items-center gap-2 rounded-full border-2 border-[#1152d4] px-8 py-3 font-semibold text-[#1152d4] transition-all hover:bg-[#1152d4]/5"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-blue-600 px-8 py-3 font-semibold text-blue-600 transition-all hover:bg-blue-50 sm:w-auto"
                 >
                   <Save className="h-4 w-4" />
                   Save Draft
@@ -1277,7 +1278,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                 <button
                   type="button"
                   onClick={goNext}
-                  className="flex items-center gap-2 rounded-full bg-[#1152d4] px-10 py-3 font-semibold text-white shadow-lg shadow-[#1152d4]/30 transition-all hover:bg-[#1152d4]/90"
+                  className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-600 px-8 font-semibold text-white shadow-md transition-all hover:bg-blue-700 sm:w-auto sm:min-w-[170px]"
                 >
                   Continue
                   <ArrowRight className="h-4 w-4" />
@@ -1291,15 +1292,15 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
           <>
             <div className="grid w-full max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
               <div className="space-y-6 lg:col-span-2">
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                         <LayoutTemplate className="h-5 w-5" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">Basic Information</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-slate-500">
                           Verifiez le positionnement global du cours.
                         </p>
                       </div>
@@ -1307,14 +1308,14 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={() => moveToStep(1)}
-                      className="text-sm font-semibold text-[#1152d4] transition hover:underline"
+                      className="text-sm font-semibold text-blue-600 transition hover:underline"
                     >
                       Edit
                     </button>
                   </div>
 
                   <div className="flex flex-col gap-6 md:flex-row">
-                    <div className="h-36 w-full overflow-hidden rounded-[24px] bg-slate-100 md:w-52 dark:bg-slate-800">
+                    <div className="h-36 w-full overflow-hidden rounded-[24px] bg-slate-100 md:w-52">
                       {thumbnailPreview ? (
                         <ImageWithFallback
                           src={thumbnailPreview}
@@ -1322,7 +1323,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-slate-300 dark:text-slate-700">
+                        <div className="flex h-full items-center justify-center text-slate-300">
                           <ImagePlus className="h-10 w-10" />
                         </div>
                       )}
@@ -1339,7 +1340,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                           Subtitle
                         </p>
-                        <p className="mt-1 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        <p className="mt-1 text-sm leading-7 text-slate-600">
                           {draft.subtitle || 'Sous-titre non renseigne'}
                         </p>
                       </div>
@@ -1348,7 +1349,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                             Category
                           </p>
-                          <span className="mt-2 inline-flex rounded-full bg-[#1152d4]/10 px-3 py-1 text-xs font-bold text-[#1152d4]">
+                          <span className="mt-2 inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-600">
                             {draft.category}
                           </span>
                         </div>
@@ -1356,7 +1357,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                             Level
                           </p>
-                          <span className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          <span className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-600">
                             {draft.level}
                           </span>
                         </div>
@@ -1365,15 +1366,15 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
                 </section>
 
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                         <Layers3 className="h-5 w-5" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">Curriculum Overview</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-slate-500">
                           Resume quantitatif du contenu prepare.
                         </p>
                       </div>
@@ -1381,35 +1382,35 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={() => moveToStep(2)}
-                      className="text-sm font-semibold text-[#1152d4] transition hover:underline"
+                      className="text-sm font-semibold text-blue-600 transition hover:underline"
                     >
                       Edit
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <div className="rounded-[22px] bg-slate-50 p-4 text-center dark:bg-slate-800/50">
-                      <p className="text-3xl font-black text-[#1152d4]">{draft.sections.length}</p>
+                    <div className="rounded-[22px] bg-slate-50 p-4 text-center">
+                      <p className="text-3xl font-black text-blue-600">{draft.sections.length}</p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Sections
                       </p>
                     </div>
-                    <div className="rounded-[22px] bg-slate-50 p-4 text-center dark:bg-slate-800/50">
-                      <p className="text-3xl font-black text-[#1152d4]">{totalLessons}</p>
+                    <div className="rounded-[22px] bg-slate-50 p-4 text-center">
+                      <p className="text-3xl font-black text-blue-600">{totalLessons}</p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Lessons
                       </p>
                     </div>
-                    <div className="rounded-[22px] bg-slate-50 p-4 text-center dark:bg-slate-800/50">
-                      <p className="text-3xl font-black text-[#1152d4]">
+                    <div className="rounded-[22px] bg-slate-50 p-4 text-center">
+                      <p className="text-3xl font-black text-blue-600">
                         {formatDurationFromMinutes(totalVideoMinutes)}
                       </p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Video
                       </p>
                     </div>
-                    <div className="rounded-[22px] bg-slate-50 p-4 text-center dark:bg-slate-800/50">
-                      <p className="text-3xl font-black text-[#1152d4]">
+                    <div className="rounded-[22px] bg-slate-50 p-4 text-center">
+                      <p className="text-3xl font-black text-blue-600">
                         {
                           draft.sections.reduce(
                             (count, section) =>
@@ -1426,15 +1427,15 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
                 </section>
 
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                         <Settings2 className="h-5 w-5" />
                       </div>
                       <div>
                         <h3 className="text-xl font-bold">Settings & Pricing</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-slate-500">
                           Etat final avant publication.
                         </p>
                       </div>
@@ -1442,20 +1443,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={() => moveToStep(3)}
-                      className="text-sm font-semibold text-[#1152d4] transition hover:underline"
+                      className="text-sm font-semibold text-blue-600 transition hover:underline"
                     >
                       Edit
                     </button>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between border-b border-slate-100 py-3">
                       <span className="text-sm font-medium">Visibility</span>
                       <span className="text-sm font-bold capitalize text-emerald-600">
                         {draft.visibility}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between border-b border-slate-100 py-3">
                       <span className="text-sm font-medium">Price</span>
                       <span className="text-sm font-bold">
                         {draft.pricingMode === 'free'
@@ -1463,7 +1464,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                           : `${draft.discountedPrice || draft.regularPrice || '0'} ${draft.currency}`}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between border-b border-slate-100 py-3">
                       <span className="text-sm font-medium">SEO</span>
                       <span className="text-sm font-bold text-emerald-600">
                         {draft.seoTitle && draft.metaDescription ? 'Optimized' : 'Incomplete'}
@@ -1480,9 +1481,9 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
 
               <div className="space-y-6">
-                <section className="rounded-[28px] border border-[#1152d4]/15 bg-[#1152d4]/5 p-6">
+                <section className="rounded-[28px] border border-blue-200 bg-blue-50 p-6">
                   <h3 className="flex items-center gap-2 text-lg font-bold">
-                    <CheckCircle2 className="h-5 w-5 text-[#1152d4]" />
+                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
                     Pre-publish checklist
                   </h3>
                   <div className="mt-5 space-y-4">
@@ -1491,13 +1492,13 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                         <div
                           className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded ${
                             item.done
-                              ? 'bg-[#1152d4] text-white'
-                              : 'border border-slate-300 text-transparent dark:border-slate-700'
+                              ? 'bg-blue-600 text-white'
+                              : 'border border-slate-300 text-transparent'
                           }`}
                         >
                           <Check className="h-3 w-3" />
                         </div>
-                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="text-sm text-slate-700">
                           {item.label}
                         </span>
                       </div>
@@ -1505,13 +1506,13 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
                 </section>
 
-                <section className="rounded-[28px] border border-white/40 bg-white/70 p-6 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#101622]/70">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="space-y-3">
                     <button
                       type="button"
                       onClick={publishCourse}
                       disabled={isPublishing}
-                      className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-[#1152d4] px-6 py-4 font-bold text-white shadow-lg shadow-[#1152d4]/25 transition hover:bg-[#1152d4]/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-blue-600 px-6 py-4 font-bold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Rocket className="h-4 w-4" />
                       {isPublishing ? 'Publishing...' : 'Publish Course Now'}
@@ -1525,7 +1526,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                               'Publiez d abord le cours pour ouvrir un apercu base sur les donnees backend.',
                             )
                       }
-                      className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 px-6 py-3 font-semibold transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                      className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 px-6 py-3 font-semibold transition hover:bg-slate-50"
                     >
                       <BookOpen className="h-4 w-4" />
                       Preview as Student
@@ -1533,7 +1534,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={saveDraft}
-                      className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-transparent px-6 py-3 font-semibold text-slate-500 transition hover:border-slate-200 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                      className="flex w-full items-center justify-center gap-2 rounded-[22px] border border-transparent px-6 py-3 font-semibold text-slate-500 transition hover:border-slate-200 hover:bg-white"
                     >
                       <Save className="h-4 w-4" />
                       Save as Draft
@@ -1541,12 +1542,12 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
 
                   {publishedCourseId ? (
-                    <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                    <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
                       Le cours backend est cree. Vous pouvez maintenant planifier une session live
                       ou ouvrir la page detail.
                     </div>
                   ) : (
-                    <div className="mt-5 rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                    <div className="mt-5 rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
                       Publication actuelle: le cours, les sections et les lecons sont envoyes au
                       backend. Les reglages avances encore non supportes par l API restent en
                       brouillon local.
@@ -1557,7 +1558,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     <button
                       type="button"
                       onClick={() => onNavigate('/teacher/live-sessions')}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-[22px] border border-[#1152d4]/20 bg-[#1152d4]/10 px-6 py-3 font-semibold text-[#1152d4] transition hover:bg-[#1152d4]/15"
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-[22px] border border-blue-200 bg-blue-100 px-6 py-3 font-semibold text-blue-600 transition hover:bg-blue-100"
                     >
                       <CalendarDays className="h-4 w-4" />
                       Plan live sessions
@@ -1567,20 +1568,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
               </div>
             </div>
 
-            <div className="mt-10 flex w-full max-w-5xl items-center justify-between gap-4">
+            <div className="mt-10 flex w-full max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition-all hover:bg-slate-50 sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </button>
-              <div className="flex items-center gap-4">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={discardDraft}
-                  className="rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="w-full rounded-full border border-slate-200 px-8 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
                 >
                   Reset
                 </button>
@@ -1588,7 +1589,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   type="button"
                   onClick={publishCourse}
                   disabled={isPublishing}
-                  className="flex items-center gap-2 rounded-full bg-[#1152d4] px-10 py-3 font-semibold text-white shadow-lg shadow-[#1152d4]/30 transition-all hover:bg-[#1152d4]/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-10 py-3 font-semibold text-white shadow-md transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   <Rocket className="h-4 w-4" />
                   {isPublishing ? 'Publishing...' : 'Publish'}
@@ -1601,3 +1602,4 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
     </TeacherSpaceShell>
   );
 }
+

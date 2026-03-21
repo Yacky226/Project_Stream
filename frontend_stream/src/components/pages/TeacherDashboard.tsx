@@ -584,7 +584,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                   </h2>
                   <button
                     type="button"
-                    onClick={() => onNavigate('/teacher/live-sessions')}
+                    onClick={() => onNavigate('/teacher/my-courses')}
                     className="text-sm font-bold text-blue-600"
                   >
                     View All

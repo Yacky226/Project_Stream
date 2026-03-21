@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Bolt,
   Brush,
-  CalendarClock,
   Database,
   Flame,
   PlayCircle,
@@ -15,7 +14,7 @@ import type {
   DashboardSessionItem,
   StudentDashboardCourse,
 } from '../../types/dashboard';
-import { useAppSelector } from '../../hooks/redux';
+import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import {
   StudentSpaceShell,
@@ -26,6 +25,7 @@ import {
   getStudentCategoryMeta,
   useStudentSpaceData,
 } from '../student/StudentSpaceShared';
+import './StudentDashboard.css';
 
 interface StudentDashboardProps {
   onNavigate: (path: string | number) => void;
@@ -107,10 +107,7 @@ function renderRecommendedIcon(iconType: RecommendedCard['iconType'], isDark: bo
 export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardProps) {
   const shared = useStudentSpaceData();
   const [searchQuery, setSearchQuery] = useState('');
-  const theme = useAppSelector((state) => state.ui.theme);
-  const prefersDark =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  const { isDark } = useResolvedTheme();
 
   const ready = shared.status === 'ready' && Boolean(shared.dashboard);
   const { data: catalogCourses = [] } = useGetCoursesQuery(undefined, {
@@ -125,13 +122,6 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
   const dashboardSessions: DashboardSessionItem[] = dashboard?.upcomingSessions ?? [];
   const recentActivity: DashboardActivityItem[] = dashboard?.recentActivity ?? [];
   const dashboardStats = dashboard?.stats;
-  const activeCoursesCount =
-    dashboardStats?.activeCourses ??
-    dashboardCourses.filter((course) => course.status === 'ACTIF').length;
-  const completedCoursesCount =
-    dashboardStats?.completedCourses ??
-    dashboardCourses.filter((course) => course.status === 'TERMINE').length;
-  const upcomingSessionsCount = dashboardStats?.upcomingSessions ?? dashboardSessions.length;
   const streak = calculateActivityStreak(
     recentActivity.map((activity) => activity.occurredAt),
   );
@@ -305,7 +295,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
       goalProgress={shared.goalProgress}
       unreadCount={shared.unreadCount}
     >
-      <div className="space-y-8">
+      <div className="student-dashboard-page space-y-8">
         <section className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -317,7 +307,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                 Welcome back, {firstName}!
               </h1>
               <p className={`mt-2 ${isDark ? 'text-[#cbd5e1]' : 'text-[#64748b]'}`}>
-                You are on a {Math.max(streak, 1)}-day learning streak. Keep the momentum going.
+                You're on a {Math.max(streak, 1)}-day learning streak. Keep the momentum going!
               </p>
             </div>
             <span
@@ -329,43 +319,10 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
               {formatStudentCompactNumber(1_200 + (dashboardStats?.upcomingSessions ?? 0) * 75)} Online
             </span>
           </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <article className={`rounded-2xl border p-4 ${surfaceClass}`}>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'
-                }`}
-              >
-                Active Courses
-              </p>
-              <p className="mt-2 text-2xl font-black text-[#1152d4]">{formatStudentCompactNumber(activeCoursesCount)}</p>
-            </article>
-            <article className={`rounded-2xl border p-4 ${surfaceClass}`}>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'
-                }`}
-              >
-                Completed
-              </p>
-              <p className="mt-2 text-2xl font-black text-[#1152d4]">{formatStudentCompactNumber(completedCoursesCount)}</p>
-            </article>
-            <article className={`rounded-2xl border p-4 ${surfaceClass}`}>
-              <p
-                className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'
-                }`}
-              >
-                Upcoming Sessions
-              </p>
-              <p className="mt-2 text-2xl font-black text-[#1152d4]">{formatStudentCompactNumber(upcomingSessionsCount)}</p>
-            </article>
-          </div>
         </section>
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
-          <div className="space-y-8 xl:col-span-8">
+        <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-12">
+          <div className="min-w-0 space-y-8 xl:col-span-8">
             <section className={`rounded-2xl border p-6 shadow-sm ${surfaceClass}`}>
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -488,13 +445,13 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
 
             <section>
               <h3 className="mb-4 text-xl font-bold tracking-tight">Recommended for You</h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="student-dashboard-recommended-list">
                 {recommendedCards.map((course) => {
                   const icon = renderRecommendedIcon(course.iconType, isDark);
                   return (
                     <article
                       key={course.id}
-                      className={`flex items-center gap-4 rounded-2xl border p-4 ${surfaceClass}`}
+                      className={`student-dashboard-recommended-card flex items-center gap-4 rounded-2xl border p-4 ${surfaceClass}`}
                     >
                       <div className={`flex items-center justify-center ${icon.wrapperClass}`}>
                         {icon.icon}
@@ -514,7 +471,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                 })}
 
                 {!recommendedCards.length ? (
-                  <div className={`rounded-2xl border border-dashed p-6 text-sm md:col-span-2 ${emptyStateClass}`}>
+                  <div className={`student-dashboard-recommended-empty rounded-2xl border border-dashed p-6 text-sm ${emptyStateClass}`}>
                     No recommendation available with this filter.
                   </div>
                 ) : null}
@@ -522,7 +479,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
             </section>
           </div>
 
-          <aside className="space-y-8 xl:col-span-4">
+          <aside className="min-w-0 space-y-8 xl:col-span-4">
             <section className={`rounded-2xl border p-6 shadow-sm ${surfaceClass}`}>
               <h3 className="mb-4 text-lg font-bold">Upcoming Live Sessions</h3>
               <div className="space-y-4">
@@ -631,7 +588,13 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
               </div>
             </section>
 
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1152d4] to-[#4a80ef] p-6 text-white shadow-lg shadow-[#1152d4]/20">
+            <section
+              className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg"
+              style={{
+                background: 'linear-gradient(135deg, #1152d4 0%, #4a80ef 100%)',
+                boxShadow: '0 18px 36px rgba(17, 82, 212, 0.24)',
+              }}
+            >
               <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
               <h3 className="relative z-10 mb-1 text-lg font-bold">Weekly Goal</h3>
               <p className="relative z-10 mb-4 text-xs text-white/80">40 hours learning target</p>

@@ -1,0 +1,51 @@
+.student-space-shell {
+  font-family: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.student-space-shell *,
+.student-space-shell *::before,
+.student-space-shell *::after {
+  box-sizing: border-box;
+}
+
+.student-space-shell :where(h1, h2, h3, h4, p, label, button, input, textarea, select, a, span) {
+  letter-spacing: normal;
+}
+
+.student-space-shell :where(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+
+.student-space-shell .student-space-shell__sidebar {
+  min-width: 16rem;
+}
+
+.student-space-shell .student-space-shell__header {
+  backdrop-filter: blur(10px);
+}
+
+.student-space-shell .student-space-shell__search-input {
+  border-width: 0;
+  padding-left: 2.75rem;
+  padding-right: 1rem;
+  line-height: 1.25rem;
+}
+
+.student-space-shell .student-space-shell__content {
+  width: 100%;
+}
+
+.student-space-shell .student-space-shell__hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.student-space-shell .student-space-shell__hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+@media (max-width: 1023px) {
+  .student-space-shell .student-space-shell__content {
+    padding-bottom: 8rem;
+  }
+}

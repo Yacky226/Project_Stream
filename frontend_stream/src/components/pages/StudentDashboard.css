@@ -1,0 +1,56 @@
+.student-dashboard-page {
+  font-family: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.student-dashboard-page *,
+.student-dashboard-page *::before,
+.student-dashboard-page *::after {
+  box-sizing: border-box;
+}
+
+.student-dashboard-page :where(h1, h2, h3, h4, p, span, button) {
+  letter-spacing: normal;
+}
+
+.student-dashboard-page .student-dashboard-recommended-list::-webkit-scrollbar {
+  display: none;
+}
+
+.student-dashboard-page .student-dashboard-recommended-list {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.student-dashboard-page .student-dashboard-recommended-card {
+  flex: 0 0 280px;
+  flex-shrink: 0;
+  min-width: 280px;
+}
+
+.student-dashboard-page .student-dashboard-recommended-empty {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .student-dashboard-page .student-dashboard-recommended-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
+  .student-dashboard-page .student-dashboard-recommended-card {
+    flex: initial;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .student-dashboard-page .student-dashboard-recommended-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

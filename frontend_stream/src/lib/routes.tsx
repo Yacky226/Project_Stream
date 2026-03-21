@@ -14,6 +14,8 @@ const StudentLiveSessionsPage = lazy(() => import('../components/pages/StudentLi
 const StudentAchievementsPage = lazy(() => import('../components/pages/StudentAchievementsPage').then(m => ({ default: m.StudentAchievementsPage })));
 const StudentCommunityPage = lazy(() => import('../components/pages/StudentCommunityPage').then(m => ({ default: m.StudentCommunityPage })));
 const TeacherDashboard = lazy(() => import('../components/pages/TeacherDashboard').then(m => ({ default: m.TeacherDashboard })));
+const TeacherCoursesPage = lazy(() => import('../components/pages/TeacherCoursesPage').then(m => ({ default: m.TeacherCoursesPage })));
+const TeacherStudentsPage = lazy(() => import('../components/pages/TeacherStudentsPage').then(m => ({ default: m.TeacherStudentsPage })));
 const TeacherLiveSessionsPage = lazy(() => import('../components/pages/TeacherLiveSessionsPage').then(m => ({ default: m.TeacherLiveSessionsPage })));
 const AdminDashboard = lazy(() => import('../components/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminUsersPage = lazy(() => import('../components/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
@@ -294,6 +296,22 @@ export const routes: RouteConfig[] = [
     allowedRoles: ['teacher'],
     title: 'Cours et Sessions Live',
     description: 'Creez les cours et gerez plusieurs sessions live'
+  },
+  {
+    path: '/teacher/my-courses',
+    component: withSuspense(TeacherCoursesPage),
+    requireAuth: true,
+    allowedRoles: ['teacher'],
+    title: 'My Courses',
+    description: 'Liste des cours crees par l enseignant'
+  },
+  {
+    path: '/teacher/students',
+    component: withSuspense(TeacherStudentsPage),
+    requireAuth: true,
+    allowedRoles: ['teacher'],
+    title: 'Teacher Students',
+    description: 'Liste des etudiants inscrits aux cours enseignant'
   },
   {
     path: '/teacher/course-builder',

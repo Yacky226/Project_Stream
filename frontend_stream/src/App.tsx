@@ -35,12 +35,15 @@ function AppContent() {
   const isLiveSessionBuilderRoute =
     currentPath === '/teacher/live-session-builder' ||
     currentPath.startsWith('/teacher/live-session-builder/');
-  const isTeacherDashboardRoute = currentPath === '/teacher/dashboard';
-  const isTeacherLiveSessionsRoute = currentPath === '/teacher/live-sessions';
-  const isTeacherLiveStudioRoute = /^\/teacher\/live\/[^/]+(?:\/[^/]+)?$/.test(currentPath);
+  const isTeacherSpaceRoute = currentPath.startsWith('/teacher/');
   const isAdminSpaceRoute = currentPath === '/admin' || currentPath.startsWith('/admin/');
   const isStudentSpaceRoute =
     currentPath === '/dashboard' || currentPath.startsWith('/student/');
+  const hideChatOverlay =
+    isTeacherProfileRoute ||
+    isProfileRoute ||
+    isPublicStudentProfileRoute ||
+    isSettingsRoute;
   const standalonePages = new Set([
     '/',
     '/catalog',
@@ -77,9 +80,7 @@ function AppContent() {
     isNotificationsRoute ||
     isCourseBuilderRoute ||
     isLiveSessionBuilderRoute ||
-    isTeacherDashboardRoute ||
-    isTeacherLiveSessionsRoute ||
-    isTeacherLiveStudioRoute ||
+    isTeacherSpaceRoute ||
     isAdminSpaceRoute ||
     isStudentSpaceRoute;
 
@@ -254,7 +255,7 @@ function AppContent() {
         {!isFullscreenPage && <Footer onNavigate={navigate} />}
         
         {/* Chatbot - Available for authenticated users */}
-        {isAuthenticated && (
+        {isAuthenticated && !hideChatOverlay && (
           <>
             <Chatbot onNavigate={navigate} currentPath={currentPath} />
             <ChatButton />

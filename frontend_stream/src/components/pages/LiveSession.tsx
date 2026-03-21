@@ -3,7 +3,7 @@ import {
   AtSign,
   BookOpen,
   Building2,
-  CalendarDays,
+  Compass,
   ChevronDown,
   ChevronUp,
   Clock3,
@@ -30,6 +30,7 @@ import {
   useGetSessionByIdQuery,
   useSendChatMessageMutation,
 } from '../../store/api/liveApi';
+import { normalizeUserRole } from '../../lib/roleUtils';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
@@ -44,13 +45,24 @@ type SidebarTab = 'chat' | 'notes';
 
 const VIDEO_PLACEHOLDER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBAybo5y7TrqfDC1NxN6PNZMRdZ3SxgN9mihA10rKnnkllHWCSCTQ_Vl0o6lrs2_xfUwjoARxkWWPXTyl6S1QDeMO87M_Gk06Ob3KXgxwCrbX0WUnliGp2JPjF4sEQkyVuIUjTb0zXEPEA9T9d3oHqzZcI5DpCgwTDiIjURWFIGCtxCts0xqWnmkt3QUV98mUxTsHDPaguDqGepRwITMMdmEEv16wsIn1o3KWjOz33l58iJTrq56iUEKwhbydRAO58L8EnsiAktV0M';
+const DEMO_STUDENT_AVATAR =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuDGie28-WMW3qnehNeXOobHcKw2I584-jjwSH7WPHLp7mx21BfIFaJbjJ4LC6qETnAu_iHA4_IuVRwWwJTV6SlubaMClNrmE0DdYJ9xbkga-WDxEG5eR3DFhHXtrENj-5Zm06uRE0Q1x8-ezDdpnqSMseIBRSPO9L-Tz0Qypum6uo4o96mT8FaM2Er-c9bgK2ito2ls54QxdEFFXp5i_xnoVF1Qt9Eg-mlJosowyI58UiPbQLLC3ohAHV4YubQ7bi2O3kATBXTtMN8';
+const DEMO_STUDENT_AVATAR_2 =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCazQ2EGYJfpQavGrK8g49scUHe7vp2K-Typ3uZ9_0owAga-KiqYBq0b9v4m_0ZKNvO_V8zqHlhskSxKuLkvsIDj2AQu7gw4ssau-WoQuesKNLwdDiJVC9x7m8JNJJ73vt8P0e_6Ls-7_mUY9s3qd4moD7q1ar54Q52YVlpRBuxEqJs2ZFF5li7TBbBIgVzrZmsb3DYtIA18H6YUqLfkor9jUpjl-Cffp4TprnvHo2T7wsEvrTR--JRjXbMUE9sQ084bMmbq1tCj5s';
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function toNameInitials(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
+function toSafeString(value: unknown, fallback = '') {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return fallback;
+  return String(value);
+}
+
+function toNameInitials(value: unknown) {
+  const normalized = toSafeString(value, 'ME').trim();
+  const parts = normalized.split(/\s+/).filter(Boolean);
   if (!parts.length) return 'ME';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
@@ -63,8 +75,9 @@ function formatPlayback(minutesTotal: number) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 }
 
-function formatChatTimestamp(value: string) {
-  const date = new Date(value);
+function formatChatTimestamp(value: unknown) {
+  const normalized = toSafeString(value, '');
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return '--:--';
   return new Intl.DateTimeFormat('en-US', {
     hour: '2-digit',
@@ -74,6 +87,8 @@ function formatChatTimestamp(value: string) {
 
 export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProps) {
   const { user, isAuthenticated } = useAuth();
+  const normalizedRole = normalizeUserRole(user?.role);
+  const shouldSendStudentId = normalizedRole === 'student' ? user?.id : undefined;
   const [activeTab, setActiveTab] = useState<SidebarTab>('chat');
   const [chatInput, setChatInput] = useState('');
   const [noteInput, setNoteInput] = useState('');
@@ -81,7 +96,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
   const { data: session, isLoading: sessionLoading, error: sessionError } = useGetSessionByIdQuery(sessionId);
   const { data: courseDetails, isLoading: courseLoading } = useGetCourseDetailsQuery({
     courseId,
-    studentId: user?.id || undefined,
+    studentId: shouldSendStudentId || undefined,
   });
   const {
     data: chatMessages = [],
@@ -154,10 +169,10 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
       className="flex h-screen min-h-screen flex-col overflow-hidden bg-[#f6f6f8] text-slate-900 dark:bg-[#101622] dark:text-slate-100"
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
-      <header className="z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/80 md:px-8">
+      <header className="z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/80 md:px-8">
         <div className="flex items-center gap-4">
-          <div className="rounded-lg bg-[#1152d4]/10 p-2">
-            <Building2 className="h-5 w-5 text-[#1152d4]" />
+          <div className="rounded-xl bg-[#1152d4]/10 p-2.5">
+            <Compass className="h-5 w-5 text-[#1152d4]" />
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-bold tracking-tight">{sessionTitle}</h1>
@@ -189,7 +204,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
       </header>
 
       <main className="relative flex flex-1 overflow-hidden">
-        <section className="hide-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6">
+        <section className="scrollbar-hide flex flex-1 flex-col gap-6 overflow-y-auto p-6">
           <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-2xl dark:border-slate-800">
             <div
               className="absolute inset-0 bg-cover bg-center"
@@ -265,7 +280,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
           </div>
         </section>
 
-        <aside className="hidden w-96 flex-col border-l border-slate-200 bg-white dark:border-slate-800 dark:bg-[#101622] xl:flex">
+        <aside className="hidden w-[470px] flex-col border-l border-slate-200 bg-white dark:border-slate-800 dark:bg-[#101622] lg:flex">
           <div className="flex border-b border-slate-200 dark:border-slate-800">
             <button
               type="button"
@@ -295,7 +310,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
 
           {activeTab === 'chat' ? (
             <>
-              <div className="hide-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto p-5">
+              <div className="scrollbar-hide flex flex-1 flex-col gap-6 overflow-y-auto p-5">
                 <div className="flex justify-center">
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-tight text-slate-500 dark:bg-slate-800">
                     {instructorName} joined the session
@@ -305,10 +320,79 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
                 {chatLoading ? (
                   <div className="text-sm text-slate-500">Loading chat...</div>
                 ) : !displayedMessages.length ? (
-                  <div className="text-sm text-slate-500">No chat messages yet for this session.</div>
+                  <>
+                    <div className="flex gap-3">
+                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-sm">
+                        <ImageWithFallback
+                          src={DEMO_STUDENT_AVATAR}
+                          alt="Julian Thorne"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className="ml-1 text-[11px] font-bold text-slate-500">Julian Thorne</span>
+                        <div className="max-w-[90%] rounded-2xl rounded-tl-none bg-slate-100 px-4 py-2.5 shadow-sm dark:bg-slate-800">
+                          <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+                            The brutalist approach mentioned earlier is fascinating. How does it scale for residential projects?
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-row-reverse gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-[#1152d4] text-xs font-bold text-white shadow-sm">
+                        {toNameInitials(user?.firstName || user?.email || 'ME')}
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-end">
+                        <span className="mr-1 text-[11px] font-bold text-slate-500">You</span>
+                        <div className="max-w-[90%] rounded-2xl rounded-tr-none bg-[#1152d4] px-4 py-2.5 shadow-lg shadow-[#1152d4]/20">
+                          <p className="text-sm leading-relaxed text-white">
+                            I was wondering the same thing! Especially regarding the thermal performance of exposed concrete.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white bg-amber-500 text-white shadow-sm">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className="ml-1 flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                          {instructorName}
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] dark:bg-amber-900/40">INSTRUCTOR</span>
+                        </span>
+                        <div className="max-w-[90%] rounded-2xl rounded-tl-none border border-amber-100 bg-amber-50 px-4 py-2.5 dark:border-amber-900/40 dark:bg-amber-900/20">
+                          <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+                            Great question, Julian. I&apos;ll cover residential scaling in the next 5 minutes. Hold that thought!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-sm">
+                        <ImageWithFallback
+                          src={DEMO_STUDENT_AVATAR_2}
+                          alt="Sarah Chen"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className="ml-1 text-[11px] font-bold text-slate-500">Sarah Chen</span>
+                        <div className="max-w-[90%] rounded-2xl rounded-tl-none bg-slate-100 px-4 py-2.5 shadow-sm dark:bg-slate-800">
+                          <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+                            Can we get the slides for this section? The diagram on slide 14 was very helpful.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   displayedMessages.map((message) => {
-                    const senderRole = message.senderRole?.toLowerCase() || '';
+                    const senderRoleRaw = typeof message.senderRole === 'string' ? message.senderRole : '';
+                    const senderRole = senderRoleRaw.toLowerCase();
+                    const senderName = toSafeString(message.senderName, 'Utilisateur');
+                    const messageContent = toSafeString(message.content, '');
+                    const messageCreatedAt = formatChatTimestamp(message.createdAt);
+                    const senderPhoto = typeof message.senderPhoto === 'string' ? message.senderPhoto : null;
                     const isTeacher =
                       senderRole.includes('teacher') ||
                       senderRole.includes('instructor') ||
@@ -324,10 +408,10 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
                           </div>
                           <div className="flex items-end gap-1.5">
                             <div className="max-w-[90%] rounded-2xl rounded-tr-none bg-[#1152d4] px-4 py-2.5 shadow-lg shadow-[#1152d4]/20">
-                              <p className="text-sm leading-relaxed text-white">{message.content}</p>
+                              <p className="text-sm leading-relaxed text-white">{messageContent}</p>
                             </div>
                             <span className="pb-1 text-[10px] font-semibold text-slate-400">
-                              {formatChatTimestamp(message.createdAt)}
+                              {messageCreatedAt}
                             </span>
                           </div>
                         </div>
@@ -336,11 +420,11 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
 
                     return (
                       <div key={message.id} className="flex gap-3">
-                        {message.senderPhoto ? (
+                        {senderPhoto ? (
                           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-sm">
                             <ImageWithFallback
-                              src={message.senderPhoto}
-                              alt={message.senderName}
+                              src={senderPhoto}
+                              alt={senderName}
                               className="h-full w-full object-cover"
                             />
                           </div>
@@ -349,7 +433,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
                             {isTeacher ? (
                               <Building2 className="h-4 w-4" />
                             ) : (
-                              <span className="text-xs font-bold">{toNameInitials(message.senderName)}</span>
+                              <span className="text-xs font-bold">{toNameInitials(senderName)}</span>
                             )}
                           </div>
                         )}
@@ -360,7 +444,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
                               isTeacher ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500'
                             }`}
                           >
-                            {message.senderName}
+                            {senderName}
                             {isTeacher ? (
                               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] dark:bg-amber-900/40">
                                 INSTRUCTOR
@@ -375,7 +459,7 @@ export function LiveSession({ courseId, sessionId, onNavigate }: LiveSessionProp
                             }`}
                           >
                             <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
-                              {message.content}
+                              {messageContent}
                             </p>
                           </div>
                         </div>

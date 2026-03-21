@@ -7,6 +7,8 @@ import {
   GraduationCap,
   LayoutGrid,
   Loader2,
+  LogOut,
+  Mail,
   MessageSquare,
   Radio,
   Route,
@@ -25,6 +27,7 @@ import {
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
+import './StudentSpaceShared.css';
 
 type StudentSpaceStatusType =
   | 'auth-loading'
@@ -396,50 +399,102 @@ export function StudentSpaceShell({
   unreadCount,
   children,
 }: StudentSpaceShellProps) {
+  const { logout } = useAuth();
   const { isDark } = useResolvedTheme();
   const handleSearchChange = onSearchChange || (() => undefined);
   const allNavItems = [...MAIN_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS];
   const rootClass = isDark
-    ? 'bg-[#09111f] text-[#e2e8f0]'
-    : 'bg-[#eef4ff] text-[#0f172a]';
+    ? 'bg-[#101622] text-[#e2e8f0]'
+    : 'bg-[#f6f6f8] text-[#0f172a]';
   const shellPanelClass = isDark
-    ? 'border-[#1e293b] bg-[#0f172a]/95'
-    : 'border-white/70 bg-white/95';
+    ? 'border-[#1e293b] bg-[#0f172a]'
+    : 'border-[#1152d4]/10 bg-white';
   const headerClass = isDark
-    ? 'border-[#1e293b] bg-[#09111f]/88'
-    : 'border-white/60 bg-[#eef4ff]/82';
+    ? 'border-[#1152d4]/10 bg-[#101622]/80'
+    : 'border-[#1152d4]/5 bg-[#f6f6f8]/80';
   const searchClass = isDark
-    ? 'border border-[#334155] bg-[#162033] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
-    : 'border border-[#dbe6ff] bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
+    ? 'border border-[#334155] bg-[#0f172a] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
+    : 'border border-transparent bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
   const mutedTextClass = isDark ? 'text-[#94a3b8]' : 'text-[#64748b]';
   const secondaryPanelClass = isDark
-    ? 'border border-[#203049] bg-[#101a2d]/90'
-    : 'border border-[#dbe6ff] bg-[#f8fbff]';
+    ? 'border border-[#203049] bg-[#101a2d]'
+    : 'border border-[#1152d4]/10 bg-[#1152d4]/5';
+
+  const handleLogout = async () => {
+    await logout();
+    onNavigate('/auth/signin');
+  };
 
   return (
     <div
-      className={`relative min-h-screen overflow-hidden ${rootClass}`}
+      className={`student-space-shell relative min-h-screen overflow-hidden ${rootClass}`}
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(17,82,212,0.18),transparent_42%),radial-gradient(circle_at_top_right,rgba(67,165,255,0.12),transparent_30%)]" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] overflow-hidden">
+      <div className="relative flex h-screen w-full overflow-x-hidden">
         <aside
-          className={`hidden w-80 shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}
+          className={`student-space-shell__sidebar hidden w-64 shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}
         >
-          <div className="sticky top-0 flex h-screen flex-col px-5 pb-5 pt-6">
-            <div className="flex items-center gap-3 px-1">
-              <div className="rounded-2xl bg-[#1152d4] p-2.5 text-white shadow-lg shadow-[#1152d4]/25">
+          <div className="flex h-screen flex-col px-4 pb-4 pt-6">
+            <div className="flex items-center gap-3 px-2">
+              <div className="rounded-lg bg-[#1152d4] p-2 text-white shadow-lg shadow-[#1152d4]/20">
                 <GraduationCap className="h-5 w-5" />
               </div>
               <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                  Student Space
-                </p>
                 <h2 className="text-xl font-black tracking-tight text-[#1152d4]">EduFlow</h2>
               </div>
             </div>
 
-            <div className={`mt-6 rounded-[28px] p-4 ${secondaryPanelClass}`}>
+            <nav className="student-space-shell__hide-scrollbar mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
+              {MAIN_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = isActiveNavItem(currentPath, item.path);
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => onNavigate(item.path)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
+                      active
+                        ? 'bg-[#1152d4] text-white'
+                        : isDark
+                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
+                          : 'text-[#64748b] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+
+              <div className={`px-4 pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+                Account
+              </div>
+
+              {ACCOUNT_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = isActiveNavItem(currentPath, item.path);
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => onNavigate(item.path)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
+                      active
+                        ? 'bg-[#1152d4] text-white'
+                        : isDark
+                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
+                          : 'text-[#64748b] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className={`mt-4 rounded-2xl p-4 ${secondaryPanelClass}`}>
               <div className="mb-4 flex items-center gap-3">
                 <Avatar className="h-12 w-12 border border-[#1152d4]/15">
                   <AvatarImage src={avatarUrl || undefined} />
@@ -454,11 +509,10 @@ export function StudentSpaceShell({
                   </p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em]">
-                  <span className={mutedTextClass}>Goal Progress</span>
-                  <span className="text-[#1152d4]">{goalProgress}%</span>
-                </div>
+              <div className="mb-4 space-y-2">
+                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${mutedTextClass}`}>
+                  Premium Plan
+                </p>
                 <div className={`h-2 overflow-hidden rounded-full ${isDark ? 'bg-[#23314a]' : 'bg-[#dbe6ff]'}`}>
                   <div
                     className="h-full rounded-full bg-[#1152d4]"
@@ -466,87 +520,40 @@ export function StudentSpaceShell({
                   />
                 </div>
               </div>
-            </div>
-
-            <nav className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
-              {MAIN_NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isActiveNavItem(currentPath, item.path);
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
-                      active
-                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
-                        : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-semibold">{item.label}</span>
-                  </button>
-                );
-              })}
-
-              <div className={`px-4 pt-6 text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                Account
-              </div>
-
-              {ACCOUNT_NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isActiveNavItem(currentPath, item.path);
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
-                      active
-                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
-                        : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-semibold">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className={`mt-5 rounded-[28px] p-4 ${secondaryPanelClass}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                Public Identity
-              </p>
-              <p className="mt-2 text-sm font-semibold">
-                Keep your learning profile polished and share-ready.
-              </p>
               <Button
                 className="mt-4 w-full rounded-xl bg-[#1152d4] text-xs font-bold text-white hover:bg-[#0f47b9]"
                 onClick={() => onNavigate('/profile/public')}
               >
-                View public profile
+                Upgrade to Pro
               </Button>
+              <button
+                type="button"
+                className={`mt-2 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border text-xs font-bold transition ${
+                  isDark
+                    ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                }`}
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <header className={`sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <main className="student-space-shell__main min-w-0 flex-1 overflow-y-auto">
+          <header className={`student-space-shell__header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
+            <div className="flex items-center justify-between gap-4">
               {showSearch ? (
-                <div className="relative w-full xl:max-w-xl">
+                <div className="relative w-full md:max-w-md">
                   <Search
                     className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${mutedTextClass}`}
                   />
                   <input
                     value={searchQuery}
                     onChange={(event) => handleSearchChange(event.target.value)}
-                    className={`h-12 w-full rounded-2xl pl-11 pr-4 text-sm shadow-sm transition focus:border-[#1152d4] focus:outline-none focus:ring-4 focus:ring-[#1152d4]/15 ${searchClass}`}
+                    className={`student-space-shell__search-input h-11 w-full rounded-xl pl-11 pr-4 text-sm shadow-sm transition focus:border-[#1152d4] focus:outline-none focus:ring-4 focus:ring-[#1152d4]/15 ${searchClass}`}
                     placeholder={searchPlaceholder}
                     type="text"
                   />
@@ -565,15 +572,15 @@ export function StudentSpaceShell({
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3 xl:justify-end">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
                     size="icon"
-                    className={`relative rounded-2xl ${
+                    className={`relative rounded-xl ${
                       isDark
                         ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                        : 'border-[#dbe6ff] bg-white text-[#0f172a] hover:bg-[#f8fbff]'
+                        : 'border-[#1152d4]/5 bg-white text-[#0f172a] hover:bg-[#f8fbff]'
                     }`}
                     onClick={() => onNavigate('/notifications')}
                   >
@@ -582,7 +589,19 @@ export function StudentSpaceShell({
                       <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
                     ) : null}
                   </Button>
-                  <div className={`hidden h-10 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#dbe6ff]'}`} />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={`rounded-xl ${
+                      isDark
+                        ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
+                        : 'border-[#1152d4]/5 bg-white text-[#0f172a] hover:bg-[#f8fbff]'
+                    }`}
+                    onClick={() => onNavigate('/notifications')}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                  <div className={`hidden h-8 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#dbe6ff]'}`} />
                   <div className="hidden text-right sm:block">
                     <p className="text-xs font-bold">Today's Goal</p>
                     <p className="text-[10px] font-bold text-[#1152d4]">{goalProgress}% Complete</p>
@@ -605,7 +624,7 @@ export function StudentSpaceShell({
             </div>
 
             <nav className="mt-4 lg:hidden">
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              <div className="student-space-shell__hide-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {allNavItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActiveNavItem(currentPath, item.path);
@@ -631,7 +650,7 @@ export function StudentSpaceShell({
             </nav>
           </header>
 
-          <div className="mx-auto w-full max-w-[1280px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
+          <div className="student-space-shell__content mx-auto w-full max-w-[1280px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
             {children}
           </div>
         </main>

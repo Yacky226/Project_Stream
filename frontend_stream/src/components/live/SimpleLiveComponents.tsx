@@ -339,24 +339,24 @@ function SessionVideoCard({
   }, [session, effectiveVideoUrl, canUseLivePlayer]);
 
   return (
-    <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-      <CardHeader className="space-y-3 border-b border-slate-800/80 bg-slate-900/70 pb-4">
+    <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+      <CardHeader className="space-y-3 border-b border-slate-200 bg-slate-50 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base font-semibold md:text-lg">
-            <Tv className="h-4 w-4 text-sky-300" />
+            <Tv className="h-4 w-4 text-blue-600" />
             {replayUrl ? 'Replay video' : 'Flux principal'}
           </CardTitle>
           {session ? <SessionStatusPill session={session} /> : null}
         </div>
-        <CardDescription className="text-slate-300">
+        <CardDescription className="text-slate-500">
           {session
             ? `Session planifiee le ${formatSessionDate(session.scheduledAt)}`
             : 'Aucune session selectionnee'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 p-4 md:p-5">
-        <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-800 bg-black/95">
-          <div className="absolute left-3 top-3 z-10 rounded-full bg-black/65 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-200">
+        <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+          <div className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white">
             {replayUrl ? 'Replay' : 'En direct'}
           </div>
 
@@ -383,12 +383,12 @@ function SessionVideoCard({
             href={replayUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex text-xs font-medium text-sky-300 underline underline-offset-4"
+            className="inline-flex text-xs font-medium text-blue-600 underline underline-offset-4"
           >
             Ouvrir le replay dans un nouvel onglet
           </a>
         ) : (
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-500">
             Si l ecran reste noir, attendez que l enseignant lance la publication camera.
           </p>
         )}
@@ -408,34 +408,34 @@ function TeacherLiveOutputCard({
   const sessionLabel = getSessionStatusLabel(session.status, session.isLive);
 
   return (
-    <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-      <CardHeader className="space-y-2 border-b border-slate-800/80 bg-slate-900/70 pb-3">
+    <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+      <CardHeader className="space-y-2 border-b border-slate-200 bg-slate-50 pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Users className="h-4 w-4 text-sky-300" />
+          <Users className="h-4 w-4 text-blue-600" />
           Salle de controle
         </CardTitle>
-        <CardDescription className="text-slate-300">
+        <CardDescription className="text-slate-500">
           Pilotage rapide de la diffusion cote enseignant.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 p-4">
         <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Statut</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Statut</p>
             <div className="mt-2">
               <Badge variant={session.isLive ? 'destructive' : 'secondary'}>{sessionLabel}</Badge>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Session</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Session</p>
             <p className="mt-2 font-medium">#{session.id}</p>
           </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Cours</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Cours</p>
             <p className="mt-2 font-medium">#{session.courseId}</p>
           </div>
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-            <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Planifiee</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Planifiee</p>
             <p className="mt-2 font-medium">{formatSessionDate(session.scheduledAt)}</p>
           </div>
         </div>
@@ -451,7 +451,7 @@ function TeacherLiveOutputCard({
           <Button
             size="sm"
             variant="outline"
-            className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+            className="rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
             onClick={() => copyToClipboard(`${window.location.origin}${viewerPath}`)}
           >
             Copier lien live
@@ -2083,22 +2083,22 @@ function LiveInteractionTabs({
 }) {
   return (
     <Tabs defaultValue="chat" className="space-y-4">
-      <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-slate-700 bg-slate-900/80 p-1">
+      <TabsList className="grid h-auto w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-100 p-1">
         <TabsTrigger
           value="chat"
-          className="rounded-lg text-slate-200 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
+          className="rounded-lg text-slate-600 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
         >
           Chat
         </TabsTrigger>
         <TabsTrigger
           value="questions"
-          className="rounded-lg text-slate-200 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
+          className="rounded-lg text-slate-600 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
         >
           Questions
         </TabsTrigger>
         <TabsTrigger
           value="hands"
-          className="rounded-lg text-slate-200 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
+          className="rounded-lg text-slate-600 data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm"
         >
           Mains
         </TabsTrigger>
@@ -2248,28 +2248,40 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-8 pt-4 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f6f6f8] pb-8 pt-4">
       <div className="container mx-auto max-w-[1440px] px-4">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full px-3 text-slate-700 hover:bg-slate-200/70 dark:text-slate-200 dark:hover:bg-slate-800"
-              onClick={() => onNavigate('/teacher/live-sessions')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour aux sessions
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Studio live</h1>
-              <p className="text-sm text-muted-foreground">
-                {parsedCourseId ? `Cours #${parsedCourseId}` : 'Cours non specifie'}
-              </p>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <Video className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold text-slate-900">
+                {parsedCourseId ? `Cours #${parsedCourseId}` : 'Live session'}
+              </h1>
+              <div className="mt-1 flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    session?.isLive ? 'animate-pulse bg-red-500' : 'bg-slate-400'
+                  }`}
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  {session?.isLive ? 'Live Q&A Session' : 'Session planifiee'}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-3 text-slate-700 hover:bg-slate-100"
+              onClick={() => onNavigate('/teacher/live-sessions')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour
+            </Button>
             {session ? <SessionStatusPill session={session} /> : null}
             {session?.isLive ? (
               <Badge className="border-0 bg-red-500 text-white">
@@ -2320,29 +2332,29 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
           </Card>
         ) : (
           <div className="space-y-5">
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
               <div className="space-y-5">
-                <SessionPublisherCard session={session} streamUrl={streamUrl} />
                 <SessionVideoCard session={session} streamUrl={streamUrl} />
+                <SessionPublisherCard session={session} streamUrl={streamUrl} />
               </div>
 
               <div className="space-y-5">
                 <TeacherLiveOutputCard session={session} onNavigate={onNavigate} />
 
-                <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-                  <CardHeader className="border-b border-slate-800/80 bg-slate-900/70">
+                <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+                  <CardHeader className="border-b border-slate-200 bg-slate-50">
                     <CardTitle className="text-base">Configuration stream</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 p-4 text-sm">
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="font-medium text-slate-100">RTMP ingest URL</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="font-medium text-slate-900">RTMP ingest URL</p>
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <code className="break-all text-xs text-slate-300">{rtmpIngestUrl || 'N/A'}</code>
+                        <code className="break-all text-xs text-slate-600">{rtmpIngestUrl || 'N/A'}</code>
                         {rtmpIngestUrl ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                             onClick={() => copyToClipboard(rtmpIngestUrl)}
                           >
                             <Copy className="h-4 w-4" />
@@ -2351,15 +2363,15 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="font-medium text-slate-100">Stream key</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="font-medium text-slate-900">Stream key</p>
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <code className="break-all text-xs text-slate-300">{streamKey}</code>
+                        <code className="break-all text-xs text-slate-600">{streamKey}</code>
                         {session.streamKey ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                             onClick={() => copyToClipboard(session.streamKey || '')}
                           >
                             <Copy className="h-4 w-4" />
@@ -2368,15 +2380,15 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="font-medium text-slate-100">Lien viewer</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="font-medium text-slate-900">Lien viewer</p>
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <code className="break-all text-xs text-slate-300">{viewerAbsoluteUrl || 'N/A'}</code>
+                        <code className="break-all text-xs text-slate-600">{viewerAbsoluteUrl || 'N/A'}</code>
                         {viewerAbsoluteUrl ? (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                             onClick={() => copyToClipboard(viewerAbsoluteUrl)}
                           >
                             <Copy className="h-4 w-4" />
@@ -2386,14 +2398,14 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
                     </div>
 
                     {playerUrl ? (
-                      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                        <p className="font-medium text-slate-100">Lien player Ant Media</p>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="font-medium text-slate-900">Lien player Ant Media</p>
                         <div className="mt-1 flex items-center justify-between gap-2">
-                          <code className="break-all text-xs text-slate-300">{playerUrl}</code>
+                          <code className="break-all text-xs text-slate-600">{playerUrl}</code>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                             onClick={() => copyToClipboard(playerUrl)}
                           >
                             <Copy className="h-4 w-4" />
@@ -2404,8 +2416,8 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
                   </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-                  <CardHeader className="border-b border-slate-800/80 bg-slate-900/70">
+                <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+                  <CardHeader className="border-b border-slate-200 bg-slate-50">
                     <CardTitle className="text-base">Interactions live</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
@@ -2415,7 +2427,7 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
               </div>
             </div>
 
-            <div className="sticky bottom-4 z-20 mx-auto flex w-fit flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-950/95 p-2 shadow-2xl backdrop-blur">
+            <div className="sticky bottom-4 z-20 mx-auto flex w-fit flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
               <Button
                 size="sm"
                 className="rounded-full bg-emerald-500 px-4 text-slate-950 hover:bg-emerald-400"
@@ -2448,7 +2460,7 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                className="rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                 onClick={() => {
                   if (viewerAbsoluteUrl) {
                     copyToClipboard(viewerAbsoluteUrl);
@@ -2462,7 +2474,7 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                className="rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                 onClick={() => {
                   if (viewerPath) {
                     onNavigate(viewerPath);
@@ -2548,26 +2560,31 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-8 pt-4 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f6f6f8] pb-8 pt-4">
       <div className="container mx-auto max-w-[1440px] px-4">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full px-3 text-slate-700 hover:bg-slate-200/70 dark:text-slate-200 dark:hover:bg-slate-800"
-              onClick={() => onNavigate(`/courses/${courseId}`)}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour au cours
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Session live</h1>
-              <p className="text-sm text-muted-foreground">Visionnage et interaction en temps reel</p>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <Tv className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold text-slate-900">Session live</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Visionnage et interaction en temps reel
+              </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-3 text-slate-700 hover:bg-slate-100"
+              onClick={() => onNavigate(`/courses/${courseId}`)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour
+            </Button>
             {session ? <SessionStatusPill session={session} /> : null}
             {isJoining ? (
               <Badge variant="outline">
@@ -2650,24 +2667,24 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
               )}
 
               <div className="space-y-5">
-                <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-                  <CardHeader className="border-b border-slate-800/80 bg-slate-900/70">
+                <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+                  <CardHeader className="border-b border-slate-200 bg-slate-50">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Users className="h-4 w-4 text-sky-300" />
+                      <Users className="h-4 w-4 text-blue-600" />
                       Infos session
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 p-4 text-sm">
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Etat</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Etat</p>
                       <p className="mt-1 font-medium">{getSessionStatusLabel(session.status, session.isLive)}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Date</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Date</p>
                       <p className="mt-1 font-medium">{formatSessionDate(session.scheduledAt)}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Enregistrement</p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Enregistrement</p>
                       <p className="mt-1 font-medium">
                         {session.recordingEnabled ? 'active' : 'desactive'}
                       </p>
@@ -2676,7 +2693,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
                       <Button
                         size="sm"
                         variant="outline"
-                        className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                        className="rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                         onClick={() => {
                           if (typeof window !== 'undefined') {
                             window.open(session.recordingUrl || '', '_blank', 'noopener,noreferrer');
@@ -2690,15 +2707,15 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
                   </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden border-slate-800 bg-slate-950 text-slate-100 shadow-2xl">
-                  <CardHeader className="border-b border-slate-800/80 bg-slate-900/70">
+                <Card className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm">
+                  <CardHeader className="border-b border-slate-200 bg-slate-50">
                     <CardTitle className="text-base">Interactions live</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
                     {studentHasCourseAccess ? (
                       <LiveInteractionTabs sessionId={session.id} userId={user?.id || null} isTeacher={false} />
                     ) : (
-                      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-300">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                         Inscrivez-vous au cours pour acceder au chat, aux questions et a la file
                         de prise de parole.
                       </div>
@@ -2708,7 +2725,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
               </div>
             </div>
 
-            <div className="sticky bottom-4 z-20 mx-auto flex w-fit flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-950/95 p-2 shadow-2xl backdrop-blur">
+            <div className="sticky bottom-4 z-20 mx-auto flex w-fit flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
               <Button
                 size="sm"
                 variant="destructive"
@@ -2721,7 +2738,7 @@ export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLivePr
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                className="rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                 onClick={() => {
                   if (sessionAbsoluteUrl) {
                     copyToClipboard(sessionAbsoluteUrl);

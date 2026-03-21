@@ -118,7 +118,43 @@
 .tracking-\[0\.22em\] { letter-spacing: 0.22em; }
 .h-\[calc\(100\%-3\.5rem\)\] { height: calc(100% - 3.5rem); }
 
+/* Course builder custom color utilities */
+.bg-\[\#1152d4\] { background-color: rgb(17, 82, 212); }
+.bg-\[\#1152d4\]\/5 { background-color: rgba(17, 82, 212, 0.05); }
+.bg-\[\#1152d4\]\/10 { background-color: rgba(17, 82, 212, 0.1); }
+.bg-\[\#1152d4\]\/15 { background-color: rgba(17, 82, 212, 0.15); }
+.bg-\[\#1152d4\]\/90 { background-color: rgba(17, 82, 212, 0.9); }
+.bg-white\/60 { background-color: rgba(255, 255, 255, 0.6); }
+.bg-white\/70 { background-color: rgba(255, 255, 255, 0.7); }
+.border-\[\#1152d4\] { border-color: rgb(17, 82, 212); }
+.border-\[\#1152d4\]\/15 { border-color: rgba(17, 82, 212, 0.15); }
+.border-\[\#1152d4\]\/20 { border-color: rgba(17, 82, 212, 0.2); }
+.border-\[\#1152d4\]\/25 { border-color: rgba(17, 82, 212, 0.25); }
+.border-\[\#1152d4\]\/40 { border-color: rgba(17, 82, 212, 0.4); }
+.border-white\/40 { border-color: rgba(255, 255, 255, 0.4); }
+.focus\:border-\[\#1152d4\]:focus { border-color: rgb(17, 82, 212); }
+.focus\:ring-\[\#1152d4\]\/30:focus { --tw-ring-color: rgba(17, 82, 212, 0.3); }
+.hover\:bg-\[\#1152d4\]\/5:hover { background-color: rgba(17, 82, 212, 0.05); }
+.hover\:bg-\[\#1152d4\]\/10:hover { background-color: rgba(17, 82, 212, 0.1); }
+.hover\:bg-\[\#1152d4\]\/15:hover { background-color: rgba(17, 82, 212, 0.15); }
+.hover\:bg-\[\#1152d4\]\/90:hover { background-color: rgba(17, 82, 212, 0.9); }
+.hover\:border-\[\#1152d4\]\/40:hover { border-color: rgba(17, 82, 212, 0.4); }
+.hover\:text-\[\#1152d4\]:hover { color: rgb(17, 82, 212); }
+.ring-\[\#1152d4\]\/20 { --tw-ring-color: rgba(17, 82, 212, 0.2); }
+.shadow-\[\#1152d4\]\/25 { --tw-shadow-color: rgba(17, 82, 212, 0.25); }
+.shadow-\[\#1152d4\]\/30 { --tw-shadow-color: rgba(17, 82, 212, 0.3); }
+.text-\[\#1152d4\] { color: rgb(17, 82, 212); }
+.text-\[\#1152d4\]\/60 { color: rgba(17, 82, 212, 0.6); }
+.dark .dark\:bg-\[\#101622\]\/70 { background-color: rgba(16, 22, 34, 0.7); }
+.dark .dark\:border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
+
 .group:last-child .group-last\:border-0 { border-width: 0; }
+
+/* Teacher area interaction consistency */
+.teacher-space-shell button:not(:disabled),
+.teacher-space-shell [role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
 
 @media (min-width: 640px) {
   .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
