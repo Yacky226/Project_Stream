@@ -121,7 +121,7 @@ export function mapBackendAdminUser(dto: BackendAdminUser): AdminUser {
     email: dto.email,
     role: mapAdminRole(dto.role),
     avatar: dto.photoProfil || null,
-    status: dto.actif ? 'active' : 'inactive',
+    status: dto.actif === false ? 'inactive' : 'active',
     joinDate: dto.dateCreation || undefined,
     lastLogin: null,
     coursesCount: dto.nombreCours || 0,

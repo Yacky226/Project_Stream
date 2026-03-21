@@ -481,7 +481,7 @@ public class AdministrateurService implements AdministrateurServiceInterface {
 
  private String normalizeSearch(String search) {
      if (search == null || search.isBlank()) {
-         return null;
+         return "";
      }
 
      return search.trim();

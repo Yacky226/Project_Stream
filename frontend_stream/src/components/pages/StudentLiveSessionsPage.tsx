@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useGetAllSessionsQuery, useGetCoursesQuery } from '../../store/api/liveApi';
 import { formatSessionDate, getSessionStatusLabel, getSessionStatusVariant } from '../live/liveSession.utils';
+import type { StudentDashboardCourse } from '../../types/dashboard';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -71,11 +72,11 @@ export function StudentLiveSessionsPage({
   }
 
   const normalizedSearch = searchQuery.trim().toLowerCase();
-  const enrolledCourseIds = new Set(shared.dashboard.courses.map((course) => String(course.id)));
+  const enrolledCourseIds = new Set(shared.dashboard.courses.map((course: StudentDashboardCourse) => String(course.id)));
   const titleByCourseId = new Map(
-    courses.map((course) => [String(course.id), course.title || `Course #${course.id}`]),
+    courses.map((course: { id: string | number; title?: string }) => [String(course.id), course.title || `Course #${course.id}`]),
   );
-  shared.dashboard.courses.forEach((course) => {
+  shared.dashboard.courses.forEach((course: StudentDashboardCourse) => {
     titleByCourseId.set(String(course.id), course.title);
   });
 

@@ -42,7 +42,7 @@ import {
 
 type CreateRole = 'student' | 'teacher' | 'admin';
 type StatusFilter = 'all' | 'active' | 'inactive';
-type SortField = 'dateCreation' | 'nom' | 'email' | 'role';
+type SortField = 'id' | 'dateCreation' | 'nom' | 'email' | 'role';
 
 interface CreateUserFormState {
   role: CreateRole;
@@ -110,7 +110,7 @@ export function UserManagementTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [sortField, setSortField] = useState<SortField>('dateCreation');
+  const [sortField, setSortField] = useState<SortField>('id');
   const [sortDir, setSortDir] = useState<AdminSortDirection>('DESC');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
@@ -375,6 +375,7 @@ export function UserManagementTab() {
             <SelectValue placeholder="Tri" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="id">ID</SelectItem>
             <SelectItem value="dateCreation">Date creation</SelectItem>
             <SelectItem value="nom">Nom</SelectItem>
             <SelectItem value="email">Email</SelectItem>

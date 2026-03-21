@@ -1,0 +1,141 @@
+.student-learning-path-layout {
+  font-family: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.student-learning-path-layout *,
+.student-learning-path-empty * {
+  box-sizing: border-box;
+}
+
+.student-learning-path-empty {
+  border-color: rgba(17, 82, 212, 0.16);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 1), rgba(17, 82, 212, 0.04));
+}
+
+.student-learning-path-intro {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(17, 82, 212, 0.14);
+  border-radius: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(145deg, rgba(17, 82, 212, 0.08), rgba(74, 128, 239, 0.02));
+}
+
+.student-learning-path-intro::after {
+  content: "";
+  position: absolute;
+  top: -70px;
+  right: -55px;
+  width: 170px;
+  height: 170px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(17, 82, 212, 0.2), rgba(17, 82, 212, 0));
+  pointer-events: none;
+}
+
+.student-learning-path-current,
+.student-learning-path-side-card {
+  transition: transform 200ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.student-learning-path-current:hover,
+.student-learning-path-side-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(17, 82, 212, 0.24);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.student-learning-path-roadmap {
+  border: 1px solid rgba(17, 82, 212, 0.1);
+  border-radius: 1.5rem;
+  padding: 1rem 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.student-learning-path-timeline {
+  min-width: 0;
+}
+
+.student-learning-path-step {
+  min-width: 0;
+  padding-left: 5rem;
+}
+
+.student-learning-path-step-icon {
+  left: 0.5rem;
+}
+
+.student-learning-path-step-milestone-icon {
+  left: 0.75rem;
+}
+
+.student-learning-path-module-card {
+  transition: transform 160ms ease, box-shadow 200ms ease;
+}
+
+.student-learning-path-module-card:hover {
+  transform: translateY(-1px);
+}
+
+.student-learning-path-certificate {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.student-learning-path-mentor {
+  background: linear-gradient(145deg, rgba(17, 82, 212, 0.1), rgba(17, 82, 212, 0.04));
+}
+
+.student-learning-path-mentor-btn {
+  transition: all 180ms ease;
+}
+
+.student-learning-path-mentor-btn:hover {
+  border-color: rgba(17, 82, 212, 0.3);
+}
+
+@media (min-width: 1024px) {
+  .student-learning-path-layout {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .student-learning-path-main,
+  .student-learning-path-side {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-learning-path-step {
+    padding-left: 4.25rem;
+  }
+
+  .student-learning-path-step-icon {
+    left: 0.25rem;
+  }
+
+  .student-learning-path-step-milestone-icon {
+    left: 0.5rem;
+  }
+}
+
+.dark .student-learning-path-empty {
+  border-color: rgba(51, 65, 85, 0.95);
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(17, 82, 212, 0.15));
+}
+
+.dark .student-learning-path-intro {
+  border-color: rgba(51, 65, 85, 0.95);
+  background: linear-gradient(145deg, rgba(17, 82, 212, 0.18), rgba(15, 23, 42, 0.82));
+}
+
+.dark .student-learning-path-roadmap {
+  border-color: rgba(51, 65, 85, 0.95);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.dark .student-learning-path-mentor {
+  border-color: rgba(51, 65, 85, 0.95);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.8), rgba(21, 34, 53, 0.9));
+}

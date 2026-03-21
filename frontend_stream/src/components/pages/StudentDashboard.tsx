@@ -34,25 +34,16 @@ interface StudentDashboardProps {
 
 interface ContinueCard {
   course: StudentDashboardCourse;
-  coverImage: string;
-  moduleCurrent: number;
-  moduleTotal: number;
+  coverImage?: string;
 }
 
 interface RecommendedCard {
   id: string;
   title: string;
   instructor: string;
-  rating: string;
+  scheduledAt: string;
   iconType: 'design' | 'database' | 'creative';
 }
-
-const FALLBACK_COURSE_IMAGES = [
-  'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&auto=format&fit=crop',
-];
 
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
@@ -140,15 +131,11 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
       .sort((a, b) => b.progress - a.progress)
       .slice(0, 2);
 
-    return source.map((course, index) => {
+    return source.map((course) => {
       const detail = catalogById.get(String(course.id));
-      const moduleTotal = 12;
-      const moduleCurrent = Math.max(1, Math.round((course.progress / 100) * moduleTotal));
       return {
         course,
-        coverImage: detail?.coverImage || FALLBACK_COURSE_IMAGES[index % FALLBACK_COURSE_IMAGES.length],
-        moduleCurrent,
-        moduleTotal,
+        coverImage: detail?.coverImage || undefined,
       };
     });
   }, [catalogById, dashboardCourses, normalizedQuery]);
@@ -170,7 +157,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
         id: String(course.id),
         title: course.title,
         instructor: course.teacherId ? `Instructor #${course.teacherId}` : 'Course Mentor',
-        rating: '4.8',
+        scheduledAt: course.scheduledAt,
         iconType: resolveRecommendedIcon(course.category),
       }));
   }, [catalogCourses, enrolledCourseIds, normalizedQuery]);
@@ -191,7 +178,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
     const bars = WEEK_LABELS.map((label, index) => ({
       index,
       label,
-      hours: 0,
+      count: 0,
     }));
 
     recentActivity.forEach((activity) => {
@@ -200,21 +187,13 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
       if (Number.isNaN(date.getTime())) return;
       const jsDay = date.getDay();
       const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
-      const weight =
-        activity.type === 'completed'
-          ? 2.4
-          : activity.type === 'session'
-            ? 2
-            : activity.type === 'progress'
-              ? 1.3
-              : 0.8;
-      bars[dayIndex].hours += weight;
+      bars[dayIndex].count += 1;
     });
 
-    const maxHours = Math.max(...bars.map((day) => day.hours), 1);
+    const maxCount = Math.max(...bars.map((day) => day.count), 1);
     const highlightedIndex = bars.reduce(
       (bestIndex, day, index, array) =>
-        day.hours > array[bestIndex].hours ? index : bestIndex,
+        day.count > array[bestIndex].count ? index : bestIndex,
       0,
     );
 
@@ -222,15 +201,18 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
       highlightedIndex,
       items: bars.map((day) => ({
         ...day,
-        valueLabel: day.hours.toFixed(1),
-        heightPercent: Math.max(20, Math.round((day.hours / maxHours) * 90)),
+        valueLabel: String(day.count),
+        heightPercent: Math.max(20, Math.round((day.count / maxCount) * 90)),
       })),
-      totalHours: bars.reduce((sum, day) => sum + day.hours, 0),
+      totalCount: bars.reduce((sum, day) => sum + day.count, 0),
     };
   }, [recentActivity]);
 
-  const weeklyGoalTarget = 40;
-  const weeklyGoalCurrent = Math.min(weeklyBars.totalHours, weeklyGoalTarget);
+  const weeklyGoalTarget = Math.max(1, dashboardStats?.enrolledCourses ?? 1);
+  const weeklyGoalCurrent = Math.min(
+    dashboardStats?.completedCourses ?? 0,
+    weeklyGoalTarget,
+  );
   const weeklyGoalPercent = Math.min(
     100,
     Math.round((weeklyGoalCurrent / weeklyGoalTarget) * 100),
@@ -315,8 +297,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                 isDark ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'
               }`}
             >
-              Live Study Room:{' '}
-              {formatStudentCompactNumber(1_200 + (dashboardStats?.upcomingSessions ?? 0) * 75)} Online
+              Upcoming Sessions: {formatStudentCompactNumber(dashboardStats?.upcomingSessions ?? 0)}
             </span>
           </div>
         </section>
@@ -351,7 +332,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                       >
                         {highlighted ? (
                           <div className="absolute -top-10 left-1/2 -translate-x-1/2 rounded bg-[#0f172a] px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-                            {day.valueLabel}h
+                            {day.valueLabel} activities
                           </div>
                         ) : null}
                       </div>
@@ -421,7 +402,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                           <span className="text-xs font-bold text-[#1152d4]">{item.course.progress}%</span>
                         </div>
                         <p className={`mb-4 text-xs ${isDark ? 'text-[#94a3b8]' : 'text-[#64748b]'}`}>
-                          Module {item.moduleCurrent} of {item.moduleTotal}
+                          Status: {item.course.status}
                         </p>
                         <div
                           className={`h-1.5 w-full overflow-hidden rounded-full ${
@@ -463,7 +444,9 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                         </p>
                         <div className="mt-1 flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-[10px] font-bold">{course.rating}</span>
+                          <span className="text-[10px] font-bold">
+                            Scheduled: {formatStudentDateShort(course.scheduledAt)}
+                          </span>
                         </div>
                       </div>
                     </article>
@@ -597,7 +580,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
             >
               <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
               <h3 className="relative z-10 mb-1 text-lg font-bold">Weekly Goal</h3>
-              <p className="relative z-10 mb-4 text-xs text-white/80">40 hours learning target</p>
+              <p className="relative z-10 mb-4 text-xs text-white/80">Course completion target</p>
               <div className="relative z-10 flex items-center gap-4">
                 <div className="relative h-16 w-16">
                   <svg className="h-16 w-16 -rotate-90 transform">
@@ -629,7 +612,7 @@ export function StudentDashboard({ onNavigate, currentPath }: StudentDashboardPr
                 <div>
                   <p className="text-2xl font-black tracking-tight">
                     {weeklyGoalCurrent.toFixed(1)}{' '}
-                    <span className="text-sm font-medium opacity-80">/ {weeklyGoalTarget}h</span>
+                    <span className="text-sm font-medium opacity-80">/ {weeklyGoalTarget} courses</span>
                   </p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">
                     {weeklyGoalPercent >= 80 ? 'Almost there' : 'Keep going'}

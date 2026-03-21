@@ -94,6 +94,34 @@ function statusLabel(status: AdminSupportStatus) {
   return status.replace('_', ' ');
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback;
+  const payload = error as {
+    status?: number | string;
+    data?: { message?: string; error?: string; details?: string } | string;
+    error?: string;
+  };
+
+  const nestedData =
+    typeof payload.data === 'object' && payload.data
+      ? payload.data
+      : null;
+
+  const rawMessage =
+    nestedData?.message ||
+    nestedData?.error ||
+    nestedData?.details ||
+    (typeof payload.data === 'string' ? payload.data : undefined) ||
+    payload.error;
+
+  const statusSuffix =
+    typeof payload.status === 'number' || typeof payload.status === 'string'
+      ? ` (HTTP ${payload.status})`
+      : '';
+
+  return rawMessage ? `${rawMessage}${statusSuffix}` : `${fallback}${statusSuffix}`;
+}
+
 export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<SupportFilterValue>('ALL');
@@ -137,6 +165,19 @@ export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPagePr
   const [updateSupportStatus] = useUpdateAdminSupportContactStatusMutation();
   const [updateSupportWorkflow, { isLoading: workflowSaving }] = useUpdateAdminSupportContactWorkflowMutation();
   const [replyToSupportContact, { isLoading: replySending }] = useReplyToAdminSupportContactMutation();
+
+  const contactsErrorMessage = contactsError
+    ? extractErrorMessage(contactsError, 'Unable to load support requests right now.')
+    : null;
+  const newsletterErrorMessage = newsletterError
+    ? extractErrorMessage(newsletterError, 'Newsletter list unavailable right now.')
+    : null;
+  const overviewErrorMessage = overviewError
+    ? extractErrorMessage(overviewError, 'Support overview metrics are temporarily unavailable.')
+    : null;
+  const selectedRequestErrorMessage = selectedRequestError
+    ? extractErrorMessage(selectedRequestError, 'Ticket details are unavailable right now.')
+    : null;
 
   useEffect(() => {
     if (!selectedRequest) return;
@@ -355,7 +396,7 @@ export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPagePr
               ) : contactsError ? (
                 <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
                   <ShieldAlert className="h-4 w-4" />
-                  Unable to load support requests right now.
+                  {contactsErrorMessage}
                 </div>
               ) : contactsPage?.items.length ? (
                 contactsPage.items.map((request) => (
@@ -512,7 +553,7 @@ export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPagePr
                   </div>
                 ) : newsletterError ? (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
-                    Newsletter list unavailable right now.
+                    {newsletterErrorMessage}
                   </div>
                 ) : newsletterPageData?.items.length ? (
                   newsletterPageData.items.map((subscription) => (
@@ -608,7 +649,7 @@ export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPagePr
         {overviewError ? (
           <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
             <ShieldAlert className="h-4 w-4" />
-            Support overview metrics are temporarily unavailable.
+            {overviewErrorMessage}
           </div>
         ) : null}
 
@@ -637,7 +678,7 @@ export function AdminSupportPage({ onNavigate, currentPath }: AdminSupportPagePr
             ) : selectedRequestError || !selectedRequest ? (
               <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
                 <ShieldAlert className="h-4 w-4" />
-                Ticket details are unavailable right now.
+                {selectedRequestErrorMessage || 'Ticket details are unavailable right now.'}
               </div>
             ) : (
               <>

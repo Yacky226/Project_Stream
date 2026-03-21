@@ -9,6 +9,7 @@ import {
   StudentSpaceStatus,
   useStudentSpaceData,
 } from '../student/StudentSpaceShared';
+import './StudentLearningPathPage.css';
 
 interface StudentLearningPathPageProps {
   onNavigate: (path: string | number) => void;
@@ -152,22 +153,19 @@ export function StudentLearningPathPage({
 }: StudentLearningPathPageProps) {
   const shared = useStudentSpaceData();
   const [searchQuery, setSearchQuery] = useState('');
+  const ready = shared.status === 'ready' && Boolean(shared.dashboard);
+  const dashboardCourses = shared.dashboard?.courses ?? [];
+  const dashboardUpcomingSessions = shared.dashboard?.upcomingSessions ?? [];
+  const studentId = shared.profile?.id || shared.user?.id || undefined;
 
-  if (shared.status !== 'ready' || !shared.dashboard) {
-    return <StudentSpaceStatus shared={shared} />;
-  }
-
-  const course = useMemo(
-    () => pickCourse(shared.dashboard.courses, searchQuery),
-    [shared.dashboard.courses, searchQuery],
-  );
+  const course = useMemo(() => pickCourse(dashboardCourses, searchQuery), [dashboardCourses, searchQuery]);
 
   const { data: details } = useGetCourseDetailsQuery(
     {
       courseId: course?.id || '',
-      studentId: shared.profile?.id || shared.user?.id || undefined,
+      studentId,
     },
-    { skip: !course },
+    { skip: !ready || !course },
   );
 
   const modules = useMemo(() => (course ? buildModules(course, details) : []), [course, details]);
@@ -178,7 +176,7 @@ export function StudentLearningPathPage({
   const investedHours = ((totalMinutes * progress) / 100) / 60;
 
   const nextSession = course
-    ? [...shared.dashboard.upcomingSessions]
+    ? [...dashboardUpcomingSessions]
         .filter((session) => session.courseId === course.id)
         .sort((a, b) => new Date(a.startAt || 0).getTime() - new Date(b.startAt || 0).getTime())[0]
     : null;
@@ -186,6 +184,10 @@ export function StudentLearningPathPage({
   const mentorName = details?.teacherName || 'Sarah Drasner';
   const mentorSpeciality = details?.teacherSpeciality || `${course?.category || 'Course'} Mentor`;
   const teacherPath = details?.teacherId ? `/profile/teacher/${details.teacherId}` : '/student/community';
+
+  if (!ready) {
+    return <StudentSpaceStatus shared={shared} />;
+  }
 
   return (
     <StudentSpaceShell
@@ -202,7 +204,7 @@ export function StudentLearningPathPage({
       unreadCount={shared.unreadCount}
     >
       {!course ? (
-        <div className="rounded-[32px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="student-learning-path-empty rounded-[32px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1152d4]/10 text-[#1152d4]">
             <Route className="h-8 w-8" />
           </div>
@@ -228,9 +230,9 @@ export function StudentLearningPathPage({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="space-y-8 lg:col-span-8">
-            <section>
+        <div className="student-learning-path-layout grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="student-learning-path-main space-y-8 lg:col-span-8">
+            <section className="student-learning-path-intro">
               <span className="rounded-full bg-[#1152d4]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#1152d4]">
                 {course.status === 'TERMINE' ? 'Completed Path' : 'Active Path'}
               </span>
@@ -241,7 +243,7 @@ export function StudentLearningPathPage({
               </p>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <section className="student-learning-path-current overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="flex flex-col gap-6 md:flex-row">
                 <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 md:w-1/3">
                   <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/40 to-transparent p-4 text-white">
@@ -301,19 +303,19 @@ export function StudentLearningPathPage({
               </div>
             </section>
 
-            <section className="py-4">
-              <h2 className="mb-8 flex items-center gap-3 text-lg font-bold">
+            <section className="student-learning-path-roadmap py-5">
+              <h2 className="mb-10 flex items-center gap-3 text-lg font-bold">
                 <Route className="h-5 w-5 text-[#1152d4]" />
                 Learning Roadmap
               </h2>
 
-              <div className="relative space-y-10 pl-12">
-                <div className="absolute bottom-2 left-6 top-2 w-0.5 bg-slate-200 dark:bg-slate-800" />
+              <div className="student-learning-path-timeline relative space-y-12">
+                <div className="absolute bottom-3 left-8 top-3 w-0.5 bg-slate-200 dark:bg-slate-800" />
 
                 {modules.map((module, index) => (
-                  <div key={module.id} className="relative">
+                  <div key={module.id} className="student-learning-path-step relative pl-20">
                     <div
-                      className={`absolute -left-12 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-4 border-[#f6f6f8] dark:border-[#101622] ${
+                      className={`student-learning-path-step-icon absolute left-2 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-4 border-[#f6f6f8] dark:border-[#101622] ${
                         module.state === 'completed'
                           ? 'bg-green-500 text-white'
                           : module.state === 'current'
@@ -331,7 +333,7 @@ export function StudentLearningPathPage({
                     </div>
 
                     <div
-                      className={`rounded-2xl border p-5 ${
+                      className={`student-learning-path-module-card rounded-2xl border px-7 py-6 sm:px-8 ${
                         module.state === 'current'
                           ? 'border-[#1152d4]/30 bg-white shadow-lg shadow-[#1152d4]/5 dark:border-[#1152d4]/20 dark:bg-slate-900'
                           : module.state === 'completed'
@@ -366,12 +368,13 @@ export function StudentLearningPathPage({
                             ? 'text-slate-400'
                             : 'text-slate-500 dark:text-slate-400'
                         }`}
+                        style={{ lineHeight: 1.7 }}
                       >
                         {module.description}
                       </p>
 
                       {module.state === 'current' ? (
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600 dark:text-slate-400">
+                        <div className="mt-5 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2 dark:text-slate-400">
                           <div className="flex items-center gap-3">
                             <BookOpen className="h-4 w-4 text-[#1152d4]" />
                             {module.remainingLessons} Lessons Remaining
@@ -385,8 +388,8 @@ export function StudentLearningPathPage({
                     </div>
 
                     {index === 0 && completedModules.length > 0 ? (
-                      <div className="relative pl-4">
-                        <div className="absolute -left-[3.25rem] top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#f6f6f8] bg-[#1152d4]/20 text-[#1152d4] dark:border-[#101622]">
+                      <div className="relative pl-6">
+                        <div className="student-learning-path-step-milestone-icon absolute left-2 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#f6f6f8] bg-[#1152d4]/20 text-[#1152d4] dark:border-[#101622]">
                           <Trophy className="h-4 w-4" />
                         </div>
                         <div className="text-sm font-medium text-slate-500">
@@ -397,9 +400,9 @@ export function StudentLearningPathPage({
                   </div>
                 ))}
 
-                <div className="relative">
+                <div className="student-learning-path-step relative pl-20">
                   <div
-                    className={`absolute -left-12 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-4 border-[#f6f6f8] dark:border-[#101622] ${
+                    className={`student-learning-path-step-icon absolute left-2 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-4 border-[#f6f6f8] dark:border-[#101622] ${
                       progress >= 100
                         ? 'bg-amber-500 text-white'
                         : 'bg-slate-200 text-slate-400 dark:bg-slate-800'
@@ -409,7 +412,7 @@ export function StudentLearningPathPage({
                   </div>
 
                   <div
-                    className={`flex h-24 items-center justify-center rounded-2xl border p-5 ${
+                    className={`student-learning-path-certificate flex h-28 items-center justify-center rounded-2xl border p-6 ${
                       progress >= 100
                         ? 'border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/10'
                         : 'border-dashed border-slate-300 bg-slate-100/50 dark:border-slate-700 dark:bg-slate-900/50'
@@ -435,8 +438,8 @@ export function StudentLearningPathPage({
             </section>
           </div>
 
-          <aside className="space-y-6 lg:col-span-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <aside className="student-learning-path-side space-y-6 lg:col-span-4">
+            <div className="student-learning-path-side-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h3 className="mb-4 text-lg font-bold">Overall Progress</h3>
               <div className="space-y-6">
                 <div className="relative mx-auto h-32 w-32">
@@ -483,7 +486,7 @@ export function StudentLearningPathPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="student-learning-path-side-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-bold">Milestones</h3>
                 <button
@@ -542,7 +545,7 @@ export function StudentLearningPathPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-6">
+            <div className="student-learning-path-mentor rounded-2xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-6">
               <h3 className="mb-4 flex items-center gap-2 font-bold">
                 <BookOpen className="h-5 w-5 text-[#1152d4]" />
                 Your Mentor
@@ -563,7 +566,7 @@ export function StudentLearningPathPage({
               <button
                 type="button"
                 onClick={() => onNavigate(teacherPath)}
-                className="mt-4 w-full rounded-xl border border-[#1152d4]/20 bg-white py-2 text-xs font-bold hover:bg-[#1152d4]/5 dark:bg-slate-800"
+                className="student-learning-path-mentor-btn mt-4 w-full rounded-xl border border-[#1152d4]/20 bg-white py-2 text-xs font-bold hover:bg-[#1152d4]/5 dark:bg-slate-800"
               >
                 Ask a Question
               </button>

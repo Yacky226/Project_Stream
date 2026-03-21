@@ -13,22 +13,12 @@
   letter-spacing: normal;
 }
 
-.teacher-profile-page :where(h1, h2, h3, h4, p) {
-  margin: 0;
-}
-
 .teacher-profile-page :where(button, a[href], [role="button"]) {
   cursor: pointer;
 }
 
 .teacher-profile-page :where(button:disabled, [aria-disabled="true"]) {
   cursor: not-allowed;
-}
-
-.teacher-profile-page .glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(17, 82, 212, 0.1);
 }
 
 /* Hero block hardening to avoid global style collisions */

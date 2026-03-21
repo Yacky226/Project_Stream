@@ -17,6 +17,7 @@ import {
   formatStudentDateShort,
   useStudentSpaceData,
 } from '../student/StudentSpaceShared';
+import './StudentAchievementsPage.css';
 
 interface StudentAchievementsPageProps {
   onNavigate: (path: string | number) => void;
@@ -328,11 +329,11 @@ export function StudentAchievementsPage({
       goalProgress={shared.goalProgress}
       unreadCount={shared.unreadCount}
     >
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="space-y-8 lg:col-span-8">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="student-achievements-page space-y-8">
+        <div className="student-achievements-layout grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+          <div className="min-w-0 space-y-8 lg:col-span-8">
+            <div className="student-achievements-stats-grid grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="student-achievements-stat-card flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Points</p>
                   <h3 className="mt-1 text-3xl font-bold">
@@ -348,7 +349,7 @@ export function StudentAchievementsPage({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="student-achievements-stat-card flex items-center justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Global Rank</p>
                   <h3 className="mt-1 text-3xl font-bold">
@@ -363,7 +364,7 @@ export function StudentAchievementsPage({
               </div>
             </div>
 
-            <section>
+            <section className="student-achievements-section">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tight">Trophy Case</h2>
                 <button
@@ -380,7 +381,7 @@ export function StudentAchievementsPage({
                   {visibleTrophyCards.map((card) => (
                     <div
                       key={card.id}
-                      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
+                      className="student-achievements-trophy-card group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-md dark:border-slate-800 dark:bg-slate-900"
                     >
                       <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-800">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#1152d4]/5 to-transparent" />
@@ -412,7 +413,7 @@ export function StudentAchievementsPage({
               )}
             </section>
 
-            <section>
+            <section className="student-achievements-section">
               <h2 className="mb-6 text-2xl font-bold tracking-tight">Skill Badges</h2>
 
               {visibleSkillBadges.length ? (
@@ -420,10 +421,10 @@ export function StudentAchievementsPage({
                   {visibleSkillBadges.map((badge) => {
                     const Icon = badge.icon;
                     return (
-                      <div
-                        key={badge.id}
-                        className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900"
-                      >
+                    <div
+                      key={badge.id}
+                      className="student-achievements-badge-card flex flex-col items-center rounded-xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900"
+                    >
                         <div
                           className={`mb-3 flex h-16 w-16 items-center justify-center rounded-full ${badge.accentClassName}`}
                         >
@@ -452,8 +453,8 @@ export function StudentAchievementsPage({
             </section>
           </div>
 
-          <aside className="space-y-8 lg:col-span-4">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <aside className="min-w-0 space-y-8 lg:col-span-4">
+            <div className="student-achievements-side-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="border-b border-slate-100 p-6 dark:border-slate-800">
                 <h3 className="text-lg font-bold">Leaderboard</h3>
                 <p className="text-xs text-slate-500">Weekly Top Learners</p>
@@ -533,7 +534,7 @@ export function StudentAchievementsPage({
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="student-achievements-side-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h3 className="mb-6 text-lg font-bold">Upcoming Milestones</h3>
 
               {visibleMilestones.length ? (

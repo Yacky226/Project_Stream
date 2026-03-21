@@ -55,7 +55,7 @@ export const baseQueryWithAuth: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const maxRetries = 3;
+  const maxRetries = 2;
   let attempt = 0;
 
   while (attempt < maxRetries) {
@@ -72,6 +72,22 @@ export const baseQueryWithAuth: BaseQueryFn<
         result.error.status >= 400 &&
         result.error.status < 500
       ) {
+        return result;
+      }
+
+      const method =
+        typeof args === 'string'
+          ? 'GET'
+          : (args.method || 'GET').toUpperCase();
+      const retryableStatus = result.error.status;
+      const isRetryableTransportIssue =
+        retryableStatus === 'FETCH_ERROR' || retryableStatus === 'TIMEOUT_ERROR';
+      const isRetryableGatewayIssue =
+        retryableStatus === 502 || retryableStatus === 504;
+      const shouldRetry =
+        method === 'GET' && (isRetryableTransportIssue || isRetryableGatewayIssue);
+
+      if (!shouldRetry) {
         return result;
       }
 

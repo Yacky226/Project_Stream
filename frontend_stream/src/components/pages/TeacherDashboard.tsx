@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   AlertCircle,
-  BookOpen,
   ChevronDown,
   ClipboardCheck,
   Clock3,
@@ -9,7 +8,6 @@ import {
   Mail,
   MoreVertical,
   RefreshCcw,
-  Star,
   TrendingUp,
   Users,
   Video,
@@ -38,15 +36,6 @@ interface ChartPoint {
 
 function formatCompact(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
-}
-
-function formatCurrency(value: number, withDecimals = false) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: withDecimals ? 2 : 0,
-    maximumFractionDigits: withDecimals ? 2 : 0,
-  }).format(value);
 }
 
 function formatDateLabel(value: string | null) {
@@ -218,12 +207,6 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
   const averageCompletionRate = data?.stats.averageCompletionRate ?? 0;
   const liveSessions = data?.stats.liveSessions ?? 0;
   const upcomingSessionsCount = data?.stats.upcomingSessions ?? filteredUpcomingSessions.length;
-  const averageRating = Math.min(5, Math.max(4.1, 4.15 + averageCompletionRate / 180));
-  const improvementPercent = Math.max(6.5, Number((averageCompletionRate / 4.8 || 12.5).toFixed(1)));
-  const revenueGrowthPercent = Math.max(
-    4.2,
-    Number((Math.min(18, 4 + activeEnrollments * 0.35 + totalCourses * 0.8)).toFixed(1)),
-  );
   const nextSession = filteredUpcomingSessions[0] || null;
   const nextSessionMinutes = minutesUntil(nextSession?.startAt || null);
   const nextSessionLabel =
@@ -234,74 +217,76 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
         : nextSessionMinutes < 60
           ? `Starts in ${nextSessionMinutes} mins`
           : `Starts in ${Math.floor(nextSessionMinutes / 60)}h ${nextSessionMinutes % 60}m`;
-  const estimatedRevenue = Math.round(activeEnrollments * 34 + totalCourses * 185);
 
   const statCards = [
     {
       title: 'Total Students',
       value: formatCompact(totalStudents),
-      badge: `+${improvementPercent.toFixed(1)}%`,
+      badge: `${formatCompact(totalCourses)} course(s)`,
       icon: Users,
       iconStyle: { backgroundColor: '#dbeafe', color: '#2563eb' },
-      badgeWrap: 'bg-green-100 text-green-700',
+      badgeWrap: 'bg-[#1152d4]/10 text-[#1152d4]',
     },
     {
-      title: 'Total Revenue',
-      value: formatCurrency(estimatedRevenue, true),
-      badge: `+${revenueGrowthPercent.toFixed(1)}%`,
+      title: 'Active Enrollments',
+      value: formatCompact(activeEnrollments),
+      badge: `${formatCompact(upcomingSessionsCount)} upcoming`,
       icon: TrendingUp,
       iconStyle: { backgroundColor: '#dcfce7', color: '#16a34a' },
       badgeWrap: 'bg-green-100 text-green-700',
     },
     {
-      title: 'Course Rating',
-      value: `${averageRating.toFixed(1)} / 5.0`,
-      badge: `+${Math.max(0.2, averageRating - 4).toFixed(1)}`,
-      icon: Star,
+      title: 'Average Completion',
+      value: `${Math.round(averageCompletionRate)}%`,
+      badge: liveSessions > 0 ? `${liveSessions} live now` : 'No live right now',
+      icon: ClipboardCheck,
       iconStyle: { backgroundColor: '#fef3c7', color: '#d97706' },
-      badgeWrap: 'bg-green-100 text-green-700',
+      badgeWrap: 'bg-amber-100 text-amber-700',
     },
     {
-      title: 'Active Courses',
-      value: formatCompact(totalCourses),
-      badge: liveSessions > 0 ? `${liveSessions} live` : 'Stable',
-      icon: BookOpen,
+      title: 'Live Sessions',
+      value: formatCompact(liveSessions),
+      badge: `${formatCompact(upcomingSessionsCount)} scheduled`,
+      icon: Video,
       iconStyle: { backgroundColor: '#ede9fe', color: '#7c3aed' },
       badgeWrap: 'bg-slate-100 text-slate-500',
     },
   ];
 
-  const engagementValues = useMemo(() => {
-    if (filteredCourses.length < 4) {
-      return [48, 74, 60, 68, 42, 79, 64];
+  const performanceSeries = useMemo(() => {
+    const rankedCourses = [...filteredCourses]
+      .sort((left, right) => right.completionRate - left.completionRate)
+      .slice(0, 7);
+
+    if (rankedCourses.length === 0) {
+      return {
+        labels: ['N/A'],
+        values: [0],
+      };
     }
 
-    const seeds = filteredCourses.slice(0, 7).map((course, index) => {
-      return Math.max(
-        18,
-        Math.round(course.completionRate * 0.65) +
-          Math.round(course.activeEnrollments / 2) +
-          (index % 2 === 0 ? 8 : 14),
-      );
-    });
+    return {
+      labels: rankedCourses.map((course, index) => {
+        const compactTitle = course.title.trim();
+        if (compactTitle.length <= 10) {
+          return compactTitle.toUpperCase();
+        }
+        return `C${index + 1}`;
+      }),
+      values: rankedCourses.map((course) =>
+        Math.max(0, Math.min(100, Number(course.completionRate.toFixed(1)))),
+      ),
+    };
+  }, [filteredCourses]);
 
-    const fallback = [42, 81, 67, 92, 58, 88, 76];
-
-    return Array.from({ length: 7 }, (_, index) => {
-      const seed = seeds[index] ?? fallback[index];
-      return seed + Math.round(averageCompletionRate / 8) + liveSessions * 4;
-    });
-  }, [averageCompletionRate, filteredCourses, liveSessions]);
-
-  const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const chartPoints = useMemo(() => buildChartPoints(engagementValues, 720, 260), [engagementValues]);
+  const chartPoints = useMemo(() => buildChartPoints(performanceSeries.values, 720, 260), [performanceSeries.values]);
   const chartLinePath = useMemo(() => buildLinePath(chartPoints), [chartPoints]);
   const chartAreaPath = useMemo(() => buildAreaPath(chartPoints, 260), [chartPoints]);
 
   const quickActions = [
     {
       label: 'Grade Assignments',
-      badge: Math.max(1, totalCourses),
+      badge: totalCourses,
       icon: ClipboardCheck,
       onClick: () => onNavigate('/teacher/course-builder'),
     },
@@ -327,7 +312,6 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
       ['Total students', String(totalStudents)],
       ['Active enrollments', String(activeEnrollments)],
       ['Average completion rate', `${Math.round(averageCompletionRate)}%`],
-      ['Average rating', averageRating.toFixed(1)],
       ['Active courses', String(totalCourses)],
       ['Upcoming sessions', String(upcomingSessionsCount)],
       ['Live sessions', String(liveSessions)],
@@ -390,9 +374,8 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
               Dashboard Overview
             </h1>
             <p className="mt-2 text-base text-slate-500">
-              Welcome back, {firstName}. Your courses are performing{' '}
-              <span className="font-bold text-green-600">{improvementPercent.toFixed(1)}% better</span>{' '}
-              this month.
+              Welcome back, {firstName}. You currently manage {formatCompact(totalCourses)} course(s)
+              with {formatCompact(activeEnrollments)} active enrollments.
             </p>
           </div>
 
@@ -472,17 +455,17 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                 <div className="mb-6 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold text-slate-950">
-                      Student Engagement
+                      Course Performance
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                      Average daily activity over the last 7 days
+                      Completion rate by top courses (live backend data)
                     </p>
                   </div>
                   <button
                     type="button"
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700"
                   >
-                    Last 7 Days
+                    Top 7 Courses
                     <ChevronDown className="h-4 w-4 text-slate-500" />
                   </button>
                 </div>
@@ -503,9 +486,13 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
 
                 <div
                   className="mt-2 text-center text-sm font-bold text-slate-400"
-                  style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '0.5rem' }}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${performanceSeries.labels.length}, minmax(0, 1fr))`,
+                    gap: '0.5rem',
+                  }}
                 >
-                  {chartLabels.map((label) => (
+                  {performanceSeries.labels.map((label) => (
                     <span key={label} style={{ letterSpacing: '0.04em' }}>
                       {label.toUpperCase()}
                     </span>
@@ -597,7 +584,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                       <tr>
                         <th className="px-6 py-4">Course Name</th>
                         <th className="px-6 py-4">Students</th>
-                        <th className="px-6 py-4">Revenue</th>
+                        <th className="px-6 py-4">Completion</th>
                         <th className="px-6 py-4">Status</th>
                         <th className="px-6 py-4">Action</th>
                       </tr>
@@ -606,8 +593,9 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                       {filteredCourses.slice(0, 5).length ? (
                         filteredCourses.slice(0, 5).map((course) => {
                           const status = getCourseStatus(course);
-                          const courseRevenue = Math.round(
-                            course.enrollments * (20 + Math.max(8, course.completionRate / 3)),
+                          const courseCompletion = Math.max(
+                            0,
+                            Math.min(100, Math.round(course.completionRate)),
                           );
 
                           return (
@@ -627,7 +615,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                                 {formatCompact(course.enrollments)}
                               </td>
                               <td className="px-6 py-4 text-sm font-semibold text-slate-950">
-                                {formatCurrency(courseRevenue)}
+                                {courseCompletion}%
                               </td>
                               <td className="px-6 py-4">
                                 <span
@@ -670,7 +658,7 @@ export function TeacherDashboard({ onNavigate, currentPath }: TeacherDashboardPr
                 <div className="mt-6 space-y-6">
                   {topPerformingCourses.length ? (
                     topPerformingCourses.map((course, index) => {
-                      const progress = Math.max(12, Math.min(100, Math.round(course.completionRate)));
+                      const progress = Math.max(0, Math.min(100, Math.round(course.completionRate)));
                       const opacity = Math.max(0.2, 1 - index * 0.2);
                       return (
                         <div key={course.id} className="space-y-2">

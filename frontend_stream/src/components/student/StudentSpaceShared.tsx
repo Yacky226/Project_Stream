@@ -410,8 +410,8 @@ export function StudentSpaceShell({
     ? 'border-[#1e293b] bg-[#0f172a]'
     : 'border-[#1152d4]/10 bg-white';
   const headerClass = isDark
-    ? 'border-[#1152d4]/10 bg-[#101622]/80'
-    : 'border-[#1152d4]/5 bg-[#f6f6f8]/80';
+    ? 'border-[#1e293b] bg-[#101622]/95 shadow-[0_10px_24px_rgba(2,8,23,0.42)]'
+    : 'border-[#1152d4]/10 bg-[#f6f6f8]/95 shadow-[0_10px_24px_rgba(15,23,42,0.08)]';
   const searchClass = isDark
     ? 'border border-[#334155] bg-[#0f172a] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
     : 'border border-transparent bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
@@ -543,7 +543,7 @@ export function StudentSpaceShell({
         </aside>
 
         <main className="student-space-shell__main min-w-0 flex-1 overflow-y-auto">
-          <header className={`student-space-shell__header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
+          <header className={`student-space-shell__header sticky top-0 z-50 border-b px-4 py-4 md:px-8 xl:px-10 ${headerClass}`}>
             <div className="flex items-center justify-between gap-4">
               {showSearch ? (
                 <div className="relative w-full md:max-w-md">

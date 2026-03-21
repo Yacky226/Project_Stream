@@ -372,7 +372,7 @@ function buildRecentCourses(courses: BackendCourseManagementDTO[]): AdminCourseO
     createdAt: toIso(course.dateCreation),
   }));
 
-  return sortByIsoDesc(mapped, (course) => course.createdAt).slice(0, 10);
+  return sortByIsoDesc(mapped, (course) => course.createdAt);
 }
 
 function buildStudentName(inscription: BackendInscriptionManagementDTO): string {
@@ -397,7 +397,7 @@ function buildRecentInscriptions(
     lastActivityAt: toIso(inscription.dateDerniereActivite),
   }));
 
-  return sortByIsoDesc(mapped, (inscription) => inscription.enrolledAt).slice(0, 10);
+  return sortByIsoDesc(mapped, (inscription) => inscription.enrolledAt);
 }
 
 export function buildAdminDashboardData(

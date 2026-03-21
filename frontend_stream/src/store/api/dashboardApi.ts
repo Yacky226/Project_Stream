@@ -112,7 +112,7 @@ export const dashboardApi = createApi({
             params: {
               paginate: true,
               page: 0,
-              size: 10,
+              size: 100,
               sortBy: 'id',
               sortDir: 'DESC',
             },
@@ -122,7 +122,7 @@ export const dashboardApi = createApi({
             params: {
               paginate: true,
               page: 0,
-              size: 10,
+              size: 300,
               sortBy: 'id',
               sortDir: 'DESC',
             },

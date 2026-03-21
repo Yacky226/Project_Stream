@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Bell,
   BookOpen,
+  CircleHelp,
   LayoutDashboard,
   LifeBuoy,
   Loader2,
@@ -20,7 +21,7 @@ import { useGetAdminDashboardQuery } from '../../store/api/dashboardApi';
 import { useGetProfileQuery, useGetUnreadNotificationCountQuery } from '../../store/api/userApi';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Button } from '../ui/button';
+import './AdminSpaceShared.css';
 
 type AdminSpaceStatusType = 'auth-loading' | 'unauthenticated' | 'wrong-role' | 'ready';
 
@@ -190,21 +191,23 @@ export function AdminSpaceShell({
   const handleSearchChange = onSearchChange || (() => undefined);
   const allNavItems = [...MAIN_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS];
   const rootClass = isDark
-    ? 'bg-[#09111f] text-[#e2e8f0]'
-    : 'bg-[#eef4ff] text-[#0f172a]';
+    ? 'bg-[#101622] text-[#e2e8f0]'
+    : 'bg-[#f6f6f8] text-[#0f172a]';
   const shellPanelClass = isDark
-    ? 'border-[#1e293b] bg-[#0f172a]/95'
-    : 'border-white/70 bg-white/95';
+    ? 'border-[#1e293b] bg-slate-900'
+    : 'border-[#1152d4]/10 bg-white';
   const headerClass = isDark
-    ? 'border-[#1e293b] bg-[#09111f]/88'
-    : 'border-white/60 bg-[#eef4ff]/82';
+    ? 'border-[#1e293b] bg-slate-900'
+    : 'border-[#1152d4]/10 bg-white';
   const searchClass = isDark
-    ? 'border border-[#334155] bg-[#162033] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
-    : 'border border-[#dbe6ff] bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
+    ? 'border-none bg-slate-800 text-[#e2e8f0] placeholder:text-[#7f8ea3]'
+    : 'border-none bg-[#f6f6f8] text-[#0f172a] placeholder:text-[#94a3b8]';
   const mutedTextClass = isDark ? 'text-[#94a3b8]' : 'text-[#64748b]';
-  const secondaryPanelClass = isDark
-    ? 'border border-[#203049] bg-[#101a2d]/90'
-    : 'border border-[#dbe6ff] bg-[#f8fbff]';
+  const shellToneClass = isDark ? 'admin-space-shell--dark' : 'admin-space-shell--light';
+  const headerSizingClass = showSearch ? 'min-h-[5rem] py-4' : 'min-h-[6.5rem] py-4';
+  const headerInnerClass = showSearch
+    ? 'flex min-h-[3rem] items-center justify-between gap-4'
+    : 'flex min-h-[3rem] items-start justify-between gap-4 md:items-center';
 
   const handleLogout = async () => {
     await logout();
@@ -213,55 +216,25 @@ export function AdminSpaceShell({
 
   return (
     <div
-      className={`relative min-h-screen overflow-hidden ${rootClass}`}
+      className={`admin-space-shell ${shellToneClass} min-h-screen ${rootClass}`}
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_top_left,rgba(17,82,212,0.18),transparent_42%),radial-gradient(circle_at_top_right,rgba(67,165,255,0.12),transparent_30%)]" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] overflow-hidden">
-        <aside className={`hidden w-80 shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}>
-          <div className="sticky top-0 flex h-screen flex-col px-5 pb-5 pt-6">
-            <div className="flex items-center gap-3 px-1">
-              <div className="rounded-2xl bg-[#1152d4] p-2.5 text-white shadow-lg shadow-[#1152d4]/25">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                  Admin Space
-                </p>
-                <h2 className="text-xl font-black tracking-tight text-[#1152d4]">EduAdmin</h2>
-              </div>
-            </div>
-
-            <div className={`mt-6 rounded-[28px] p-4 ${secondaryPanelClass}`}>
-              <div className="mb-4 flex items-center gap-3">
-                <Avatar className="h-12 w-12 border border-[#1152d4]/15">
-                  <AvatarImage src={avatarUrl || undefined} />
-                  <AvatarFallback className="bg-[#1152d4]/10 text-[#1152d4]">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{displayName}</p>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${mutedTextClass}`}>
-                    {displayRole}
-                  </p>
+      <div className="relative flex h-screen w-full overflow-hidden">
+        <aside className={`admin-space-shell__sidebar admin-space-shell__sidebar-panel hidden w-[16rem] min-w-[16rem] max-w-[16rem] shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}>
+          <div className="flex h-full flex-col">
+            <div className="admin-space-shell__brand p-6">
+              <p className="admin-space-shell__brand-overline mb-2 text-[10px] font-extrabold uppercase tracking-[0.26em]">
+                Admin Space
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="admin-space-shell__brand-badge rounded-xl bg-[#1152d4] p-2 text-white">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
+                <h1 className="text-[2rem] font-black leading-none tracking-tight text-[#1152d4]">EduAdmin</h1>
               </div>
-              <Button
-                variant="outline"
-                className={`w-full rounded-xl ${
-                  isDark
-                    ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                    : 'border-[#dbe6ff] bg-white text-[#0f172a] hover:bg-[#f8fbff]'
-                }`}
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </Button>
             </div>
 
-            <nav className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
+            <nav className="admin-space-shell__nav admin-space-shell__hide-scrollbar mt-3 flex-1 space-y-2 overflow-y-auto px-4">
               {MAIN_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActiveNavItem(currentPath, item.path);
@@ -270,21 +243,23 @@ export function AdminSpaceShell({
                     key={item.path}
                     type="button"
                     onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                    className={`admin-space-shell__nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${
                       active
-                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
+                        ? 'admin-space-shell__nav-item--active bg-[#1152d4]/10 text-[#1152d4] font-semibold'
                         : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
+                          ? 'admin-space-shell__nav-item--idle text-[#cbd5e1] hover:bg-[#162033] hover:text-[#8fb5ff]'
+                          : 'admin-space-shell__nav-item--idle text-slate-600 hover:bg-[#1152d4]/5 hover:text-[#1152d4]'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-semibold">{item.label}</span>
+                    <span className="admin-space-shell__nav-icon inline-flex h-7 w-7 items-center justify-center rounded-lg">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-medium">{item.label}</span>
                   </button>
                 );
               })}
 
-              <div className={`px-4 pt-6 text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
+              <div className={`admin-space-shell__section-label mt-4 border-t pt-4 text-[10px] font-bold uppercase tracking-[0.22em] ${isDark ? 'border-[#1e293b]' : 'border-[#1152d4]/10'} ${mutedTextClass}`}>
                 Account
               </div>
 
@@ -296,48 +271,62 @@ export function AdminSpaceShell({
                     key={item.path}
                     type="button"
                     onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                    className={`admin-space-shell__nav-item flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${
                       active
-                        ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
+                        ? 'admin-space-shell__nav-item--active bg-[#1152d4]/10 text-[#1152d4] font-semibold'
                         : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#475569] hover:bg-[#edf4ff] hover:text-[#1152d4]'
+                          ? 'admin-space-shell__nav-item--idle text-[#cbd5e1] hover:bg-[#162033] hover:text-[#8fb5ff]'
+                          : 'admin-space-shell__nav-item--idle text-slate-600 hover:bg-[#1152d4]/5 hover:text-[#1152d4]'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-semibold">{item.label}</span>
+                    <span className="admin-space-shell__nav-icon inline-flex h-7 w-7 items-center justify-center rounded-lg">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-sm font-medium">{item.label}</span>
                   </button>
                 );
               })}
             </nav>
 
-            <div className={`mt-5 rounded-[28px] p-4 ${secondaryPanelClass}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                Operations Pulse
-              </p>
-              <p className="mt-2 text-sm font-semibold">
-                Review support load, moderation flows, and platform access from the same command center.
-              </p>
-              <Button
-                className="mt-4 w-full rounded-xl bg-[#1152d4] text-xs font-bold text-white hover:bg-[#0f47b9]"
-                onClick={() => onNavigate('/admin/support')}
-              >
-                Open support desk
-              </Button>
+            <div className="admin-space-shell__profile-wrap mt-auto p-4">
+              <div className={`admin-space-shell__profile-card rounded-xl p-4 ${isDark ? 'bg-slate-800' : 'bg-[#f6f6f8]'}`}>
+                <div className="mb-3 flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border border-[#1152d4]/15">
+                    <AvatarImage src={avatarUrl || undefined} />
+                    <AvatarFallback className="bg-[#1152d4]/20 text-[#1152d4]">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{displayName}</p>
+                    <p className="text-xs text-slate-500">{displayRole}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="admin-space-shell__signout-btn inline-flex w-full items-center justify-center gap-2 text-xs font-bold text-slate-500 transition hover:text-[#1152d4]"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <header className={`sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <main className="admin-space-shell__main relative min-w-0 flex-1 overflow-y-auto">
+          <header className={`admin-space-shell__header sticky top-0 z-50 border-b px-4 md:px-8 ${headerSizingClass} ${headerClass}`}>
+            <div className={headerInnerClass}>
               {showSearch ? (
-                <div className="relative w-full xl:max-w-xl">
-                  <Search className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${mutedTextClass}`} />
+                <div className="relative w-full max-w-xl">
+                  <Search
+                    className={`pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${mutedTextClass}`}
+                  />
                   <input
                     value={searchQuery}
                     onChange={(event) => handleSearchChange(event.target.value)}
-                    className={`h-12 w-full rounded-2xl pl-11 pr-4 text-sm shadow-sm transition focus:border-[#1152d4] focus:outline-none focus:ring-4 focus:ring-[#1152d4]/15 ${searchClass}`}
+                    className={`h-11 w-full rounded-xl border-none pl-14 pr-4 text-sm shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 ${searchClass}`}
                     placeholder={searchPlaceholder}
                     type="text"
                   />
@@ -356,27 +345,38 @@ export function AdminSpaceShell({
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3 xl:justify-end">
+              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="icon"
+                  <button
+                    type="button"
                     className={`relative rounded-2xl ${
                       isDark
-                        ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                        : 'border-[#dbe6ff] bg-white text-[#0f172a] hover:bg-[#f8fbff]'
+                        ? 'bg-slate-800 text-[#e2e8f0] hover:text-[#8fb5ff]'
+                        : 'bg-[#f6f6f8] text-slate-600 hover:text-[#1152d4]'
                     }`}
+                    style={{ width: '40px', height: '40px' }}
                     onClick={() => onNavigate('/notifications')}
                   >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 ? (
                       <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
                     ) : null}
-                  </Button>
-                  <div className={`hidden h-10 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#dbe6ff]'}`} />
-                  <div className="hidden text-right sm:block">
-                    <p className="text-xs font-bold">Command Center</p>
-                    <p className="text-[10px] font-bold text-[#1152d4]">ADMIN WORKSPACE</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/help')}
+                    className={`rounded-2xl ${
+                      isDark
+                        ? 'bg-slate-800 text-[#e2e8f0] hover:text-[#8fb5ff]'
+                        : 'bg-[#f6f6f8] text-slate-600 hover:text-[#1152d4]'
+                    }`}
+                    style={{ width: '40px', height: '40px' }}
+                  >
+                    <CircleHelp className="h-4 w-4" />
+                  </button>
+                  <div className={`hidden h-8 w-px sm:block ${isDark ? 'bg-[#334155]' : 'bg-[#1152d4]/10'}`} />
+                  <div className="hidden items-center rounded-full bg-[#1152d4]/5 px-3 py-1.5 sm:flex">
+                    <span className="text-xs font-bold text-[#1152d4]">PRO VERSION</span>
                   </div>
                 </div>
 
@@ -392,11 +392,23 @@ export function AdminSpaceShell({
                     </AvatarFallback>
                   </Avatar>
                 </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  aria-label="Sign out"
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-xl lg:hidden ${
+                    isDark
+                      ? 'border border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
+                      : 'border border-[#dbe6ff] bg-white text-[#0f172a] hover:bg-[#f8fbff]'
+                  }`}
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
               </div>
             </div>
 
             <nav className="mt-4 lg:hidden">
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              <div className="admin-space-shell__hide-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {allNavItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActiveNavItem(currentPath, item.path);
@@ -407,7 +419,7 @@ export function AdminSpaceShell({
                       onClick={() => onNavigate(item.path)}
                       className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
                         active
-                          ? 'bg-[#1152d4] text-white'
+                          ? 'bg-[#1152d4]/10 text-[#1152d4]'
                           : isDark
                             ? 'bg-[#162033] text-[#cbd5e1]'
                             : 'bg-white text-[#475569] shadow-sm'
@@ -422,7 +434,7 @@ export function AdminSpaceShell({
             </nav>
           </header>
 
-          <div className="mx-auto w-full max-w-[1280px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
+          <div className="admin-space-shell__content relative z-0 w-full p-4 pb-28 md:p-8 md:pb-12">
             {children}
           </div>
         </main>

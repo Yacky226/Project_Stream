@@ -10,6 +10,8 @@ import {
   PlayCircle,
   Radio,
   RotateCcw,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { useGetAllSessionsQuery, useGetCoursesQuery } from '../../store/api/liveApi';
 import { useEnrollCourseMutation } from '../../store/api/userApi';
@@ -25,6 +27,7 @@ import {
   getStudentSpaceErrorMessage,
   useStudentSpaceData,
 } from '../student/StudentSpaceShared';
+import './StudentCoursesPage.css';
 
 interface StudentCoursesPageProps {
   onNavigate: (path: string | number) => void;
@@ -126,6 +129,13 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
   const activeCourses = filteredCourses.filter((course) => course.status === 'ACTIF');
   const completedCourses = filteredCourses.filter((course) => course.status === 'TERMINE');
   const abandonedCourses = filteredCourses.filter((course) => course.status === 'ABANDONNE');
+  const focusCourse = activeCourses[0] ?? null;
+  const averageProgress = filteredCourses.length
+    ? Math.round(
+        filteredCourses.reduce((sum, course) => sum + course.progress, 0) /
+          filteredCourses.length,
+      )
+    : 0;
 
   const recommendedCourses = catalogCourses
     .filter((course) => !enrolledIds.has(String(course.id)))
@@ -171,7 +181,7 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
     return (
       <div
         key={`${course.id}-${course.status}`}
-        className="rounded-[28px] border border-[#1152d4]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        className="student-course-card rounded-[28px] border border-[#1152d4]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0 flex-1">
@@ -198,14 +208,14 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
               </span>
             </div>
 
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div className="student-course-progress mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
               <div className="h-full rounded-full bg-[#1152d4]" style={{ width: `${course.progress}%` }} />
             </div>
           </div>
 
           <div className="flex shrink-0 flex-col gap-2 md:w-44">
             <Button
-              className="rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]"
+              className="student-course-primary-btn rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]"
               onClick={() =>
                 linkedSession && isLive
                   ? onNavigate(`/courses/${course.id}/live/${linkedSession.id}`)
@@ -252,9 +262,13 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
       goalProgress={shared.goalProgress}
       unreadCount={shared.unreadCount}
     >
-      <div className="space-y-8">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="student-courses-page space-y-8">
+        <section className="student-courses-hero flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <p className="student-courses-kicker">
+              <Sparkles className="h-3.5 w-3.5" />
+              Student Workspace
+            </p>
             <h1 className="text-3xl font-black tracking-tight text-slate-950 dark:text-white">
               My Courses
             </h1>
@@ -263,21 +277,55 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="student-courses-stat-grid">
+            <div className="student-courses-stat-card rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Enrolled</p>
               <p className="mt-1 text-2xl font-bold text-[#1152d4]">{shared.dashboard.stats.enrolledCourses}</p>
             </div>
-            <div className="rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="student-courses-stat-card rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Completed</p>
               <p className="mt-1 text-2xl font-bold text-[#1152d4]">{shared.dashboard.stats.completedCourses}</p>
             </div>
-            <div className="rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="student-courses-stat-card rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Upcoming live</p>
               <p className="mt-1 text-2xl font-bold text-[#1152d4]">{shared.dashboard.stats.upcomingSessions}</p>
             </div>
+            <div className="student-courses-stat-card rounded-2xl border border-[#1152d4]/10 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Avg. Progress</p>
+              <p className="mt-1 text-2xl font-bold text-[#1152d4]">{averageProgress}%</p>
+            </div>
           </div>
         </section>
+
+        {focusCourse ? (
+          <section className="student-courses-focus rounded-[28px] border border-[#1152d4]/15 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="student-courses-focus-kicker">
+                  <TrendingUp className="h-4 w-4" />
+                  Continue where you stopped
+                </p>
+                <h2 className="mt-2 text-xl font-black text-slate-950 dark:text-white">{focusCourse.title}</h2>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+                  Progression actuelle: <span className="font-bold text-[#1152d4]">{focusCourse.progress}%</span>
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  className="student-course-primary-btn rounded-2xl bg-[#1152d4] text-white hover:bg-[#0f47b9]"
+                  onClick={() => onNavigate(`/courses/${focusCourse.id}`)}
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Resume Course
+                </Button>
+                <Button variant="outline" className="rounded-2xl" onClick={() => onNavigate('/student/live')}>
+                  <CalendarClock className="mr-2 h-4 w-4" />
+                  Check Live Schedule
+                </Button>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {actionError || catalogError || sessionsError ? (
           <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
@@ -289,14 +337,14 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
           </div>
         ) : null}
 
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
+        <section className="student-courses-toolbar flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="student-courses-chip-row flex flex-wrap gap-2">
             <Badge variant="outline">{activeCourses.length} in progress</Badge>
             <Badge variant="outline">{completedCourses.length} completed</Badge>
             <Badge variant="outline">{abandonedCourses.length} abandoned</Badge>
           </div>
 
-          <div className="w-full max-w-xs">
+          <div className="student-courses-sort-wrap w-full max-w-xs">
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as CourseSort)}
@@ -309,8 +357,8 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
           </div>
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
+        <section className="student-courses-block space-y-4">
+          <div className="student-courses-block-title flex items-center gap-2">
             <PlayCircle className="h-5 w-5 text-[#1152d4]" />
             <h2 className="text-xl font-bold text-slate-950 dark:text-white">In Progress</h2>
           </div>
@@ -322,8 +370,8 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
           )}
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
+        <section className="student-courses-block space-y-4">
+          <div className="student-courses-block-title flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-[#1152d4]" />
             <h2 className="text-xl font-bold text-slate-950 dark:text-white">Completed</h2>
           </div>
@@ -335,8 +383,8 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
           )}
         </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
+        <section className="student-courses-block space-y-4">
+          <div className="student-courses-block-title flex items-center gap-2">
             <CircleOff className="h-5 w-5 text-[#1152d4]" />
             <h2 className="text-xl font-bold text-slate-950 dark:text-white">Abandoned</h2>
           </div>
@@ -348,7 +396,7 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
           )}
         </section>
 
-        <section className="rounded-[32px] border border-[#1152d4]/10 bg-[#1152d4]/5 p-6 dark:border-slate-800 dark:bg-slate-900/70">
+        <section className="student-courses-reco rounded-[32px] border border-[#1152d4]/10 bg-[#1152d4]/5 p-6 dark:border-slate-800 dark:bg-slate-900/70">
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-950 dark:text-white">Recommended Next</h2>
@@ -368,7 +416,7 @@ export function StudentCoursesPage({ onNavigate, currentPath }: StudentCoursesPa
                 return (
                   <div
                     key={course.id}
-                    className="rounded-[28px] border border-[#1152d4]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                    className="student-courses-reco-card rounded-[28px] border border-[#1152d4]/10 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
                   >
                     <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${categoryMeta.pillClass}`}>
                       {course.category}
