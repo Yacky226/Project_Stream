@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useAppSelector } from '../../hooks/redux';
+import { normalizeUserRole } from '../../lib/roleUtils';
 import {
   useCompleteSpeakingMutation,
   useCreateCourseMutation,
@@ -1228,7 +1229,7 @@ export function SimpleLiveManager({
   embedded = false,
 }: SimpleLiveManagerProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = normalizeUserRole(user?.role) === 'teacher';
   const teacherId = parseNumericId(user?.id);
   const fixedCourseId = courseId === 'all' ? null : parseNumericId(courseId);
 
@@ -2165,7 +2166,7 @@ function useResolvedSession({
 
 export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLiveProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = normalizeUserRole(user?.role) === 'teacher';
   const {
     session,
     isLoading: isResolvingSession,
@@ -2495,7 +2496,7 @@ export function SimpleLiveStudio({ courseId, sessionId, onNavigate }: BaseLivePr
 
 export function SimpleLiveViewer({ courseId, sessionId, onNavigate }: BaseLiveProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  const isStudent = user?.role === 'student';
+  const isStudent = normalizeUserRole(user?.role) === 'student';
   const { session, isLoading, error: resolveError } = useResolvedSession({
     courseId,
     sessionId,

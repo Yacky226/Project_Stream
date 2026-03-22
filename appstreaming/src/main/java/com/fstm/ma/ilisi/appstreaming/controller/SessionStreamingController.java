@@ -46,8 +46,10 @@ public class SessionStreamingController {
     })
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @PostMapping
-    public ResponseEntity<SessionStreamingDTO> creerSession(@Valid @RequestBody SessionStreamingDTO dto) {
-        return ResponseEntity.ok(sessionStreamingService.creerSession(dto));
+    public ResponseEntity<SessionStreamingDTO> creerSession(
+            @Valid @RequestBody SessionStreamingDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(sessionStreamingService.creerSession(dto, userDetails.getUsername()));
     }
 
     @Operation(summary = "Modifier une session existante")
@@ -57,8 +59,11 @@ public class SessionStreamingController {
     })
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @PutMapping("/{id:\\d+}")
-    public ResponseEntity<SessionStreamingDTO> modifierSession(@PathVariable Long id, @Valid @RequestBody SessionStreamingDTO dto) {
-        return ResponseEntity.ok(sessionStreamingService.modifierSession(id, dto));
+    public ResponseEntity<SessionStreamingDTO> modifierSession(
+            @PathVariable Long id,
+            @Valid @RequestBody SessionStreamingDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(sessionStreamingService.modifierSession(id, dto, userDetails.getUsername()));
     }
 
     @Operation(summary = "Supprimer une session")
@@ -68,8 +73,10 @@ public class SessionStreamingController {
     })
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @DeleteMapping("/{id:\\d+}")
-    public ResponseEntity<Void> supprimerSession(@PathVariable Long id) {
-        sessionStreamingService.supprimerSession(id);
+    public ResponseEntity<Void> supprimerSession(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        sessionStreamingService.supprimerSession(id, userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 
@@ -169,16 +176,20 @@ public class SessionStreamingController {
     })
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @PostMapping("/{id:\\d+}/start")
-    public ResponseEntity<SessionStreamingDTO> demarrerStream(@PathVariable Long id) {
-        return ResponseEntity.ok(sessionStreamingService.demarrerStream(id));
+    public ResponseEntity<SessionStreamingDTO> demarrerStream(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(sessionStreamingService.demarrerStream(id, userDetails.getUsername()));
     }
 
     @Operation(summary = "Arreter un stream")
     @ApiResponse(responseCode = "200", description = "Stream arrete")
     @PreAuthorize("hasAuthority('ENSEIGNANT')")
     @PostMapping("/{id:\\d+}/stop")
-    public ResponseEntity<SessionStreamingDTO> arreterStream(@PathVariable Long id) {
-        return ResponseEntity.ok(sessionStreamingService.arreterStream(id));
+    public ResponseEntity<SessionStreamingDTO> arreterStream(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(sessionStreamingService.arreterStream(id, userDetails.getUsername()));
     }
 
     @Operation(summary = "Obtenir l'URL du flux video")
@@ -217,8 +228,10 @@ public class SessionStreamingController {
     @PostMapping("/{sessionId}/join/{etudiantId}")
     public ResponseEntity<SessionStreamingDTO> joinSessionById(
             @PathVariable Long sessionId,
-            @PathVariable Long etudiantId) {
-        return ResponseEntity.ok(sessionStreamingService.joinSession(sessionId, etudiantId));
+            @PathVariable Long etudiantId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Endpoint kept for compatibility: always joins with the authenticated student identity.
+        return ResponseEntity.ok(sessionStreamingService.joinSession(sessionId, userDetails.getUsername()));
     }
 
     @Operation(summary = "Recuperer l'URL du VOD")

@@ -1,5 +1,6 @@
-﻿import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { LoadingSpinner } from '../components/ui/loading-spinner';
+import { normalizeUserRole } from './roleUtils';
 
 // Lazy load all page components for better performance
 const HomePage = lazy(() => import('../components/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -26,7 +27,6 @@ const PublicStudentProfilePage = lazy(() => import('../components/pages/PublicSt
 const SettingsPage = lazy(() => import('../components/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const NotificationsPage = lazy(() => import('../components/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const SearchPage = lazy(() => import('../components/pages/SearchPage').then(m => ({ default: m.SearchPage })));
-const LiveSession = lazy(() => import('../components/pages/LiveSession').then(m => ({ default: m.LiveSession })));
 const TeacherProfile = lazy(() => import('../components/pages/TeacherProfile').then(m => ({ default: m.TeacherProfile })));
 const NotFoundPage = lazy(() => import('../components/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
@@ -106,14 +106,14 @@ export const routes: RouteConfig[] = [
     path: '/',
     component: withSuspense(HomePage),
     exact: true,
-    title: 'Accueil - Stream Ã‰ducatif',
-    description: 'Plateforme de streaming Ã©ducatif en direct'
+    title: 'Accueil - Stream Educatif',
+    description: 'Plateforme de streaming educatif en direct'
   },
   {
     path: '/catalog',
     component: withSuspense(CourseCatalog),
     title: 'Catalogue des cours',
-    description: 'DÃ©couvrez tous nos cours disponibles'
+    description: 'Decouvrez tous nos cours disponibles'
   },
   {
     path: '/search',
@@ -127,31 +127,31 @@ export const routes: RouteConfig[] = [
     path: '/auth/signin',
     component: withSuspense((props: any) => <AuthPageRedux mode="signin" {...props} />),
     title: 'Connexion',
-    description: 'Connectez-vous Ã  votre compte'
+    description: 'Connectez-vous a votre compte'
   },
   {
     path: '/auth/signup',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" {...props} />),
     title: 'Inscription',
-    description: 'CrÃ©ez votre compte Ã©tudiant ou enseignant'
+    description: 'Creez votre compte etudiant ou enseignant'
   },
   {
     path: '/auth/signup/student',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="student" {...props} />),
-    title: 'Inscription Ã©tudiant',
-    description: 'CrÃ©ez votre compte Ã©tudiant'
+    title: 'Inscription etudiant',
+    description: 'Creez votre compte etudiant'
   },
   {
     path: '/auth/signup/teacher',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
     title: 'Inscription enseignant',
-    description: 'CrÃ©ez votre compte enseignant'
+    description: 'Creez votre compte enseignant'
   },
   {
     path: '/auth/forgot',
     component: withSuspense((props: any) => <AuthPageRedux mode="forgot" {...props} />),
-    title: 'Mot de passe oubliÃ©',
-    description: 'RÃ©initialisez votre mot de passe'
+    title: 'Mot de passe oublie',
+    description: 'Reinitialisez votre mot de passe'
   },
   
   {
@@ -167,8 +167,8 @@ export const routes: RouteConfig[] = [
     component: withSuspense(StudentDashboard),
     requireAuth: true,
     allowedRoles: ['student'],
-    title: 'Tableau de bord Ã©tudiant',
-    description: 'GÃ©rez vos cours et votre progression'
+    title: 'Tableau de bord etudiant',
+    description: 'Gerez vos cours et votre progression'
   },
   {
     path: '/student/courses',
@@ -216,7 +216,7 @@ export const routes: RouteConfig[] = [
     requireAuth: true,
     allowedRoles: ['teacher'],
     title: 'Tableau de bord enseignant',
-    description: 'GÃ©rez vos cours et vos Ã©tudiants'
+    description: 'Gerez vos cours et vos etudiants'
   },
   {
     path: '/admin',
@@ -257,22 +257,22 @@ export const routes: RouteConfig[] = [
     component: withSuspense(ProfilePage),
     requireAuth: true,
     title: 'Mon profil',
-    description: 'GÃ©rez votre profil utilisateur'
+    description: 'Gerez votre profil utilisateur'
   },
   {
     path: '/profile/public',
     component: withSuspense(PublicStudentProfilePage),
     requireAuth: true,
     allowedRoles: ['student'],
-    title: 'Profil public Ã©tudiant',
+    title: 'Profil public etudiant',
     description: 'Previsualisez votre profil public etudiant'
   },
   {
     path: '/settings',
     component: withSuspense(SettingsPage),
     requireAuth: true,
-    title: 'ParamÃ¨tres',
-    description: 'Configurez vos prÃ©fÃ©rences'
+    title: 'Parametres',
+    description: 'Configurez vos preferences'
   },
   {
     path: '/notifications',
@@ -287,7 +287,7 @@ export const routes: RouteConfig[] = [
     path: '/teacher/signup',
     component: withSuspense((props: any) => <AuthPageRedux mode="signup" defaultSignupRole="teacher" {...props} />),
     title: 'Devenir enseignant',
-    description: 'CrÃ©ez votre compte enseignant'
+    description: 'Creez votre compte enseignant'
   },
   {
     path: '/teacher/live-sessions',
@@ -406,7 +406,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/courses/beginner',
     component: withSuspense(CategoryGeneralPage),
-    title: 'Cours pour dÃ©butants',
+    title: 'Cours pour debutants',
     description: 'Courses parfaits pour commencer'
   },
   
@@ -415,13 +415,13 @@ export const routes: RouteConfig[] = [
     path: '/contact',
     component: withSuspense(ContactPage),
     title: 'Contact',
-    description: 'Contactez notre Ã©quipe'
+    description: 'Contactez notre equipe'
   },
   {
     path: '/faq',
     component: withSuspense(FAQPage),
-    title: 'Questions frÃ©quentes',
-    description: 'Trouvez des rÃ©ponses Ã  vos questions'
+    title: 'Questions frequentes',
+    description: 'Trouvez des reponses a vos questions'
   },
   {
     path: '/terms',
@@ -432,8 +432,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/privacy',
     component: withSuspense(PrivacyPage),
-    title: 'Politique de confidentialitÃ©',
-    description: 'Notre politique de confidentialitÃ©'
+    title: 'Politique de confidentialite',
+    description: 'Notre politique de confidentialite'
   },
   {
     path: '/help',
@@ -450,26 +450,26 @@ export const routes: RouteConfig[] = [
   {
     path: '/accessibility',
     component: withSuspense(AccessibilityPage),
-    title: 'AccessibilitÃ©',
-    description: 'Notre engagement pour l\'accessibilitÃ©'
+    title: 'Accessibilite',
+    description: 'Notre engagement pour l\'accessibilite'
   },
   {
     path: '/blog',
     component: withSuspense(BlogPage),
     title: 'Blog',
-    description: 'Articles et actualitÃ©s'
+    description: 'Articles et actualites'
   },
   {
     path: '/mobile-app',
     component: withSuspense(MobileAppPage),
     title: 'Application mobile',
-    description: 'TÃ©lÃ©chargez notre application'
+    description: 'Telechargez notre application'
   },
   {
     path: '/careers',
     component: withSuspense(CareersPage),
-    title: 'CarriÃ¨res',
-    description: 'Rejoignez notre Ã©quipe'
+    title: 'Carrieres',
+    description: 'Rejoignez notre equipe'
   },
   
 ];
@@ -480,12 +480,12 @@ export const dynamicRoutes: DynamicRouteConfig[] = [
     pattern: /^\/courses\/([^\/]+)$/,
     component: withSuspense(CourseDetail),
     getProps: (match: RegExpMatchArray) => ({ courseId: match[1] }),
-    title: 'DÃ©tail du cours',
-    description: 'Informations dÃ©taillÃ©es sur le cours'
+    title: 'Detail du cours',
+    description: 'Informations detaillees sur le cours'
   },
   {
     pattern: /^\/courses\/([^\/]+)\/session\/([^\/]+)$/,
-    component: withSuspense(LiveSession),
+    component: withSuspense(SimpleLiveViewer),
     getProps: (match: RegExpMatchArray) => ({ 
       courseId: match[1], 
       sessionId: match[2] 
@@ -566,8 +566,8 @@ export function matchRoute(path: string): MatchedRoute {
     config: {
       requireAuth: false,
       allowedRoles: undefined,
-      title: 'Page non trouvÃ©e',
-      description: 'La page demandÃ©e n\'existe pas'
+      title: 'Page non trouvee',
+      description: 'La page demandee n\'existe pas'
     }
   };
 }
@@ -582,8 +582,16 @@ export function canAccessRoute(
     return false;
   }
   
-  if (route.allowedRoles && userRole && !route.allowedRoles.includes(userRole)) {
-    return false;
+  if (route.allowedRoles) {
+    if (!userRole) {
+      return false;
+    }
+
+    const normalizedRole = normalizeUserRole(userRole);
+    const normalizedAllowedRoles = route.allowedRoles.map((role) => normalizeUserRole(role));
+    if (!normalizedAllowedRoles.includes(normalizedRole)) {
+      return false;
+    }
   }
   
   return true;
@@ -593,8 +601,8 @@ export function canAccessRoute(
 export function getRouteMeta(path: string) {
   const routeMatch = matchRoute(path);
   return {
-    title: routeMatch.config.title || 'Stream Ã‰ducatif',
-    description: routeMatch.config.description || 'Plateforme de streaming Ã©ducatif'
+    title: routeMatch.config.title || 'Stream Educatif',
+    description: routeMatch.config.description || 'Plateforme de streaming educatif'
   };
 }
 

@@ -1,15 +1,19 @@
 package com.fstm.ma.ilisi.appstreaming.service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fstm.ma.ilisi.appstreaming.config.AntMediaConfig;
 import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.exception.EnrollmentRequiredException;
 import com.fstm.ma.ilisi.appstreaming.mapper.SessionStreamingMapper;
@@ -42,6 +46,7 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     private final EtudiantRepository etudiantRepository;
     private final SessionStreamingMapper sessionMapper;
     private final StreamingServiceInterface streamingService;
+    private final AntMediaConfig antMediaConfig;
 
     public SessionStreamingService(
             SessionStreamingRepository sessionRepository,
@@ -50,7 +55,8 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
             InscriptionRepository inscriptionRepository,
             EtudiantRepository etudiantRepository,
             SessionStreamingMapper sessionMapper,
-            StreamingServiceInterface streamingService) {
+            StreamingServiceInterface streamingService,
+            AntMediaConfig antMediaConfig) {
         this.sessionRepository = sessionRepository;
         this.coursRepository = coursRepository;
         this.enseignantRepository = enseignantRepository;
@@ -58,16 +64,23 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         this.etudiantRepository = etudiantRepository;
         this.sessionMapper = sessionMapper;
         this.streamingService = streamingService;
+        this.antMediaConfig = antMediaConfig;
     }
 
     @Override
-    public SessionStreamingDTO creerSession(SessionStreamingDTO dto) {
+    public SessionStreamingDTO creerSession(SessionStreamingDTO dto, String enseignantEmail) {
         Cours cours = coursRepository.findById(dto.getCoursId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable"));
-        Enseignant enseignant = enseignantRepository.findById(dto.getEnseignantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
+        Enseignant enseignantAuthentifie = getEnseignantByEmail(enseignantEmail);
 
-        SessionStreaming session = sessionMapper.toEntity(dto, cours, enseignant);
+        if (!Objects.equals(cours.getEnseignant().getId(), enseignantAuthentifie.getId())) {
+            throw new AccessDeniedException("Vous ne pouvez creer des sessions que pour vos propres cours");
+        }
+        if (dto.getEnseignantId() != null && !Objects.equals(dto.getEnseignantId(), enseignantAuthentifie.getId())) {
+            throw new AccessDeniedException("Le champ enseignantId ne correspond pas a l enseignant connecte");
+        }
+
+        SessionStreaming session = sessionMapper.toEntity(dto, cours, enseignantAuthentifie);
         // Creation endpoint must always create a new DB row.
         session.setId(null);
         session.setStatus(StreamStatus.CREATED);
@@ -89,9 +102,11 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     }
 
     @Override
-    public SessionStreamingDTO demarrerStream(Long sessionId) {
+    public SessionStreamingDTO demarrerStream(Long sessionId, String enseignantEmail) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
+        assertSessionOwnedByTeacher(session, enseignantEmail);
+        ensureSessionStreamConfiguration(session);
 
         session.startStream();
         sessionRepository.save(session);
@@ -100,11 +115,14 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     }
 
     @Override
-    public SessionStreamingDTO arreterStream(Long sessionId) {
+    public SessionStreamingDTO arreterStream(Long sessionId, String enseignantEmail) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
+        assertSessionOwnedByTeacher(session, enseignantEmail);
 
-        streamingService.endStream(session.getStreamKey());
+        if (session.getStreamKey() != null && !session.getStreamKey().isBlank()) {
+            streamingService.endStream(session.getStreamKey());
+        }
         session.endStream();
         SessionStreaming saved = sessionRepository.save(session);
 
@@ -181,15 +199,21 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     }
 
     @Override
-    public SessionStreamingDTO modifierSession(Long id, SessionStreamingDTO dto) {
+    public SessionStreamingDTO modifierSession(Long id, SessionStreamingDTO dto, String enseignantEmail) {
         SessionStreaming session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
+        assertSessionOwnedByTeacher(session, enseignantEmail);
 
         Cours cours = coursRepository.findById(dto.getCoursId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable"));
 
-        Enseignant enseignant = enseignantRepository.findById(dto.getEnseignantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
+        Enseignant enseignantAuthentifie = getEnseignantByEmail(enseignantEmail);
+        if (!Objects.equals(cours.getEnseignant().getId(), enseignantAuthentifie.getId())) {
+            throw new AccessDeniedException("Vous ne pouvez rattacher la session qu a vos propres cours");
+        }
+        if (dto.getEnseignantId() != null && !Objects.equals(dto.getEnseignantId(), enseignantAuthentifie.getId())) {
+            throw new AccessDeniedException("Le champ enseignantId ne correspond pas a l enseignant connecte");
+        }
 
         session.setDateHeure(dto.getDateHeure());
         session.setEstEnDirect(dto.isEstEnDirect());
@@ -198,18 +222,21 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         session.setResolution(dto.getResolution());
         session.setBroadcastType(dto.getBroadcastType());
         session.setCours(cours);
-        session.setEnseignant(enseignant);
+        session.setEnseignant(enseignantAuthentifie);
 
         return sessionMapper.toDTO(sessionRepository.save(session));
     }
 
     @Override
-    public void supprimerSession(Long id) {
+    public void supprimerSession(Long id, String enseignantEmail) {
         SessionStreaming session = sessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
+        assertSessionOwnedByTeacher(session, enseignantEmail);
 
         if (session.isLive()) {
-            streamingService.endStream(session.getStreamKey());
+            if (session.getStreamKey() != null && !session.getStreamKey().isBlank()) {
+                streamingService.endStream(session.getStreamKey());
+            }
         }
 
         sessionRepository.delete(session);
@@ -222,7 +249,16 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
 
         if (session.isLive()) {
-            return session.getVideoUrl();
+            String liveUrl = session.getVideoUrl();
+            if ((liveUrl == null || liveUrl.isBlank())
+                    && session.getStreamKey() != null
+                    && !session.getStreamKey().isBlank()) {
+                liveUrl = antMediaConfig.getPlaybackUrl(session.getStreamKey());
+            }
+            if (liveUrl != null && !liveUrl.isBlank()) {
+                return liveUrl;
+            }
+            throw new IllegalStateException("Aucun stream disponible pour cette session");
         }
         if (session.getRecordingUrl() != null) {
             return session.getRecordingUrl();
@@ -309,5 +345,28 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         Etudiant etudiant = etudiantRepository.findByEmail(emailEtudiant)
                 .orElseThrow(() -> new ResourceNotFoundException("Etudiant introuvable"));
         return joinSession(sessionId, etudiant.getId());
+    }
+
+    private Enseignant getEnseignantByEmail(String enseignantEmail) {
+        return enseignantRepository.findByEmail(enseignantEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
+    }
+
+    private void assertSessionOwnedByTeacher(SessionStreaming session, String enseignantEmail) {
+        Enseignant enseignantAuthentifie = getEnseignantByEmail(enseignantEmail);
+        Long ownerId = session.getEnseignant() != null ? session.getEnseignant().getId() : null;
+        if (!Objects.equals(ownerId, enseignantAuthentifie.getId())) {
+            throw new AccessDeniedException("Cette session n appartient pas a l enseignant connecte");
+        }
+    }
+
+    private void ensureSessionStreamConfiguration(SessionStreaming session) {
+        if (session.getStreamKey() == null || session.getStreamKey().isBlank()) {
+            session.setStreamKey("stream_" + UUID.randomUUID());
+        }
+
+        if (session.getVideoUrl() == null || session.getVideoUrl().isBlank()) {
+            session.setVideoUrl(antMediaConfig.getPlaybackUrl(session.getStreamKey()));
+        }
     }
 }

@@ -13,17 +13,27 @@ import { ReduxDebug } from './components/debug/ReduxDebug';
 import { matchRoute, canAccessRoute, getRouteMeta } from './lib/routes';
 import { configUtils } from './lib/config';
 import { LoadingSpinner } from './components/ui/loading-spinner';
+import { normalizeUserRole } from './lib/roleUtils';
 
 function AppContent() {
   const { currentPath, navigate } = useRouter();
   const dispatch = useAppDispatch();
   const { theme } = useAppSelector(state => state.ui);
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
+  const normalizedUserRole = user?.role ? normalizeUserRole(user.role) : undefined;
+  const systemPrefersDark =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDarkTheme = theme === 'dark' || (theme === 'system' && systemPrefersDark);
+  const authGuardContainerClass = isDarkTheme
+    ? 'min-h-screen flex items-center justify-center bg-[#101622] text-[#e2e8f0]'
+    : 'min-h-screen flex items-center justify-center bg-[#f6f6f8] text-[#0f172a]';
   const hasRedirected = useRef(false);
   const isAuthRoute = currentPath.startsWith('/auth');
   const isResetPasswordRoute = currentPath === '/reset-password';
   const isCourseDetailRoute = /^\/courses\/[^/]+$/.test(currentPath);
-  const isLiveSessionRoute = /^\/courses\/[^/]+\/session\/[^/]+$/.test(currentPath);
+  const isLiveSessionRoute = /^\/courses\/[^/]+\/(session|live)(?:\/[^/]+)?$/.test(currentPath);
   const isTeacherProfileRoute = /^\/profile\/teacher\/[^/]+$/.test(currentPath);
   const isProfileRoute = currentPath === '/profile';
   const isPublicStudentProfileRoute = currentPath === '/profile/public';
@@ -188,30 +198,26 @@ function AppContent() {
             navigate(`/auth/signin?redirect=${encodeURIComponent(currentPath)}`);
           }, 0);
         }
-        return (
-          <div className="min-h-screen flex items-center justify-center">
-            <LoadingSpinner size="lg" />
-          </div>
-        );
+        return <div className={authGuardContainerClass}><LoadingSpinner size="lg" /></div>;
       }
 
-      if (!canAccessRoute(config, isAuthenticated, user?.role)) {
+      if (!canAccessRoute(config, isAuthenticated, normalizedUserRole)) {
         if (!hasRedirected.current) {
           hasRedirected.current = true;
           configUtils.warn('Access denied: Insufficient permissions', { 
             path: currentPath, 
-            userRole: user?.role,
+            userRole: normalizedUserRole,
             requiredRoles: config.allowedRoles 
           });
           
           setTimeout(() => {
-            if (isAuthenticated && user?.role) {
+            if (isAuthenticated && normalizedUserRole) {
               const dashboardPaths: Record<string, string> = {
                 admin: '/admin',
                 teacher: '/teacher/dashboard',
                 student: '/dashboard',
               };
-              const redirectPath = dashboardPaths[user.role] || '/';
+              const redirectPath = dashboardPaths[normalizedUserRole] || '/';
               if (currentPath !== redirectPath) {
                 navigate(redirectPath);
               }
@@ -220,11 +226,7 @@ function AppContent() {
             }
           }, 0);
         }
-        return (
-          <div className="min-h-screen flex items-center justify-center">
-            <LoadingSpinner size="lg" />
-          </div>
-        );
+        return <div className={authGuardContainerClass}><LoadingSpinner size="lg" /></div>;
       }
 
       // Render the matched component with props

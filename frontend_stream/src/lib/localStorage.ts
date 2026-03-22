@@ -61,6 +61,12 @@ export const authStorage = {
       return null;
     }
   },
+
+  // Clears only session secrets so local UX data can be preserved after logout.
+  clearAuthSession: () => {
+    storage.removeItem('auth_token');
+    storage.removeItem('auth_refresh_token');
+  },
   
   clearAuthData: () => {
     storage.removeItem('auth_token');

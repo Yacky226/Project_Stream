@@ -15,21 +15,8 @@ interface TeacherLiveSessionsPageProps {
   currentPath?: string;
 }
 
-function buildLiveViewerPath(courseId: string | number, sessionId: string | number) {
-  return `/courses/${courseId}/session/${sessionId}`;
-}
-
-function mapTeacherLivePath(path: string | number) {
-  if (typeof path !== 'string') {
-    return path;
-  }
-
-  const studioMatch = path.match(/^\/teacher\/live\/([^/]+)\/([^/]+)$/);
-  if (!studioMatch) {
-    return path;
-  }
-
-  return buildLiveViewerPath(studioMatch[1], studioMatch[2]);
+function buildTeacherStudioPath(courseId: string | number, sessionId: string | number) {
+  return `/teacher/live/${courseId}/${sessionId}`;
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -56,29 +43,29 @@ export function TeacherLiveSessionsPage({
     skip: shared.status !== 'ready',
   });
 
-  if (shared.status !== 'ready') {
-    return <TeacherSpaceStatus shared={shared} />;
-  }
-
   const activeLiveSession = useMemo(
     () => sessions.find((session) => session.isLive || session.status === 'LIVE') || null,
     [sessions],
   );
 
   useEffect(() => {
-    if (!activeLiveSession) return;
-    const targetPath = buildLiveViewerPath(activeLiveSession.courseId, activeLiveSession.id);
+    if (shared.status !== 'ready' || !activeLiveSession) return;
+    const targetPath = buildTeacherStudioPath(activeLiveSession.courseId, activeLiveSession.id);
     if (currentPath !== targetPath) {
       onNavigate(targetPath);
     }
-  }, [activeLiveSession, currentPath, onNavigate]);
+  }, [activeLiveSession, currentPath, onNavigate, shared.status]);
+
+  if (shared.status !== 'ready') {
+    return <TeacherSpaceStatus shared={shared} />;
+  }
 
   if (activeLiveSession) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-          Ouverture de la session live...
+          Ouverture du studio live...
         </div>
       </div>
     );
@@ -164,7 +151,7 @@ export function TeacherLiveSessionsPage({
           </div>
           <SimpleLiveManager
             courseId="all"
-            onNavigate={(path) => onNavigate(mapTeacherLivePath(path))}
+            onNavigate={onNavigate}
             embedded
           />
         </>

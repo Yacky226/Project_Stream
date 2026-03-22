@@ -1,9 +1,9 @@
 ﻿import { FormEvent, useMemo, useState } from 'react';
-import { LogOut, Menu, Moon, Search, School, Sun, User } from 'lucide-react';
+import { LayoutDashboard, Menu, Moon, Search, School, Sun, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { useAuth } from '../../hooks/useAuth';
-import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { useAppDispatch } from '../../hooks/redux';
+import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { setTheme } from '../../store/slices/uiSlice';
 
 interface PublicHeaderBarProps {
@@ -17,10 +17,22 @@ const baseLinks = [
   { label: 'Enterprise', path: '/contact' },
 ];
 
+function normalizeRole(role?: string) {
+  return (role || '').trim().toLowerCase();
+}
+
 function buildDashboardPath(role?: string) {
-  if (role === 'admin') return '/admin';
-  if (role === 'teacher') return '/teacher/dashboard';
+  const normalized = normalizeRole(role);
+  if (normalized === 'admin' || normalized === 'administrateur') return '/admin';
+  if (normalized === 'teacher' || normalized === 'enseignant') return '/teacher/dashboard';
   return '/dashboard';
+}
+
+function buildDashboardLabel(role?: string) {
+  const normalized = normalizeRole(role);
+  if (normalized === 'admin' || normalized === 'administrateur') return 'Admin Space';
+  if (normalized === 'teacher' || normalized === 'enseignant') return 'Teacher Space';
+  return 'My Dashboard';
 }
 
 function isRouteActive(currentPath: string, path: string) {
@@ -31,13 +43,12 @@ function isRouteActive(currentPath: string, path: string) {
 export function PublicHeaderBar({ currentPath, onNavigate }: PublicHeaderBarProps) {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const dispatch = useAppDispatch();
-  const theme = useAppSelector((state) => state.ui.theme);
+  const { isDark } = useResolvedTheme();
   const [searchValue, setSearchValue] = useState('');
+  const dashboardPath = useMemo(() => buildDashboardPath(user?.role), [user?.role]);
+  const dashboardLabel = useMemo(() => buildDashboardLabel(user?.role), [user?.role]);
 
-  const links = useMemo(() => {
-    if (!isAuthenticated) return baseLinks;
-    return [...baseLinks, { label: 'Dashboard', path: buildDashboardPath(user?.role) }];
-  }, [isAuthenticated, user?.role]);
+  const links = useMemo(() => baseLinks, []);
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,11 +65,7 @@ export function PublicHeaderBar({ currentPath, onNavigate }: PublicHeaderBarProp
     onNavigate('/');
   };
 
-  const systemPrefersDark =
-    typeof window !== 'undefined' &&
-    window.matchMedia &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDarkMode = theme === 'dark' || (theme === 'system' && systemPrefersDark);
+  const isDarkMode = isDark;
 
   const handleThemeToggle = () => {
     dispatch(setTheme(isDarkMode ? 'light' : 'dark'));
@@ -123,32 +130,24 @@ export function PublicHeaderBar({ currentPath, onNavigate }: PublicHeaderBarProp
             <>
               <button
                 type="button"
-                className="elite-header__ghost-btn elite-header__dashboard-btn"
-                onClick={() => onNavigate(buildDashboardPath(user?.role))}
+                className={`elite-header__ghost-btn elite-header__dashboard-btn elite-header__workspace-btn ${
+                  isRouteActive(currentPath, dashboardPath) ? 'is-active' : ''
+                }`}
+                onClick={() => onNavigate(dashboardPath)}
               >
-                Dashboard
+                <LayoutDashboard className="h-4 w-4" />
+                {dashboardLabel}
               </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="elite-header__avatar-btn"
-                    aria-label="User menu"
-                  >
-                    <User className="h-4 w-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onNavigate(buildDashboardPath(user?.role))}>Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate('/profile')}>Profile</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onNavigate('/settings')}>Settings</DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} disabled={isLoading} className="text-red-600 focus:text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <button
+                type="button"
+                className="elite-header__avatar-btn"
+                aria-label="Open profile"
+                title="Profile"
+                onClick={() => onNavigate('/profile')}
+              >
+                <User className="h-4 w-4" />
+              </button>
             </>
           ) : (
             <div className="elite-header__auth">
@@ -212,6 +211,43 @@ export function PublicHeaderBar({ currentPath, onNavigate }: PublicHeaderBarProp
                       onClick={() => onNavigate('/auth/signup')}
                     >
                       Get Started
+                    </button>
+                  </>
+                ) : null}
+
+                {isAuthenticated ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`elite-mobile-menu__item elite-mobile-menu__item--inline ${
+                        isRouteActive(currentPath, dashboardPath) ? 'is-active' : ''
+                      }`}
+                      onClick={() => onNavigate(dashboardPath)}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      {dashboardLabel}
+                    </button>
+                    <button
+                      type="button"
+                      className={`elite-mobile-menu__item ${isRouteActive(currentPath, '/profile') ? 'is-active' : ''}`}
+                      onClick={() => onNavigate('/profile')}
+                    >
+                      Profile
+                    </button>
+                    <button
+                      type="button"
+                      className={`elite-mobile-menu__item ${isRouteActive(currentPath, '/settings') ? 'is-active' : ''}`}
+                      onClick={() => onNavigate('/settings')}
+                    >
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      className="elite-mobile-menu__item elite-mobile-menu__item--danger"
+                      onClick={handleLogout}
+                      disabled={isLoading}
+                    >
+                      Logout
                     </button>
                   </>
                 ) : null}

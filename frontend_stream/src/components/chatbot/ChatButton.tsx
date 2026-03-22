@@ -13,6 +13,7 @@ export function ChatButton() {
   }
 
   const { isOpen, currentSession } = chatbotState;
+  const messageCount = currentSession?.messages.length || 0;
 
   const handleToggle = () => {
     dispatch(toggleChatbot());
@@ -23,11 +24,11 @@ export function ChatButton() {
       {!isOpen && !currentSession ? (
         <div className="pointer-events-none absolute bottom-full right-0 mb-3 opacity-0 transition-opacity group-hover:opacity-100">
           <div
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-xl ${
+            className={`whitespace-nowrap rounded-xl px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.15em] shadow-xl ${
               isDark ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-white'
             }`}
           >
-            Need Help? Chat with EduAI
+            Chat with EduAI
           </div>
         </div>
       ) : null}
@@ -36,11 +37,17 @@ export function ChatButton() {
         type="button"
         onClick={handleToggle}
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
-        className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#1152d4] text-white shadow-xl shadow-[#1152d4]/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl lg:h-16 lg:w-16"
+        className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#1152d4] to-indigo-600 text-white shadow-[0_16px_36px_-14px_rgba(17,82,212,0.75)] transition-all duration-300 hover:scale-105 hover:shadow-[0_22px_44px_-14px_rgba(17,82,212,0.8)] lg:h-16 lg:w-16"
       >
-        <span className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/20" />
-        {isOpen ? <X className="relative z-10 h-7 w-7" /> : <Bot className="relative z-10 h-7 w-7" />}
-        {!isOpen ? <span className="absolute inset-0 animate-ping rounded-full border-4 border-white/20 opacity-20" /> : null}
+        <span className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/25" />
+        <span className="absolute inset-0 rounded-2xl ring-1 ring-white/25" />
+        {isOpen ? <X className="relative z-10 h-6 w-6" /> : <Bot className="relative z-10 h-6 w-6" />}
+        {!isOpen ? <span className="absolute inset-0 animate-ping rounded-2xl border-2 border-white/25 opacity-30" /> : null}
+        {!isOpen && messageCount > 1 ? (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            {Math.min(messageCount, 9)}
+          </span>
+        ) : null}
       </button>
     </div>
   );

@@ -11,7 +11,7 @@ import {
   startNewSession,
 } from '../../store/slices/chatbotSlice';
 import { getChatbotResponseAsync } from '../../lib/chatbotService';
-import { Bot, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
+import { Bot, Paperclip, RefreshCcw, Send, Sparkles, X } from 'lucide-react';
 
 interface ChatbotProps {
   onNavigate?: (path: string) => void;
@@ -123,145 +123,206 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
   }
 
   const panelClass = isDark
-    ? 'border-[#203049] bg-[#0f172a] text-[#e2e8f0]'
-    : 'border-[#dbe6ff] bg-white text-[#0f172a]';
-  const headerClass = isDark
-    ? 'border-[#203049] bg-[#0f172a]/92'
-    : 'border-[#dbe6ff] bg-white/92';
-  const mutedTextClass = isDark ? 'text-[#94a3b8]' : 'text-slate-500';
+    ? 'border-slate-700/80 bg-slate-950/95 text-slate-100 shadow-[0_30px_90px_-45px_rgba(2,6,23,0.95)]'
+    : 'border-slate-200 bg-white/95 text-slate-900 shadow-[0_30px_90px_-45px_rgba(30,64,175,0.42)]';
+  const overlayClass = isDark
+    ? 'bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-transparent'
+    : 'bg-gradient-to-br from-blue-100 via-indigo-50 to-transparent';
+  const headerClass = isDark ? 'border-slate-700/80 bg-slate-950/82' : 'border-slate-200 bg-white/84';
+  const mutedTextClass = isDark ? 'text-slate-400' : 'text-slate-500';
   const assistantBubbleClass = isDark
-    ? 'rounded-tl-none bg-[#162033] text-[#e2e8f0]'
-    : 'rounded-tl-none bg-slate-100 text-slate-800';
+    ? 'rounded-tl-md bg-slate-800/90 text-slate-100'
+    : 'rounded-tl-md bg-slate-100 text-slate-800';
+  const userBubbleClass = isDark
+    ? 'rounded-tr-md bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_12px_28px_-18px_rgba(59,130,246,0.9)]'
+    : 'rounded-tr-md bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-[0_12px_28px_-18px_rgba(37,99,235,0.7)]';
   const composerWrapClass = isDark
-    ? 'border-[#203049] bg-[#0f172a]/92'
-    : 'border-[#dbe6ff] bg-white/90';
+    ? 'border-slate-700/80 bg-slate-950/85'
+    : 'border-slate-200 bg-white/90';
   const composerClass = isDark
-    ? 'border-[#334155] bg-[#162033]'
-    : 'border-slate-200 bg-slate-100';
+    ? 'border-slate-700 bg-slate-900'
+    : 'border-slate-200 bg-slate-50';
+  const typedDotsClass = isDark ? 'bg-slate-400/70' : 'bg-slate-500/60';
+  const conversationCount = currentSession?.messages.length || 0;
 
   return (
     <div
-      className={`fixed bottom-20 left-4 right-4 z-[9998] h-[min(680px,calc(100vh-6.75rem))] overflow-hidden rounded-[28px] border shadow-2xl shadow-[#0b1120]/20 sm:left-auto sm:right-5 sm:w-[380px] md:bottom-24 md:right-6 md:w-[400px] lg:right-6 ${panelClass}`}
+      className={`fixed bottom-20 left-4 right-4 z-[9998] h-[min(700px,calc(100vh-6.75rem))] overflow-hidden rounded-[28px] border backdrop-blur-xl sm:left-auto sm:right-5 sm:w-[400px] md:bottom-24 md:right-6 md:w-[420px] lg:right-6 ${panelClass}`}
     >
-      <div className={`flex items-center justify-between border-b px-5 py-4 backdrop-blur-xl ${headerClass}`}>
-        <div className="flex items-center gap-3">
+      <div className={`pointer-events-none absolute inset-0 ${overlayClass}`} />
+
+      <div className={`relative flex items-center justify-between border-b px-5 py-4 backdrop-blur-xl ${headerClass}`}>
+        <div className="flex items-center gap-3.5">
           <div className="relative">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1152d4]/10 text-[#1152d4]">
-              <Bot className="h-6 w-6" />
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                isDark
+                  ? 'bg-gradient-to-br from-blue-500/25 to-indigo-500/25 text-blue-300'
+                  : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-[#1152d4]'
+              }`}
+            >
+              <Bot className="h-5 w-5" />
             </div>
             <span
-              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 bg-green-500 ${
-                isDark ? 'border-[#0f172a]' : 'border-white'
+              className={`absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 bg-emerald-500 ${
+                isDark ? 'border-slate-950' : 'border-white'
               }`}
             />
           </div>
           <div>
-            <h3 className="leading-none">EduAI Assistant</h3>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-              <span className={`text-[11px] font-semibold uppercase tracking-wider ${mutedTextClass}`}>
-                Live & Ready
+            <h3 className="text-sm font-bold leading-none sm:text-base">EduAI Assistant</h3>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                Online
+              </span>
+              <span className={`text-[11px] font-medium ${mutedTextClass}`}>
+                {conversationCount} message{conversationCount > 1 ? 's' : ''}
               </span>
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => dispatch(closeChatbot())}
-          className={`transition-colors ${isDark ? 'text-[#94a3b8] hover:text-white' : 'text-slate-400 hover:text-slate-700'}`}
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={restartSession}
+            className={`rounded-lg p-2 transition ${
+              isDark
+                ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+            title="Restart conversation"
+            aria-label="Restart conversation"
+          >
+            <RefreshCcw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch(closeChatbot())}
+            className={`rounded-lg p-2 transition ${
+              isDark
+                ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+            aria-label="Close chatbot"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="h-[calc(100%-156px)] overflow-y-auto p-5">
+      <div className="relative h-[calc(100%-182px)] overflow-y-auto px-5 py-4">
         {!currentSession ? null : (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {currentSession.messages.map((message) => {
               const isUser = message.role === 'user';
               return (
-                <div key={message.id} className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
-                  <p
-                    className={`text-xs uppercase tracking-widest ${
-                      isUser ? 'mr-1 text-[#1152d4]/60' : `ml-1 ${mutedTextClass}`
-                    }`}
-                  >
-                    {isUser ? 'You' : 'EduAI'}
-                  </p>
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
-                      isUser
-                        ? 'rounded-tr-none bg-[#1152d4] text-white shadow-[#1152d4]/20'
-                        : assistantBubbleClass
-                    }`}
-                  >
-                    {message.content}
+                <div key={message.id} className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[86%] ${isUser ? 'items-end' : 'items-start'}`}>
+                    <div className={`mb-1 flex items-center gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                      {!isUser ? (
+                        <span
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-md ${
+                            isDark ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700'
+                          }`}
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                        </span>
+                      ) : null}
+                      <p
+                        className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                          isUser ? 'text-blue-500/70' : mutedTextClass
+                        }`}
+                      >
+                        {isUser ? 'You' : 'EduAI'}
+                      </p>
+                    </div>
+                    <div
+                      className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                        isUser ? userBubbleClass : assistantBubbleClass
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                    <span
+                      className={`mt-1 block text-[10px] ${
+                        isUser ? 'text-right text-blue-500/60' : mutedTextClass
+                      }`}
+                    >
+                      {formatTime(message.timestamp)}
+                    </span>
                   </div>
-                  <span
-                    className={`text-[10px] ${
-                      isUser ? 'mr-1 text-[#1152d4]/50' : `ml-1 ${mutedTextClass}`
-                    }`}
-                  >
-                    {formatTime(message.timestamp)}
-                  </span>
                 </div>
               );
             })}
 
             {isTyping ? (
-              <div className="flex flex-col items-start gap-1.5">
-                <p className={`ml-1 text-xs uppercase tracking-widest ${mutedTextClass}`}>EduAI</p>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${assistantBubbleClass}`}>
-                  Typing...
+              <div className="flex justify-start">
+                <div className="max-w-[86%]">
+                  <div className={`mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${mutedTextClass}`}>
+                    EduAI
+                  </div>
+                  <div className={`inline-flex items-center gap-1.5 rounded-2xl px-4 py-3 ${assistantBubbleClass}`}>
+                    <span className={`h-2 w-2 animate-bounce rounded-full ${typedDotsClass}`} />
+                    <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:120ms] ${typedDotsClass}`} />
+                    <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:240ms] ${typedDotsClass}`} />
+                  </div>
                 </div>
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="pt-1">
+              <p className={`mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] ${mutedTextClass}`}>
+                Suggestions
+              </p>
+              <div className="flex flex-wrap gap-2">
               {visibleQuickActions.map((label) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => sendMessage(label)}
-                  className="rounded-full border border-[#1152d4]/20 bg-[#1152d4]/5 px-4 py-2 text-xs font-medium text-[#1152d4] transition-all hover:bg-[#1152d4] hover:text-white"
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                    isDark
+                      ? 'border-blue-400/30 bg-blue-400/10 text-blue-200 hover:border-blue-300 hover:bg-blue-500 hover:text-white'
+                      : 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-600 hover:bg-blue-600 hover:text-white'
+                  }`}
                 >
                   {label}
                 </button>
               ))}
+              </div>
             </div>
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      <div className={`border-t p-4 backdrop-blur-md ${composerWrapClass}`}>
+      <div className={`relative border-t p-4 backdrop-blur-md ${composerWrapClass}`}>
         <form onSubmit={onSubmit} className={`rounded-2xl border p-1.5 ${composerClass}`}>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={restartSession} className={`p-2 transition-colors hover:text-[#1152d4] ${mutedTextClass}`}>
-              <Mic className="h-4 w-4" />
-            </button>
+            <Paperclip className={`ml-2 h-4 w-4 ${mutedTextClass}`} />
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               className={`flex-1 border-none bg-transparent py-2 text-sm outline-none ${isDark ? 'text-[#e2e8f0] placeholder:text-[#7f8ea3]' : 'text-slate-700 placeholder:text-slate-400'}`}
-              placeholder="Ask anything..."
+              placeholder="Ask for help, navigation, or course insights..."
               type="text"
             />
             <button
               type="submit"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/30 transition-transform hover:scale-105"
+              disabled={!draft.trim() || isTyping}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/30 transition-transform hover:scale-105 disabled:scale-100 disabled:opacity-60"
             >
               <Send className="h-4 w-4" />
             </button>
           </div>
         </form>
-        <div className="mt-3 flex items-center justify-between px-1">
-          <div className={`flex gap-3 ${mutedTextClass}`}>
-            <Smile className="h-4 w-4" />
-            <Paperclip className="h-4 w-4" />
-            <Bot className="h-4 w-4" />
-          </div>
-          <span className={`text-[10px] uppercase tracking-[0.2em] ${mutedTextClass}`}>Enter to send</span>
+        <div className="mt-2 flex items-center justify-between px-1">
+          <span className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${mutedTextClass}`}>
+            Enter to send
+          </span>
+          <span className={`text-[10px] ${mutedTextClass}`}>Powered by EduAI</span>
         </div>
       </div>
     </div>

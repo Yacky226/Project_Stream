@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   AlertCircle,
   Award,
@@ -10,6 +10,9 @@ import {
   LogOut,
   Mail,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
   Radio,
   Route,
   Search,
@@ -90,6 +93,8 @@ const ACCOUNT_NAV_ITEMS: StudentShellNavItem[] = [
   { label: 'Notifications', path: '/notifications', icon: Bell },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
+
+const STUDENT_SIDEBAR_PREFERENCE_KEY = 'student-space-sidebar-collapsed';
 
 interface UseStudentSpaceDataOptions {
   includeDashboard?: boolean;
@@ -402,23 +407,57 @@ export function StudentSpaceShell({
   const { logout } = useAuth();
   const { isDark } = useResolvedTheme();
   const handleSearchChange = onSearchChange || (() => undefined);
-  const allNavItems = [...MAIN_NAV_ITEMS, ...ACCOUNT_NAV_ITEMS];
-  const rootClass = isDark
-    ? 'bg-[#101622] text-[#e2e8f0]'
-    : 'bg-[#f6f6f8] text-[#0f172a]';
-  const shellPanelClass = isDark
-    ? 'border-[#1e293b] bg-[#0f172a]'
-    : 'border-[#1152d4]/10 bg-white';
+  const workspaceNavItems = MAIN_NAV_ITEMS;
+  const accountNavItems = ACCOUNT_NAV_ITEMS;
+  const allNavItems = [...workspaceNavItems, ...accountNavItems];
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const boundedGoalProgress = Math.max(0, Math.min(goalProgress, 100));
+  const roundedGoalProgress = Math.round(boundedGoalProgress);
+  const rootClass = isDark ? 'bg-[#08101d] text-[#e2e8f0]' : 'bg-[#eff4ff] text-[#0f172a]';
+  const sidebarClass = isDark
+    ? 'border-[#1e2d45] bg-[#0b1528]/96'
+    : 'border-[#dbe8ff] bg-[#f7faff]/96';
+  const surfaceClass = isDark
+    ? 'border-[#223450] bg-[#101d33]/95'
+    : 'border-[#d4e3ff] bg-white';
   const headerClass = isDark
-    ? 'border-[#1e293b] bg-[#101622]/95 shadow-[0_10px_24px_rgba(2,8,23,0.42)]'
-    : 'border-[#1152d4]/10 bg-[#f6f6f8]/95 shadow-[0_10px_24px_rgba(15,23,42,0.08)]';
+    ? 'border-[#1f304a] bg-[#08101d]/90'
+    : 'border-[#d9e7ff] bg-[#eff4ff]/88';
   const searchClass = isDark
-    ? 'border border-[#334155] bg-[#0f172a] text-[#e2e8f0] placeholder:text-[#7f8ea3]'
-    : 'border border-transparent bg-white text-[#0f172a] placeholder:text-[#94a3b8]';
-  const mutedTextClass = isDark ? 'text-[#94a3b8]' : 'text-[#64748b]';
-  const secondaryPanelClass = isDark
-    ? 'border border-[#203049] bg-[#101a2d]'
-    : 'border border-[#1152d4]/10 bg-[#1152d4]/5';
+    ? 'border-[#35527d] bg-[#12203a] text-[#e2e8f0] placeholder:text-[#8ca0c0]'
+    : 'border-[#cfe0ff] bg-white text-[#0f172a] placeholder:text-[#8da2c4]';
+  const navItemIdleClass = isDark
+    ? 'text-[#c7d7f2] hover:bg-[#162847] hover:text-white'
+    : 'text-[#1f3154] hover:bg-[#e9f1ff] hover:text-[#1152d4]';
+  const mutedTextClass = isDark ? 'text-[#9cb0d1]' : 'text-[#587095]';
+  const statPillClass = isDark
+    ? 'border border-[#2f4568] bg-[#13233f] text-[#d7e5ff]'
+    : 'border border-[#d6e5ff] bg-[#f3f8ff] text-[#23416e]';
+  const iconButtonClass = isDark
+    ? 'border-[#334b71] bg-[#12203a] text-[#c4d6f3] hover:bg-[#19325b]'
+    : 'border-[#d4e2fb] bg-white text-[#5e7699] hover:bg-[#eef4ff]';
+  const navBadgeClass = isDark
+    ? 'border-[#3a5380] bg-[#19315a] text-[#d6e4ff]'
+    : 'border-[#cde0ff] bg-[#eef5ff] text-[#315889]';
+
+  const navBadges: Record<string, string | null> = {
+    '/student/learning-path': `${roundedGoalProgress}%`,
+    '/notifications': unreadCount > 0 ? String(unreadCount) : null,
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(STUDENT_SIDEBAR_PREFERENCE_KEY);
+    setIsSidebarCollapsed(stored === '1');
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      STUDENT_SIDEBAR_PREFERENCE_KEY,
+      isSidebarCollapsed ? '1' : '0',
+    );
+  }, [isSidebarCollapsed]);
 
   const handleLogout = async () => {
     await logout();
@@ -427,123 +466,231 @@ export function StudentSpaceShell({
 
   return (
     <div
-      className={`student-space-shell relative min-h-screen overflow-hidden ${rootClass}`}
+      className={`student-space-shell relative h-screen overflow-hidden ${rootClass} ${isDark ? 'dark' : ''}`}
       style={{ fontFamily: 'Lexend, system-ui, sans-serif' }}
     >
-      <div className="relative flex h-screen w-full overflow-x-hidden">
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          isDark
+            ? 'bg-[radial-gradient(circle_at_top_left,rgba(60,130,255,0.23),transparent_40%),radial-gradient(circle_at_top_right,rgba(17,82,212,0.17),transparent_45%)]'
+            : 'bg-[radial-gradient(circle_at_top_left,rgba(17,82,212,0.20),transparent_40%),radial-gradient(circle_at_top_right,rgba(62,145,255,0.16),transparent_46%)]'
+        }`}
+      />
+      <div className="relative flex h-screen w-full overflow-hidden">
         <aside
-          className={`student-space-shell__sidebar hidden w-64 shrink-0 border-r lg:flex lg:flex-col ${shellPanelClass}`}
+          className={`student-space-shell__sidebar hidden h-screen shrink-0 border-r transition-[width] duration-300 lg:flex lg:flex-col ${
+            isSidebarCollapsed ? 'w-[5.75rem]' : 'w-[19.5rem]'
+          } ${sidebarClass}`}
         >
-          <div className="flex h-screen flex-col px-4 pb-4 pt-6">
-            <div className="flex items-center gap-3 px-2">
-              <div className="rounded-lg bg-[#1152d4] p-2 text-white shadow-lg shadow-[#1152d4]/20">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black tracking-tight text-[#1152d4]">EduFlow</h2>
-              </div>
+          <div className={`flex h-full flex-col gap-5 py-5 ${isSidebarCollapsed ? 'px-2.5' : 'px-4'}`}>
+            <div className={`flex ${isSidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+              <button
+                type="button"
+                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                onClick={() => setIsSidebarCollapsed((value) => !value)}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${iconButtonClass}`}
+              >
+                {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
             </div>
 
-            <nav className="student-space-shell__hide-scrollbar mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
-              {MAIN_NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isActiveNavItem(currentPath, item.path);
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
-                      active
-                        ? 'bg-[#1152d4] text-white'
-                        : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#64748b] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
-
-              <div className={`px-4 pt-6 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] ${mutedTextClass}`}>
-                Account
+            <div className={`rounded-2xl border ${surfaceClass} ${isSidebarCollapsed ? 'px-2 py-3' : 'px-4 py-4'}`}>
+              <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/35">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                {!isSidebarCollapsed ? (
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-black tracking-tight">
+                      Student <span className="text-[#1152d4]">Studio</span>
+                    </h2>
+                    <p className={`truncate text-xs font-semibold uppercase tracking-[0.18em] ${mutedTextClass}`}>
+                      Learning Workspace
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
-              {ACCOUNT_NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isActiveNavItem(currentPath, item.path);
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => onNavigate(item.path)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
-                      active
-                        ? 'bg-[#1152d4] text-white'
-                        : isDark
-                          ? 'text-[#cbd5e1] hover:bg-[#162033] hover:text-white'
-                          : 'text-[#64748b] hover:bg-[#1152d4]/10 hover:text-[#1152d4]'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
+              {!isSidebarCollapsed ? (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className={`rounded-xl px-3 py-2 ${statPillClass}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-80">Progress</p>
+                    <p className="mt-1 text-sm font-black">{roundedGoalProgress}%</p>
+                  </div>
+                  <div className={`rounded-xl px-3 py-2 ${statPillClass}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-80">Unread</p>
+                    <p className="mt-1 text-sm font-black">{unreadCount}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <nav className={`student-space-shell__sidebar-scroll flex-1 overflow-y-auto ${isSidebarCollapsed ? 'space-y-4 pr-0' : 'space-y-5 pr-1'}`}>
+              <div>
+                {!isSidebarCollapsed ? (
+                  <p className={`mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.2em] ${mutedTextClass}`}>
+                    Workspace
+                  </p>
+                ) : null}
+                <div className="space-y-1.5">
+                  {workspaceNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActiveNavItem(currentPath, item.path);
+                    const badge = navBadges[item.path];
+                    return (
+                      <button
+                        key={item.path}
+                        type="button"
+                        title={item.label}
+                        onClick={() => onNavigate(item.path)}
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                          active
+                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            : navItemIdleClass
+                        } ${
+                          isSidebarCollapsed
+                            ? 'justify-center px-2.5 py-3'
+                            : 'gap-3 px-4 py-3 text-left'
+                        }`}
+                      >
+                        {active && !isSidebarCollapsed ? (
+                          <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
+                        ) : null}
+                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
+                        {!isSidebarCollapsed && badge ? (
+                          <span
+                            className={`ml-auto inline-flex min-w-[1.6rem] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                              active ? 'border-white/20 bg-white/20 text-white' : navBadgeClass
+                            }`}
+                          >
+                            {Number(badge) > 99 ? '99+' : badge}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={`${isSidebarCollapsed ? '' : `border-t pt-4 ${isDark ? 'border-[#2a3f62]' : 'border-[#d9e7ff]'}`}`}>
+                {!isSidebarCollapsed ? (
+                  <p className={`mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.2em] ${mutedTextClass}`}>
+                    Account
+                  </p>
+                ) : null}
+                <div className="space-y-1.5">
+                  {accountNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActiveNavItem(currentPath, item.path);
+                    const badge = navBadges[item.path];
+                    return (
+                      <button
+                        key={item.path}
+                        type="button"
+                        title={item.label}
+                        onClick={() => onNavigate(item.path)}
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                          active
+                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            : navItemIdleClass
+                        } ${
+                          isSidebarCollapsed
+                            ? 'justify-center px-2.5 py-3'
+                            : 'gap-3 px-4 py-3 text-left'
+                        }`}
+                      >
+                        {active && !isSidebarCollapsed ? (
+                          <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
+                        ) : null}
+                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
+                        {!isSidebarCollapsed && badge ? (
+                          <span
+                            className={`ml-auto inline-flex min-w-[1.6rem] items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-bold ${
+                              active ? 'border-white/20 bg-white/20 text-white' : navBadgeClass
+                            }`}
+                          >
+                            {Number(badge) > 99 ? '99+' : badge}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </nav>
 
-            <div className={`mt-4 rounded-2xl p-4 ${secondaryPanelClass}`}>
-              <div className="mb-4 flex items-center gap-3">
-                <Avatar className="h-12 w-12 border border-[#1152d4]/15">
+            <div className={`mt-auto rounded-2xl border ${surfaceClass} ${isSidebarCollapsed ? 'px-2 py-3' : 'p-4'}`}>
+              <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+                <Avatar className="h-11 w-11 border border-[#1152d4]/25">
                   <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="bg-[#1152d4]/10 text-[#1152d4]">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{displayName}</p>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${mutedTextClass}`}>
-                    {displayLevel}
-                  </p>
-                </div>
+                {!isSidebarCollapsed ? (
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">
+                      {displayName}
+                    </p>
+                    <p className={`truncate text-xs font-medium ${mutedTextClass}`}>{displayLevel}</p>
+                  </div>
+                ) : null}
               </div>
-              <div className="mb-4 space-y-2">
-                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${mutedTextClass}`}>
-                  Premium Plan
-                </p>
-                <div className={`h-2 overflow-hidden rounded-full ${isDark ? 'bg-[#23314a]' : 'bg-[#dbe6ff]'}`}>
-                  <div
-                    className="h-full rounded-full bg-[#1152d4]"
-                    style={{ width: `${Math.max(0, Math.min(goalProgress, 100))}%` }}
-                  />
+
+              {isSidebarCollapsed ? (
+                <div className="mt-3 space-y-2">
+                  <button
+                    type="button"
+                    title="Open Public Profile"
+                    onClick={() => onNavigate('/profile/public')}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#1152d4] text-white transition hover:bg-[#0f47b9]"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Logout"
+                    onClick={handleLogout}
+                    className={`inline-flex h-9 w-full items-center justify-center rounded-lg border transition ${
+                      isDark
+                        ? 'border-[#344d72] bg-[#12203a] text-[#e2e8f0] hover:bg-[#1a3158]'
+                        : 'border-[#d4e2fb] bg-white text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
                 </div>
-              </div>
-              <Button
-                className="mt-4 w-full rounded-xl bg-[#1152d4] text-xs font-bold text-white hover:bg-[#0f47b9]"
-                onClick={() => onNavigate('/profile/public')}
-              >
-                Upgrade to Pro
-              </Button>
-              <button
-                type="button"
-                className={`mt-2 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border text-xs font-bold transition ${
-                  isDark
-                    ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
-                }`}
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </button>
+              ) : (
+                <>
+                  <Button
+                    className="mt-4 h-11 w-full rounded-xl bg-[#1152d4] text-sm font-bold text-white transition hover:bg-[#0f47b9]"
+                    onClick={() => onNavigate('/profile/public')}
+                  >
+                    Upgrade to Pro
+                  </Button>
+                  <button
+                    type="button"
+                    className={`mt-2 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border text-sm font-bold transition ${
+                      isDark
+                        ? 'border-[#344d72] bg-[#12203a] text-[#e2e8f0] hover:bg-[#1a3158]'
+                        : 'border-[#d4e2fb] bg-white text-slate-700 hover:bg-slate-100'
+                    }`}
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </aside>
 
-        <main className="student-space-shell__main min-w-0 flex-1 overflow-y-auto">
-          <header className={`student-space-shell__header sticky top-0 z-50 border-b px-4 py-4 md:px-8 xl:px-10 ${headerClass}`}>
+        <main className="student-space-shell__main min-w-0 h-screen flex-1 overflow-y-auto">
+          <header className={`student-space-shell__header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
             <div className="flex items-center justify-between gap-4">
               {showSearch ? (
                 <div className="relative w-full md:max-w-md">
@@ -577,11 +724,7 @@ export function StudentSpaceShell({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={`relative rounded-xl ${
-                      isDark
-                        ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                        : 'border-[#1152d4]/5 bg-white text-[#0f172a] hover:bg-[#f8fbff]'
-                    }`}
+                    className={`relative rounded-xl border transition ${iconButtonClass}`}
                     onClick={() => onNavigate('/notifications')}
                   >
                     <Bell className="h-4 w-4" />
@@ -592,11 +735,7 @@ export function StudentSpaceShell({
                   <Button
                     variant="outline"
                     size="icon"
-                    className={`rounded-xl ${
-                      isDark
-                        ? 'border-[#334155] bg-[#162033] text-[#e2e8f0] hover:bg-[#203049]'
-                        : 'border-[#1152d4]/5 bg-white text-[#0f172a] hover:bg-[#f8fbff]'
-                    }`}
+                    className={`rounded-xl border transition ${iconButtonClass}`}
                     onClick={() => onNavigate('/notifications')}
                   >
                     <Mail className="h-4 w-4" />
