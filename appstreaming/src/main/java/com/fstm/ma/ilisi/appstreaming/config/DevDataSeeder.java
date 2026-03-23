@@ -29,11 +29,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -432,8 +434,19 @@ public class DevDataSeeder implements CommandLineRunner {
             "The previous module clarified many concepts for me."
         };
 
+        List<Long> sessionIds =
+                sessions.stream()
+                        .map(SessionStreaming::getId)
+                        .filter(id -> id != null)
+                        .toList();
+
+        Set<Long> sessionIdsWithExistingMessages =
+                sessionIds.isEmpty()
+                        ? Collections.emptySet()
+                        : new HashSet<>(chatMessageRepository.findSessionIdsWithMessages(sessionIds));
+
         for (SessionStreaming session : sessions) {
-            if (chatMessageRepository.countBySessionId(session.getId()) > 0) {
+            if (session.getId() != null && sessionIdsWithExistingMessages.contains(session.getId())) {
                 continue;
             }
             if (session.getStatus() == StreamStatus.CREATED) {

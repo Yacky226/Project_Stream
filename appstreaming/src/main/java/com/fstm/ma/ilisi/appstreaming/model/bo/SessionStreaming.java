@@ -67,6 +67,9 @@ public class SessionStreaming implements Serializable {
     @Column
     private String broadcastType; // "RTMP", "WebRTC"
 
+    @Column(columnDefinition = "TEXT")
+    private String metadataJson;
+
     // Méthodes utilitaires
     public boolean isLive() {
         return status == StreamStatus.LIVE;

@@ -1,13 +1,13 @@
 {
   "hero": {
-    "badge": "Nouvelle expérience d'apprentissage",
+    "badge": "Nouvelle experience d'apprentissage",
     "title": "Apprenez en",
     "titleHighlight": "direct",
-    "subtitle": "Rejoignez des milliers d'étudiants dans nos cours en direct interactifs. Apprenez des meilleurs instructeurs du monde entier.",
+    "subtitle": "Rejoignez des milliers d'etudiants dans nos cours en direct interactifs. Apprenez des meilleurs instructeurs du monde entier.",
     "startFree": "Commencer gratuitement",
-    "watchDemo": "Voir la démo",
+    "watchDemo": "Voir la demo",
     "stats": {
-      "students": "Étudiants actifs",
+      "students": "Etudiants actifs",
       "courses": "Cours disponibles",
       "instructors": "Instructeurs experts",
       "rating": "Note moyenne"
@@ -16,34 +16,34 @@
   "features": {
     "badge": "Pourquoi nous choisir",
     "title": "L'avenir de l'apprentissage",
-    "subtitle": "Une plateforme révolutionnaire qui transforme votre façon d'apprendre avec des technologies de pointe et une communauté mondiale",
+    "subtitle": "Une plateforme revolutionnaire qui transforme votre facon d'apprendre avec des technologies de pointe et une communaute mondiale",
     "liveInteractive": {
       "title": "Sessions Live Interactives",
-      "description": "Participez à des cours en temps réel avec chat, questions-réponses et partage d'écran pour une expérience immersive"
+      "description": "Participez a des cours en temps reel avec chat, questions-reponses et partage d'ecran pour une experience immersive"
     },
     "aiPersonalized": {
-      "title": "IA Personnalisée",
-      "description": "Notre IA analyse votre style d'apprentissage et recommande des cours adaptés à votre niveau et vos objectifs"
+      "title": "IA Personnalisee",
+      "description": "Notre IA analyse votre style d'apprentissage et recommande des cours adaptes a votre niveau et vos objectifs"
     },
     "certifications": {
       "title": "Certifications Reconnues",
-      "description": "Obtenez des certificats valorisés par les entreprises et boostez votre carrière professionnelle"
+      "description": "Obtenez des certificats valorises par les entreprises et boostez votre carriere professionnelle"
     },
     "support": {
       "title": "Support 24/7",
-      "description": "Une équipe dédiée vous accompagne à tout moment pour optimiser votre expérience d'apprentissage"
+      "description": "Une equipe dediee vous accompagne a tout moment pour optimiser votre experience d'apprentissage"
     },
     "multiPlatform": {
       "title": "Multi-Plateforme",
-      "description": "Apprenez où vous voulez : ordinateur, tablette ou smartphone avec synchronisation automatique"
+      "description": "Apprenez ou vous voulez : ordinateur, tablette ou smartphone avec synchronisation automatique"
     },
     "unlimitedAccess": {
-      "title": "Accès Illimité",
-      "description": "Accédez à tous les replays, ressources et mises à jour de cours sans limite de temps"
+      "title": "Acces Illimite",
+      "description": "Accedez a tous les replays, ressources et mises a jour de cours sans limite de temps"
     },
     "trust": {
       "title": "Ils nous font confiance",
-      "secured": "Sécurisé SSL",
+      "secured": "Securise SSL",
       "gdpr": "RGPD Conforme",
       "iso": "ISO 27001",
       "uptime": "99.9% Uptime"
@@ -52,22 +52,22 @@
   "courses": {
     "badge": "Cours populaires",
     "title": "Commencez votre parcours",
-    "subtitle": "Découvrez nos cours les plus appréciés par la communauté",
+    "subtitle": "Decouvrez nos cours les plus apprecies par la communaute",
     "viewAll": "Voir tous les cours",
     "free": "Gratuit",
     "live": "LIVE",
     "join": "Rejoindre",
-    "discover": "Découvrir",
+    "discover": "Decouvrir",
     "liveIn": "Session live dans {{hours}}h",
     "duration": "{{hours}}h {{minutes}}m",
     "enrolled": "{{count}} inscrit",
     "enrolled_plural": "{{count}} inscrits"
   },
   "cta": {
-    "title": "Prêt à transformer votre carrière ?",
-    "subtitle": "Rejoignez plus de 50 000 étudiants qui ont déjà fait le choix de l'excellence",
+    "title": "Pret a transformer votre carriere ?",
+    "subtitle": "Rejoignez plus de 50 000 etudiants qui ont deja fait le choix de l'excellence",
     "startFree": "Commencer gratuitement",
-    "talkExpert": "Parler à un expert",
+    "talkExpert": "Parler a un expert",
     "trial": "14 jours",
     "trialSub": "Essai gratuit",
     "noCommitment": "Sans engagement",
@@ -76,12 +76,12 @@
     "supportIncludedSub": "Assistance 24/7"
   },
   "testimonials": {
-    "title": "Ce que disent nos étudiants",
-    "subtitle": "Découvrez les expériences de ceux qui ont transformé leur carrière avec Stream Éducatif"
+    "title": "Ce que disent nos etudiants",
+    "subtitle": "Decouvrez les experiences de ceux qui ont transforme leur carriere avec Stream Educatif"
   },
   "stats": {
     "students": "50 000+",
-    "studentsLabel": "Étudiants actifs",
+    "studentsLabel": "Etudiants actifs",
     "courses": "500+",
     "coursesLabel": "Cours disponibles",
     "instructors": "200+",

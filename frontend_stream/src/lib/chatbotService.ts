@@ -1,14 +1,83 @@
 import { ChatbotResponse } from '../types/chatbot';
+import { createChatbotService } from './chatbotApiService';
+import {
+  ChatMessage as ApiChatMessage,
+  ChatbotProvider,
+  defaultConfig,
+  isBackendProxyEnabled,
+  isApiKeyConfigured,
+  isStrictApiModeEnabled,
+} from './chatbotConfig';
 
 /**
- * Service de chatbot avec réponses intelligentes
- * Peut être étendu pour intégrer une vraie IA (OpenAI, Claude, etc.)
+ * Service de chatbot avec reponses intelligentes
+ * Peut etre etendu pour integrer une vraie IA (OpenAI, Claude, etc.)
  */
 
 interface ChatContext {
   userRole: 'student' | 'teacher' | 'admin';
   currentPage?: string;
   userName?: string;
+  conversationHistory?: ApiChatMessage[];
+}
+
+let activeProvider: ChatbotProvider = defaultConfig.provider;
+let apiChatbotService = createChatbotService(activeProvider);
+
+function canCallApiProvider(): boolean {
+  if (activeProvider === 'mock') {
+    return false;
+  }
+
+  if (isBackendProxyEnabled()) {
+    return true;
+  }
+
+  return isApiKeyConfigured(activeProvider);
+}
+
+function getConversationHistory(context: ChatContext): ApiChatMessage[] {
+  const history = context.conversationHistory || [];
+  return history
+    .filter((item) => item.role === 'user' || item.role === 'assistant')
+    .slice(-12);
+}
+
+async function waitLocalDelay() {
+  const delay = Math.random() * 1000 + 500;
+  await new Promise((resolve) => setTimeout(resolve, delay));
+}
+
+export function getActiveChatbotProvider(): ChatbotProvider {
+  return activeProvider;
+}
+
+export function switchChatbotProvider(provider: ChatbotProvider, apiKey?: string): void {
+  if (isStrictApiModeEnabled() && provider === 'mock') {
+    console.warn('Strict API mode enabled: mock provider switch ignored.');
+    return;
+  }
+
+  activeProvider = provider;
+  apiChatbotService = createChatbotService(provider, apiKey);
+}
+
+function buildStrictApiUnavailableResponse(): ChatbotResponse {
+  return {
+    message:
+      'Strict API mode is enabled. Configure a real AI provider and valid API key to continue.',
+    source: 'fallback',
+    provider: 'local',
+  };
+}
+
+function buildStrictApiErrorResponse(): ChatbotResponse {
+  return {
+    message:
+      'The AI provider is unavailable right now. Local fallback is blocked in strict API mode. Please retry.',
+    source: 'fallback',
+    provider: 'local',
+  };
 }
 
 // Base de connaissances
@@ -16,18 +85,18 @@ const knowledgeBase = {
   student: {
     enrollment: {
       keywords: ['inscrire', 'inscription', 'cours', 'rejoindre', 'commencer'],
-      response: `Pour vous inscrire à un cours :
+      response: `Pour vous inscrire a un cours :
 1. Parcourez le catalogue des cours
-2. Cliquez sur le cours qui vous intéresse
+2. Cliquez sur le cours qui vous interesse
 3. Cliquez sur le bouton "S'inscrire"
-4. Suivez les instructions de paiement si nécessaire
+4. Suivez les instructions de paiement si necessaire
 
 Souhaitez-vous que je vous guide vers le catalogue de cours ?`
     },
     courses: {
       keywords: ['mes cours', 'cours en cours', 'progression', 'continuer'],
-      response: `Vous pouvez accéder à vos cours depuis :
-- Votre tableau de bord étudiant
+      response: `Vous pouvez acceder a vos cours depuis :
+- Votre tableau de bord etudiant
 - L'onglet "Mes Cours" en haut de la page
 - La section "Continuer l'apprentissage" sur la page d'accueil
 
@@ -37,120 +106,120 @@ Voulez-vous que je vous y dirige ?`
       keywords: ['session live', 'direct', 'streaming', 'rejoindre live'],
       response: `Pour rejoindre une session live :
 1. Allez dans "Sessions Live" depuis le menu
-2. Trouvez la session qui est en cours ou planifiée
+2. Trouvez la session qui est en cours ou planifiee
 3. Cliquez sur "Rejoindre" quand la session commence
 
-Les sessions live sont indiquées par un badge rouge "🔴 Live".`
+Les sessions live sont indiquees par un badge rouge "🔴 Live".`
     },
     certificates: {
-      keywords: ['certificat', 'certification', 'diplôme'],
+      keywords: ['certificat', 'certification', 'diplome'],
       response: `Les certificats sont disponibles une fois que vous avez :
-- Terminé 100% du cours
-- Réussi les quiz avec au moins 70%
-- Participé aux évaluations finales
+- Termine 100% du cours
+- Reussi les quiz avec au moins 70%
+- Participe aux evaluations finales
 
-Vous pouvez les télécharger depuis votre profil, section "Réalisations".`
+Vous pouvez les telecharger depuis votre profil, section "Realisations".`
     }
   },
   teacher: {
     createCourse: {
-      keywords: ['créer cours', 'nouveau cours', 'ajouter cours'],
-      response: `Pour créer un nouveau cours :
+      keywords: ['creer cours', 'nouveau cours', 'ajouter cours'],
+      response: `Pour creer un nouveau cours :
 1. Allez sur votre tableau de bord enseignant
 2. Cliquez sur "Nouveau Cours"
 3. Remplissez les informations (titre, description, niveau)
-4. Ajoutez votre contenu (vidéos, documents, quiz)
+4. Ajoutez votre contenu (videos, documents, quiz)
 5. Publiez le cours
 
-Besoin d'aide avec une étape spécifique ?`
+Besoin d'aide avec une etape specifique ?`
     },
     liveSession: {
-      keywords: ['session live', 'direct', 'streaming', 'créer live'],
-      response: `Pour créer une session live :
+      keywords: ['session live', 'direct', 'streaming', 'creer live'],
+      response: `Pour creer une session live :
 1. Allez dans "Mes Sessions" ou votre dashboard
 2. Cliquez sur "Planifier une Session Live"
-3. Configurez la date, l'heure et le cours associé
-4. Testez votre caméra et micro avant de commencer
-5. Démarrez la session à l'heure prévue
+3. Configurez la date, l'heure et le cours associe
+4. Testez votre camera et micro avant de commencer
+5. Demarrez la session a l'heure prevue
 
-Le système vous guidera pour la configuration technique.`
+Le systeme vous guidera pour la configuration technique.`
     },
     students: {
-      keywords: ['étudiants', 'élèves', 'participants', 'inscrits'],
-      response: `Vous pouvez gérer vos étudiants depuis :
-- Votre dashboard enseignant, onglet "Étudiants"
+      keywords: ['etudiants', 'eleves', 'participants', 'inscrits'],
+      response: `Vous pouvez gerer vos etudiants depuis :
+- Votre dashboard enseignant, onglet "Etudiants"
 - La page de chaque cours, section "Participants"
 
 Vous y trouverez :
-- La liste complète des inscrits
+- La liste complete des inscrits
 - Leur progression
 - Les statistiques d'engagement`
     },
     analytics: {
       keywords: ['statistiques', 'analytics', 'performance', 'revenus'],
       response: `Vos statistiques sont disponibles sur votre dashboard :
-- Nombre total d'étudiants
+- Nombre total d'etudiants
 - Revenus mensuels
 - Note moyenne de vos cours
 - Temps de visionnage
-- Taux de complétion
+- Taux de completion
 
-Toutes les métriques sont mises à jour en temps réel.`
+Toutes les metriques sont mises a jour en temps reel.`
     }
   },
   general: {
     help: {
       keywords: ['aide', 'help', 'aidez-moi', 'besoin d\'aide'],
-      response: `Je suis là pour vous aider ! Voici ce que je peux faire :
+      response: `Je suis la pour vous aider ! Voici ce que je peux faire :
 
-📚 Répondre à vos questions sur l'utilisation de la plateforme
+📚 Repondre a vos questions sur l'utilisation de la plateforme
 🎓 Vous guider dans vos cours et formations
 🎥 Vous aider avec les sessions live
-⚙️ Vous assister avec les paramètres
+⚙ Vous assister avec les parametres
 💬 Vous mettre en contact avec le support
 
 Posez-moi n'importe quelle question !`
     },
     navigation: {
-      keywords: ['aller', 'naviguer', 'accéder', 'où est'],
-      response: `Je peux vous aider à naviguer sur la plateforme. Que cherchez-vous ?
+      keywords: ['aller', 'naviguer', 'acceder', 'ou est'],
+      response: `Je peux vous aider a naviguer sur la plateforme. Que cherchez-vous ?
 - Catalogue de cours
 - Mes cours
 - Sessions live
 - Profil
-- Paramètres
+- Parametres
 - Dashboard
 
-Dites-moi simplement où vous voulez aller.`
+Dites-moi simplement ou vous voulez aller.`
     },
     contact: {
       keywords: ['contact', 'support', 'email', 'aide humaine'],
-      response: `Pour contacter notre équipe :
+      response: `Pour contacter notre equipe :
 - Email : support@stream-educatif.com
 - Formulaire de contact : Menu > Contact
-- Chat en direct : Disponible 24/7 (vous y êtes !)
+- Chat en direct : Disponible 24/7 (vous y etes !)
 
 Pour les urgences techniques, utilisez le formulaire de contact avec la mention "URGENT".`
     },
     settings: {
-      keywords: ['paramètres', 'réglages', 'configuration', 'compte'],
-      response: `Vous pouvez gérer vos paramètres depuis :
-- Votre profil (icône utilisateur en haut à droite)
-- Menu "Paramètres"
+      keywords: ['parametres', 'reglages', 'configuration', 'compte'],
+      response: `Vous pouvez gerer vos parametres depuis :
+- Votre profil (icone utilisateur en haut a droite)
+- Menu "Parametres"
 
 Vous pouvez y modifier :
 - Informations personnelles
-- Préférences de notification
+- Preferences de notification
 - Langue et fuseau horaire
-- Confidentialité
-- Sécurité (mot de passe, 2FA)`
+- Confidentialite
+- Securite (mot de passe, 2FA)`
     }
   }
 };
 
-// Réponses par défaut basées sur le rôle
+// Reponses par defaut basees sur le role
 const defaultResponses = {
-  student: `Je n'ai pas bien compris votre question. En tant qu'étudiant, je peux vous aider avec :
+  student: `Je n'ai pas bien compris votre question. En tant qu'etudiant, je peux vous aider avec :
 - L'inscription aux cours
 - Vos cours en cours
 - Les sessions live
@@ -159,19 +228,19 @@ const defaultResponses = {
 
 Pouvez-vous reformuler votre question ?`,
   teacher: `Je n'ai pas bien compris votre question. En tant qu'enseignant, je peux vous aider avec :
-- La création de cours
+- La creation de cours
 - Les sessions live
-- La gestion des étudiants
+- La gestion des etudiants
 - Les statistiques et revenus
 - La configuration de votre profil
 
-Pouvez-vous préciser votre demande ?`,
-  admin: `En tant qu'administrateur, vous avez accès à toutes les fonctionnalités. Comment puis-je vous assister ?`,
+Pouvez-vous preciser votre demande ?`,
+  admin: `En tant qu'administrateur, vous avez acces a toutes les fonctionnalites. Comment puis-je vous assister ?`,
   default: `Je n'ai pas bien compris. Pouvez-vous reformuler votre question ? Je peux vous aider avec la navigation, les cours, les sessions live, et bien plus encore.`
 };
 
 /**
- * Génère une réponse basée sur le message de l'utilisateur
+ * Genere une reponse basee sur le message de l'utilisateur
  */
 export function generateChatbotResponse(
   message: string,
@@ -185,18 +254,18 @@ export function generateChatbotResponse(
       message: `Bonjour ${context.userName || ''} ! 👋 Comment puis-je vous aider aujourd'hui ?`,
       suggestions: context.userRole === 'student' 
         ? ['Voir mes cours', 'Prochaine session live', 'Aide inscription']
-        : ['Créer un cours', 'Mes statistiques', 'Planifier une session']
+        : ['Creer un cours', 'Mes statistiques', 'Planifier une session']
     };
   }
 
   // Au revoir
-  if (/^(au revoir|bye|à bientôt|merci)/.test(normalizedMessage)) {
+  if (/^(au revoir|bye|a bientot|merci)/.test(normalizedMessage)) {
     return {
-      message: `Au revoir ! N'hésitez pas à revenir si vous avez d'autres questions. Bon apprentissage ! 🎓`
+      message: `Au revoir ! N'hesitez pas a revenir si vous avez d'autres questions. Bon apprentissage ! 🎓`
     };
   }
 
-  // Recherche dans la base de connaissances spécifique au rôle
+  // Recherche dans la base de connaissances specifique au role
   const roleKnowledge = knowledgeBase[context.userRole] || {};
   for (const [category, data] of Object.entries(roleKnowledge)) {
     if (data.keywords.some(keyword => normalizedMessage.includes(keyword))) {
@@ -207,7 +276,7 @@ export function generateChatbotResponse(
     }
   }
 
-  // Recherche dans la base générale
+  // Recherche dans la base generale
   for (const [category, data] of Object.entries(knowledgeBase.general)) {
     if (data.keywords.some(keyword => normalizedMessage.includes(keyword))) {
       return {
@@ -249,7 +318,7 @@ export function generateChatbotResponse(
     };
   }
 
-  // Réponse par défaut
+  // Reponse par defaut
   return {
     message: defaultResponses[context.userRole] || defaultResponses.default,
     suggestions: getDefaultSuggestions(context.userRole)
@@ -264,9 +333,9 @@ function getSuggestions(category: string, role: string): string[] {
     enrollment: ['Aller au catalogue', 'Mes cours', 'Aide'],
     courses: ['Voir mes cours', 'Continuer un cours', 'Certificats'],
     live: ['Voir les lives', 'Planifier un live', 'Aide technique'],
-    createCourse: ['Créer un cours', 'Mes cours', 'Aide'],
+    createCourse: ['Creer un cours', 'Mes cours', 'Aide'],
     liveSession: ['Planifier', 'Mes sessions', 'Guide streaming'],
-    students: ['Voir étudiants', 'Statistiques', 'Exporter données'],
+    students: ['Voir etudiants', 'Statistiques', 'Exporter donnees'],
     help: ['FAQ', 'Contact support', 'Tutoriels'],
     navigation: ['Retour accueil', 'Catalogue', 'Dashboard'],
     contact: ['Envoyer email', 'FAQ', 'Tutoriels']
@@ -276,12 +345,12 @@ function getSuggestions(category: string, role: string): string[] {
 }
 
 /**
- * Suggestions par défaut selon le rôle
+ * Suggestions par defaut selon le role
  */
 function getDefaultSuggestions(role: string): string[] {
   const defaults: Record<string, string[]> = {
     student: ['Mes cours', 'Sessions live', 'Catalogue', 'Aide'],
-    teacher: ['Créer un cours', 'Mes sessions', 'Statistiques', 'Aide'],
+    teacher: ['Creer un cours', 'Mes sessions', 'Statistiques', 'Aide'],
     admin: ['Utilisateurs', 'Statistiques', 'Configuration', 'Aide']
   };
 
@@ -289,15 +358,108 @@ function getDefaultSuggestions(role: string): string[] {
 }
 
 /**
- * Simule un délai de réponse pour un effet plus naturel
+ * Simule un delai de reponse pour un effet plus naturel
  */
 export async function getChatbotResponseAsync(
   message: string,
   context: ChatContext
 ): Promise<ChatbotResponse> {
-  // Simule un délai de réponse (500-1500ms)
-  const delay = Math.random() * 1000 + 500;
-  await new Promise(resolve => setTimeout(resolve, delay));
-  
-  return generateChatbotResponse(message, context);
+  const strictApiMode = isStrictApiModeEnabled();
+
+  if (strictApiMode) {
+    if (!canCallApiProvider()) {
+      return buildStrictApiUnavailableResponse();
+    }
+
+    try {
+      const history = getConversationHistory(context);
+      const roleLabel = context.userRole;
+      const pageLabel = context.currentPage || 'unknown';
+
+      const response = await apiChatbotService.sendMessage({
+        messages: [
+          ...history,
+          {
+            role: 'user',
+            content: `[role=${roleLabel};page=${pageLabel}] ${message}`,
+          },
+        ],
+      });
+
+      const content = response.content?.trim();
+      if (!content) {
+        return buildStrictApiErrorResponse();
+      }
+
+      return {
+        message: content,
+        source: 'api',
+        provider: activeProvider,
+      };
+    } catch (error) {
+      console.warn('Chatbot strict API mode: provider call failed.', error);
+      return buildStrictApiErrorResponse();
+    }
+  }
+
+  const fallbackResponse = generateChatbotResponse(message, context);
+
+  // Keep deterministic navigation actions from local logic.
+  if (fallbackResponse.action) {
+    await waitLocalDelay();
+    return {
+      ...fallbackResponse,
+      source: 'fallback',
+      provider: 'local',
+    };
+  }
+
+  if (!canCallApiProvider()) {
+    await waitLocalDelay();
+    return {
+      ...fallbackResponse,
+      source: 'fallback',
+      provider: 'mock',
+    };
+  }
+
+  try {
+    const history = getConversationHistory(context);
+    const roleLabel = context.userRole;
+    const pageLabel = context.currentPage || 'unknown';
+
+    const response = await apiChatbotService.sendMessage({
+      messages: [
+        ...history,
+        {
+          role: 'user',
+          content: `[role=${roleLabel};page=${pageLabel}] ${message}`,
+        },
+      ],
+    });
+
+    const content = response.content?.trim();
+    if (!content) {
+      return {
+        ...fallbackResponse,
+        source: 'fallback',
+        provider: 'local',
+      };
+    }
+
+    return {
+      message: content,
+      suggestions: fallbackResponse.suggestions,
+      source: 'api',
+      provider: activeProvider,
+    };
+  } catch (error) {
+    console.warn('Chatbot API fallback to local response:', error);
+    await waitLocalDelay();
+    return {
+      ...fallbackResponse,
+      source: 'fallback',
+      provider: 'local',
+    };
+  }
 }

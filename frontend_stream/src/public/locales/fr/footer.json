@@ -1,20 +1,20 @@
 {
   "newsletter": {
-    "title": "Restez informé des dernières nouveautés",
-    "subtitle": "Recevez nos derniers cours, conseils d'apprentissage et offres spéciales directement dans votre boîte mail",
+    "title": "Restez informe des dernieres nouveautes",
+    "subtitle": "Recevez nos derniers cours, conseils d'apprentissage et offres speciales directement dans votre boite mail",
     "placeholder": "Votre adresse email",
     "subscribe": "S'abonner",
-    "privacy": "En vous inscrivant, vous acceptez notre politique de confidentialité",
-    "thanks": "Merci pour votre inscription à notre newsletter !",
-    "error": "Une erreur s'est produite. Veuillez réessayer."
+    "privacy": "En vous inscrivant, vous acceptez notre politique de confidentialite",
+    "thanks": "Merci pour votre inscription a notre newsletter !",
+    "error": "Une erreur s'est produite. Veuillez reessayer."
   },
   "brand": {
-    "description": "La première plateforme d'apprentissage en direct qui connecte les étudiants du monde entier avec les meilleurs instructeurs pour une expérience éducative interactive et personnalisée."
+    "description": "La premiere plateforme d'apprentissage en direct qui connecte les etudiants du monde entier avec les meilleurs instructeurs pour une experience educative interactive et personnalisee."
   },
   "trust": {
     "ssl": "Certification SSL",
-    "iso": "Certifié ISO 27001",
-    "students": "50K+ Étudiants",
+    "iso": "Certifie ISO 27001",
+    "students": "50K+ Etudiants",
     "support": "Support 24/7"
   },
   "courses": {
@@ -23,30 +23,30 @@
     "programming": "Programmation",
     "design": "Design",
     "marketing": "Marketing",
-    "beginner": "Cours débutants",
+    "beginner": "Cours debutants",
     "live": "Sessions live"
   },
   "platform": {
     "title": "Plateforme",
     "becomeInstructor": "Devenir instructeur",
-    "business": "Stream Éducatif Business",
+    "business": "Stream Educatif Business",
     "mobileApp": "Application mobile",
     "helpCenter": "Centre d'aide",
     "blog": "Blog",
-    "careers": "Carrières"
+    "careers": "Carrieres"
   },
   "support": {
     "title": "Support",
     "contact": "Nous contacter",
     "faq": "FAQ",
     "terms": "Conditions d'utilisation",
-    "privacy": "Politique de confidentialité",
-    "accessibility": "Accessibilité"
+    "privacy": "Politique de confidentialite",
+    "accessibility": "Accessibilite"
   },
   "bottom": {
-    "rights": "Tous droits réservés.",
+    "rights": "Tous droits reserves.",
     "version": "Version",
-    "lastUpdate": "Dernière mise à jour",
+    "lastUpdate": "Derniere mise a jour",
     "backToTop": "Haut de page",
     "madeWith": "Fait avec",
     "by": "par"

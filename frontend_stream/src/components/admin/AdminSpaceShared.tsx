@@ -94,7 +94,7 @@ export function useAdminSpaceData(
   options: UseAdminSpaceDataOptions = {},
 ): AdminSpaceData {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
-  const { includeDashboard = true } = options;
+  const { includeDashboard = false } = options;
   const isAdmin = normalizeUserRole(user?.role) === 'admin';
   const shouldLoad = Boolean(isAuthenticated && isAdmin && user?.id);
   const shouldLoadDashboard = shouldLoad && includeDashboard;

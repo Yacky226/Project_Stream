@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from './redux';
 import {
   clearError,
@@ -63,62 +63,6 @@ export const useAuth = () => {
     registerTeacherState.isLoading ||
     forgotPasswordState.isLoading ||
     resetPasswordState.isLoading;
-
-  useEffect(() => {
-    if (!auth.isAuthenticated || !auth.sessionExpiry || !auth.refreshToken) {
-      return;
-    }
-
-    const refreshBuffer = 5 * 60 * 1000;
-    const timeUntilRefresh = auth.sessionExpiry - Date.now() - refreshBuffer;
-
-    const triggerRefresh = () => {
-      refreshTokenMutation({ refreshToken: auth.refreshToken as string })
-        .unwrap()
-        .catch(() => {
-          dispatch(logoutAction());
-        });
-    };
-
-    if (timeUntilRefresh <= 0) {
-      triggerRefresh();
-      return;
-    }
-
-    const timer = setTimeout(triggerRefresh, timeUntilRefresh);
-    return () => clearTimeout(timer);
-  }, [auth.isAuthenticated, auth.refreshToken, auth.sessionExpiry, dispatch, refreshTokenMutation]);
-
-  useEffect(() => {
-    if (!auth.isBlocked) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      dispatch(checkBlockStatus());
-    }, 60_000);
-
-    return () => clearInterval(interval);
-  }, [auth.isBlocked, dispatch]);
-
-  useEffect(() => {
-    const updateActivity = () => {
-      if (auth.isAuthenticated) {
-        dispatch(updateLastActivity());
-      }
-    };
-
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    events.forEach((event) => {
-      document.addEventListener(event, updateActivity, { passive: true });
-    });
-
-    return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, updateActivity);
-      });
-    };
-  }, [auth.isAuthenticated, dispatch]);
 
   const login = useCallback(
     async (credentials: LoginCredentials) => {
@@ -276,4 +220,70 @@ export const useAuth = () => {
     getCurrentUser,
     hasRole,
   };
+};
+
+/**
+ * Runtime auth lifecycle effects.
+ * This hook should be mounted once at app root to prevent duplicate timers/listeners.
+ */
+export const useAuthLifecycle = () => {
+  const dispatch = useAppDispatch();
+  const auth = useAppSelector(selectAuthState);
+  const [refreshTokenMutation] = useRefreshTokenMutation();
+
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.sessionExpiry || !auth.refreshToken) {
+      return;
+    }
+
+    const refreshBuffer = 5 * 60 * 1000;
+    const timeUntilRefresh = auth.sessionExpiry - Date.now() - refreshBuffer;
+
+    const triggerRefresh = () => {
+      refreshTokenMutation({ refreshToken: auth.refreshToken as string })
+        .unwrap()
+        .catch(() => {
+          dispatch(logoutAction());
+        });
+    };
+
+    if (timeUntilRefresh <= 0) {
+      triggerRefresh();
+      return;
+    }
+
+    const timer = setTimeout(triggerRefresh, timeUntilRefresh);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, auth.refreshToken, auth.sessionExpiry, dispatch, refreshTokenMutation]);
+
+  useEffect(() => {
+    if (!auth.isBlocked) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      dispatch(checkBlockStatus());
+    }, 60_000);
+
+    return () => clearInterval(interval);
+  }, [auth.isBlocked, dispatch]);
+
+  useEffect(() => {
+    const updateActivity = () => {
+      if (auth.isAuthenticated) {
+        dispatch(updateLastActivity());
+      }
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach((event) => {
+      document.addEventListener(event, updateActivity, { passive: true });
+    });
+
+    return () => {
+      events.forEach((event) => {
+        document.removeEventListener(event, updateActivity);
+      });
+    };
+  }, [auth.isAuthenticated, dispatch]);
 };

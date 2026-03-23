@@ -76,7 +76,7 @@ export function SettingsPage({ onNavigate, currentPath }: SettingsPageProps) {
   const { t, setLanguage: setI18nLanguage } = useTranslation();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const studentShared = useStudentSpaceData({ includeDashboard: false });
-  const teacherShared = useTeacherSpaceData();
+  const teacherShared = useTeacherSpaceData({ includeDashboard: false });
   const adminShared = useAdminSpaceData({ includeDashboard: false });
   const normalizedRole = normalizeUserRole(user?.role);
   const isStudentAccountPage = normalizedRole === 'student';

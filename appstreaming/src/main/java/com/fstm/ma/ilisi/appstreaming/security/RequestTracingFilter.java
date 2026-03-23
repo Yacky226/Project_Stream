@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -24,11 +25,20 @@ import java.util.UUID;
 public class RequestTracingFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestTracingFilter.class);
+    private static final Set<String> NOISY_LOCAL_PROBE_PATHS = Set.of(
+            "/v2/message-subscriptions/search",
+            "/v2/process-definitions/search");
     
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String MDC_TRACE_ID = "traceId";
     public static final String MDC_CLIENT_IP = "clientIp";
     public static final String MDC_USER = "user";
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return NOISY_LOCAL_PROBE_PATHS.contains(path);
+    }
 
     @Override
     protected void doFilterInternal(

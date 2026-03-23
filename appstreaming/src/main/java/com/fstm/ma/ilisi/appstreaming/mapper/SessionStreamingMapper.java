@@ -27,6 +27,7 @@ public class SessionStreamingMapper {
         dto.setStatus(session.getStatus());
         dto.setResolution(session.getResolution());
         dto.setBroadcastType(session.getBroadcastType());
+        dto.setMetadataJson(session.getMetadataJson());
         
         // Gestion des relations
         if (session.getCours() != null) {
@@ -55,6 +56,7 @@ public class SessionStreamingMapper {
         session.setStatus(dto.getStatus() != null ? dto.getStatus() : StreamStatus.CREATED);
         session.setResolution(dto.getResolution());
         session.setBroadcastType(dto.getBroadcastType());
+        session.setMetadataJson(dto.getMetadataJson());
         
         // Gestion des relations
         session.setCours(cours);

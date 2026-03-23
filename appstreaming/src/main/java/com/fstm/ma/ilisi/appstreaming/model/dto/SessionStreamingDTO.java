@@ -34,6 +34,7 @@ public class SessionStreamingDTO {
     private StreamStatus status;
     private String resolution;
     private String broadcastType;
+    private String metadataJson;
 
     // Méthodes utilitaires
     public boolean isLive() {

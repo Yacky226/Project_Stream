@@ -24,235 +24,37 @@ import {
   useGetTeacherCoursesQuery,
 } from '../../store/api/liveApi';
 import type { LiveCourse } from '../../types/live';
-import { toLocalDateTimeInput } from '../live/liveSession.utils';
 import {
   TeacherSpaceShell,
   TeacherSpaceStatus,
   useTeacherSpaceData,
 } from '../teacher/TeacherSpaceShared';
+import {
+  CATEGORY_OPTIONS,
+  CURRENCY_OPTIONS,
+  LIVE_BUILDER_STORAGE_KEY,
+  RESOLUTION_OPTIONS,
+  TARGET_LEVEL_OPTIONS,
+  broadcastLabel,
+  createDefaultDraft,
+  formatSchedule,
+  persistSessionMetadata,
+  progressForStep,
+  stepDescription,
+  stepFromPath,
+  stepLabel,
+  stepToPath,
+  validateStepOne,
+  validateStepThree,
+  type AudienceLevel,
+  type BuilderStep,
+  type LiveBuilderDraft,
+  type PricingMode,
+} from '../teacher/live-session-builder/liveSessionBuilder.utils';
 
 interface LiveSessionBuilderPageProps {
   onNavigate: (path: string) => void;
   currentPath?: string;
-}
-
-type BuilderStep = 1 | 2 | 3;
-type SessionMode = 'new' | 'existing';
-type StreamType = 'rtmp' | 'browser' | 'zoom';
-type VisibilityMode = 'public' | 'private';
-type AudienceLevel = 'all' | 'beginner' | 'intermediate' | 'advanced';
-type PricingMode = 'free' | 'paid';
-
-interface LiveBuilderDraft {
-  step: BuilderStep;
-  sessionMode: SessionMode;
-  selectedCourseId: string;
-  title: string;
-  description: string;
-  category: string;
-  scheduledAt: string;
-  thumbnailName: string;
-  streamType: StreamType;
-  enableLiveChat: boolean;
-  enableQnaModeration: boolean;
-  allowReactions: boolean;
-  recordingEnabled: boolean;
-  cloudBackup: boolean;
-  visibility: VisibilityMode;
-  resolution: string;
-  targetLevel: AudienceLevel;
-  maxParticipants: string;
-  unlimitedParticipants: boolean;
-  prerequisites: string[];
-  pricingMode: PricingMode;
-  currency: string;
-  basePrice: string;
-  earlyBirdEnabled: boolean;
-  earlyBirdDiscount: string;
-}
-
-interface LocalSessionMetadata {
-  savedAt: string;
-  mode: SessionMode;
-  title: string;
-  description: string;
-  category: string;
-  thumbnailName: string;
-  streamType: StreamType;
-  enableLiveChat: boolean;
-  enableQnaModeration: boolean;
-  allowReactions: boolean;
-  cloudBackup: boolean;
-  visibility: VisibilityMode;
-  targetLevel: AudienceLevel;
-  maxParticipants: string;
-  unlimitedParticipants: boolean;
-  prerequisites: string[];
-  pricingMode: PricingMode;
-  currency: string;
-  basePrice: string;
-  earlyBirdEnabled: boolean;
-  earlyBirdDiscount: string;
-  linkedCourseId: string;
-  linkedCourseTitle: string | null;
-}
-
-const LIVE_BUILDER_STORAGE_KEY = 'teacher-live-builder-draft-v1';
-const LIVE_BUILDER_METADATA_KEY = 'teacher-live-session-metadata-v1';
-const CATEGORY_OPTIONS = [
-  'Science & Technology',
-  'Mathematics',
-  'Humanities',
-  'Business & Economics',
-  'Arts & Design',
-  'Development',
-  'Design',
-  'Marketing',
-];
-const RESOLUTION_OPTIONS = ['720p', '1080p', '1440p'];
-const CURRENCY_OPTIONS = ['USD', 'EUR', 'GBP'];
-const TARGET_LEVEL_OPTIONS: Array<{ value: AudienceLevel; label: string }> = [
-  { value: 'all', label: 'All levels' },
-  { value: 'beginner', label: 'Beginner only' },
-  { value: 'intermediate', label: 'Intermediate only' },
-  { value: 'advanced', label: 'Advanced only' },
-];
-
-function createDefaultDraft(): LiveBuilderDraft {
-  const targetDate = new Date(Date.now() + 48 * 60 * 60 * 1000);
-
-  return {
-    step: 1,
-    sessionMode: 'new',
-    selectedCourseId: '',
-    title: '',
-    description: '',
-    category: 'Science & Technology',
-    scheduledAt: toLocalDateTimeInput(targetDate.toISOString()),
-    thumbnailName: '',
-    streamType: 'rtmp',
-    enableLiveChat: true,
-    enableQnaModeration: false,
-    allowReactions: true,
-    recordingEnabled: true,
-    cloudBackup: true,
-    visibility: 'public',
-    resolution: '1080p',
-    targetLevel: 'all',
-    maxParticipants: '50',
-    unlimitedParticipants: false,
-    prerequisites: ['Basic communication', 'Stable internet connection'],
-    pricingMode: 'free',
-    currency: 'USD',
-    basePrice: '',
-    earlyBirdEnabled: true,
-    earlyBirdDiscount: '20',
-  };
-}
-
-function persistSessionMetadata(sessionId: string, metadata: LocalSessionMetadata) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(LIVE_BUILDER_METADATA_KEY);
-    const existing = raw ? (JSON.parse(raw) as Record<string, LocalSessionMetadata>) : {};
-    const nextEntries = Object.entries({ [sessionId]: metadata, ...existing }).slice(0, 20);
-    window.localStorage.setItem(
-      LIVE_BUILDER_METADATA_KEY,
-      JSON.stringify(Object.fromEntries(nextEntries)),
-    );
-  } catch {
-    // Best effort local persistence only.
-  }
-}
-
-function formatSchedule(value: string) {
-  if (!value) return 'Not scheduled yet';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Not scheduled yet';
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
-
-function broadcastLabel(streamType: StreamType) {
-  if (streamType === 'rtmp') return 'RTMP';
-  if (streamType === 'zoom') return 'Zoom';
-  return 'WebRTC';
-}
-
-function stepLabel(step: BuilderStep) {
-  if (step === 1) return 'Basic Information';
-  if (step === 2) return 'Technical Setup';
-  return 'Audience & Pricing';
-}
-
-function stepDescription(step: BuilderStep) {
-  if (step === 1) return 'Define the public-facing basics of your session.';
-  if (step === 2) return 'Choose how you will broadcast and manage interactivity.';
-  return 'Set audience rules before publishing the live session.';
-}
-
-function progressForStep(step: BuilderStep) {
-  if (step === 1) return 33;
-  if (step === 2) return 66;
-  return 100;
-}
-
-function stepToPath(step: BuilderStep) {
-  if (step === 2) return '/teacher/live-session-builder/technical';
-  if (step === 3) return '/teacher/live-session-builder/audience';
-  return '/teacher/live-session-builder';
-}
-
-function stepFromPath(path?: string): BuilderStep {
-  if (path?.includes('/teacher/live-session-builder/audience')) return 3;
-  if (path?.includes('/teacher/live-session-builder/technical')) return 2;
-  return 1;
-}
-
-function validateStepOne(draft: LiveBuilderDraft) {
-  if (draft.sessionMode === 'existing' && !draft.selectedCourseId) {
-    return 'Select an existing course before moving to technical setup.';
-  }
-  if (!draft.title.trim()) {
-    return draft.sessionMode === 'new'
-      ? 'Add a title for the course and first live session.'
-      : 'Add a session title for your audience.';
-  }
-  if (!draft.description.trim()) return 'Add a short description so learners know what to expect.';
-  if (!draft.category) return 'Choose a category for this session.';
-  if (!draft.scheduledAt) return 'Choose the date and time of the live session.';
-  return null;
-}
-
-function validateStepThree(draft: LiveBuilderDraft) {
-  if (!draft.unlimitedParticipants) {
-    const limit = Number(draft.maxParticipants);
-    if (!Number.isFinite(limit) || limit <= 0) {
-      return 'Set a valid participant limit or enable unlimited capacity.';
-    }
-  }
-  if (draft.pricingMode === 'paid') {
-    const price = Number(draft.basePrice);
-    if (!Number.isFinite(price) || price <= 0) {
-      return 'Set a valid price before publishing a paid session.';
-    }
-  }
-  if (draft.earlyBirdEnabled) {
-    const discount = Number(draft.earlyBirdDiscount);
-    if (!Number.isFinite(discount) || discount <= 0 || discount >= 100) {
-      return 'Early bird discount must stay between 1% and 99%.';
-    }
-  }
-  return null;
 }
 
 export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionBuilderPageProps) {
@@ -467,6 +269,31 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         recordingEnabled: draft.recordingEnabled,
         resolution: draft.resolution,
         broadcastType: broadcastLabel(draft.streamType),
+        metadata: {
+          savedAt: new Date().toISOString(),
+          mode: draft.sessionMode,
+          title: draft.title.trim(),
+          description: draft.description.trim(),
+          category: draft.category,
+          thumbnailName: draft.thumbnailName,
+          streamType: draft.streamType,
+          enableLiveChat: draft.enableLiveChat,
+          enableQnaModeration: draft.enableQnaModeration,
+          allowReactions: draft.allowReactions,
+          cloudBackup: draft.cloudBackup,
+          visibility: draft.visibility,
+          targetLevel: draft.targetLevel,
+          maxParticipants: draft.maxParticipants,
+          unlimitedParticipants: draft.unlimitedParticipants,
+          prerequisites: draft.prerequisites,
+          pricingMode: draft.pricingMode,
+          currency: draft.currency,
+          basePrice: draft.basePrice,
+          earlyBirdEnabled: draft.earlyBirdEnabled,
+          earlyBirdDiscount: draft.earlyBirdDiscount,
+          linkedCourseId: String(courseId),
+          linkedCourseTitle,
+        },
       }).unwrap();
 
       persistSessionMetadata(createdSession.id, {
@@ -500,7 +327,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
       }
 
       setStatusMessage(
-        'Live session published. Course and session are saved in the backend. Redirecting to the studio...',
+        'Live session published. Core settings and advanced metadata are saved in the backend. Redirecting to the studio...',
       );
       onNavigate(`/teacher/live/${courseId}/${createdSession.id}`);
     } catch (error) {
@@ -725,7 +552,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
           <div className="flex gap-4 rounded-2xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-4">
             <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#1152d4]" />
             <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              This information will power the course creation flow and the live session publishing call. Thumbnail, audience and pricing details are saved locally for now because the backend does not expose dedicated live metadata fields yet.
+              This information powers course creation and live publishing. Thumbnail, audience and pricing details are now persisted in backend metadata as well.
             </p>
           </div>
         </div>
@@ -1217,7 +1044,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
             <div className="flex gap-3">
               <Info className="h-5 w-5 shrink-0 text-[#1152d4]" />
               <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                Audience, pricing, thumbnail and moderation preferences are stored locally alongside the created session. The live itself is published for real through the existing backend create course / create session endpoints.
+                Audience, pricing, thumbnail and moderation preferences are now persisted in backend metadata together with the created session.
               </p>
             </div>
           </div>
@@ -1232,7 +1059,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
       onNavigate={(path) => onNavigate(typeof path === 'number' ? String(path) : path)}
       showSearch={false}
       headerTitle="Live Session Builder"
-      headerDescription="Planifiez et publiez vos sessions live depuis le même cadre visuel que votre dashboard enseignant."
+      headerDescription="Planifiez et publiez vos sessions live depuis le meme cadre visuel que votre dashboard enseignant."
       displayName={teacherShared.displayName}
       displayRole={teacherShared.displayRole}
       initials={teacherShared.initials}
@@ -1292,7 +1119,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               Save as draft
             </button>
             <p className="hidden text-xs text-slate-500 dark:text-slate-400 lg:block">
-              Unsupported live metadata is saved locally until dedicated backend fields are available.
+              A local backup is kept, but advanced live metadata is now synchronized to the backend.
             </p>
           </div>
 

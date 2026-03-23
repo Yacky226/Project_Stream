@@ -7,11 +7,11 @@ const initialState: ChatbotState = {
   sessions: [],
   isTyping: false,
   quickActions: [
-    { id: '1', label: 'Comment puis-je m\'inscrire à un cours ?', action: 'help_enroll', roles: ['student'] },
-    { id: '2', label: 'Où voir mes cours en cours ?', action: 'navigate_courses', roles: ['student'] },
-    { id: '3', label: 'Comment créer une session live ?', action: 'help_create_live', roles: ['teacher'] },
+    { id: '1', label: 'Comment puis-je m\'inscrire a un cours ?', action: 'help_enroll', roles: ['student'] },
+    { id: '2', label: 'Ou voir mes cours en cours ?', action: 'navigate_courses', roles: ['student'] },
+    { id: '3', label: 'Comment creer une session live ?', action: 'help_create_live', roles: ['teacher'] },
     { id: '4', label: 'Voir mes statistiques', action: 'navigate_stats', roles: ['teacher'] },
-    { id: '5', label: 'Aide pour les paramètres', action: 'help_settings' },
+    { id: '5', label: 'Aide pour les parametres', action: 'help_settings' },
     { id: '6', label: 'Contacter le support', action: 'contact_support' }
   ]
 };
@@ -66,14 +66,30 @@ const chatbotSlice = createSlice({
         state.isTyping = true;
       }
     },
-    addAssistantMessage: (state, action: PayloadAction<string>) => {
+    addAssistantMessage: (
+      state,
+      action: PayloadAction<
+        | string
+        | {
+            content: string;
+            source?: 'api' | 'fallback';
+            provider?: 'openai' | 'anthropic' | 'gemini' | 'mock' | 'local';
+          }
+      >,
+    ) => {
       if (state.currentSession) {
         const now = Date.now();
+        const payload =
+          typeof action.payload === 'string'
+            ? { content: action.payload }
+            : action.payload;
         const newMessage: ChatMessage = {
           id: `msg_${now}_asst`,
-          content: action.payload,
+          content: payload.content,
           role: 'assistant',
-          timestamp: now
+          timestamp: now,
+          source: payload.source,
+          provider: payload.provider,
         };
         state.currentSession.messages.push(newMessage);
         state.currentSession.updatedAt = now;

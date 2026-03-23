@@ -4,6 +4,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   timestamp: number; // Unix timestamp instead of Date
   isTyping?: boolean;
+  source?: 'api' | 'fallback';
+  provider?: 'openai' | 'anthropic' | 'gemini' | 'mock' | 'local';
 }
 
 export interface ChatSession {
@@ -42,4 +44,6 @@ export interface ChatbotResponse {
     type: 'navigate' | 'openModal' | 'customAction';
     payload: any;
   };
+  source?: 'api' | 'fallback';
+  provider?: 'openai' | 'anthropic' | 'gemini' | 'mock' | 'local';
 }

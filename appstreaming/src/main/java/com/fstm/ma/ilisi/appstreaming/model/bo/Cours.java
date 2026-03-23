@@ -52,6 +52,9 @@ public class Cours implements Serializable {
 	@Column
 	private Integer dureeEstimeeHeures;
 
+	@Column(columnDefinition = "TEXT")
+	private String metadataJson;
+
 	@Column(nullable = false, columnDefinition = "timestamp default current_timestamp")
 	private LocalDateTime dateCreation = LocalDateTime.now();
 

@@ -10,7 +10,7 @@ interface PageContainerProps {
 
 /**
  * Container responsive standard pour toutes les pages
- * Gère automatiquement le padding et max-width
+ * Gere automatiquement le padding et max-width
  */
 export function PageContainer({ 
   children, 

@@ -68,7 +68,7 @@ export function NotificationsPage({
   const { isAuthenticated, user } = useAuth();
   const { isDark } = useResolvedTheme();
   const studentShared = useStudentSpaceData({ includeDashboard: false });
-  const teacherShared = useTeacherSpaceData();
+  const teacherShared = useTeacherSpaceData({ includeDashboard: false });
   const adminShared = useAdminSpaceData({ includeDashboard: false });
   const role = normalizeUserRole(user?.role);
   const [searchQuery, setSearchQuery] = useState('');

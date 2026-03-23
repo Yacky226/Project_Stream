@@ -66,6 +66,8 @@ public class SecurityConfig {
                                 "/api/Uploads/photos/**",
                                 "/api/webhook/antmedia",
                                 "/hls/**",
+                                "/v2/message-subscriptions/search",
+                                "/v2/process-definitions/search",
                                 "/ws-stream/**")
                         .permitAll()
 

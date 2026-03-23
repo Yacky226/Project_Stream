@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, ShieldAlert, UserPlus, Users } from 'lucide-react';
 import { UserManagementTab } from '../admin/users/UserManagementTab';
 import { AdminSpaceShell, AdminSpaceStatus, useAdminSpaceData } from '../admin/AdminSpaceShared';
+import { AdminKpiCard, AdminPageIntro } from '../admin/AdminPageSections';
 
 interface AdminUsersPageProps {
   onNavigate: (path: string) => void;
@@ -17,7 +18,7 @@ function compact(value: number) {
 
 export function AdminUsersPage({ onNavigate, currentPath }: AdminUsersPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const shared = useAdminSpaceData();
+  const shared = useAdminSpaceData({ includeDashboard: true });
 
   if (shared.status !== 'ready') {
     return <AdminSpaceStatus shared={shared} />;
@@ -63,20 +64,11 @@ export function AdminUsersPage({ onNavigate, currentPath }: AdminUsersPageProps)
       unreadCount={shared.unreadCount}
     >
       <div className="space-y-8">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1152d4]">
-              Platform access control
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-              User Management
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-300">
-              Manage, monitor, and configure platform access for students, teachers, and administrators. Detailed creation, edition, activation, and export actions are available in the operational table below.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
+        <AdminPageIntro
+          eyebrow="Platform access control"
+          title="User Management"
+          description="Manage, monitor, and configure platform access for students, teachers, and administrators. Detailed creation, edition, activation, and export actions are available in the operational table below."
+          actions={
             <button
               type="button"
               onClick={() => document.getElementById('admin-users-operations')?.scrollIntoView({ behavior: 'smooth' })}
@@ -84,8 +76,8 @@ export function AdminUsersPage({ onNavigate, currentPath }: AdminUsersPageProps)
             >
               Open user operations
             </button>
-          </div>
-        </section>
+          }
+        />
 
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {[
@@ -93,23 +85,15 @@ export function AdminUsersPage({ onNavigate, currentPath }: AdminUsersPageProps)
             { title: 'Teachers', value: compact(stats.totalTeachers), meta: `${compact(stats.totalCourses)} active courses`, icon: Users },
             { title: 'Admins', value: compact(stats.totalAdmins), meta: 'governance layer', icon: ShieldAlert },
             { title: 'New Signups', value: compact(stats.monthlyNewUsers), meta: `${compact(stats.monthlyEnrollments)} enrollments`, icon: UserPlus },
-          ].map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="rounded-2xl bg-[#1152d4]/10 p-3 text-[#1152d4]">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                    {card.meta}
-                  </span>
-                </div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{card.title}</p>
-                <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{card.value}</h3>
-              </div>
-            );
-          })}
+          ].map((card) => (
+            <AdminKpiCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              meta={card.meta}
+              icon={card.icon}
+            />
+          ))}
         </section>
 
         <section id="admin-users-operations" className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">

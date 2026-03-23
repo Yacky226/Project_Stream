@@ -108,7 +108,7 @@ export function useTeacherSpaceData(
   options: UseTeacherSpaceDataOptions = {},
 ): TeacherSpaceData {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { includeDashboard = true } = options;
+  const { includeDashboard = false } = options;
   const isTeacher = normalizeUserRole(user?.role) === 'teacher';
   const shouldLoad = Boolean(isAuthenticated && isTeacher && user?.id);
   const shouldLoadDashboard = shouldLoad && includeDashboard;

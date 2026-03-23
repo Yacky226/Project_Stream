@@ -14,8 +14,15 @@ import { matchRoute, canAccessRoute, getRouteMeta } from './lib/routes';
 import { configUtils } from './lib/config';
 import { LoadingSpinner } from './components/ui/loading-spinner';
 import { normalizeUserRole } from './lib/roleUtils';
+import { useAuthLifecycle } from './hooks/useAuth';
+
+function removeDiacritics(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
 function AppContent() {
+  useAuthLifecycle();
+
   const { currentPath, navigate } = useRouter();
   const dispatch = useAppDispatch();
   const { theme } = useAppSelector(state => state.ui);
@@ -122,7 +129,7 @@ function AppContent() {
     
     // Update page title based on route
     const routeMeta = getRouteMeta(currentPath);
-    document.title = routeMeta.title;
+    document.title = removeDiacritics(routeMeta.title);
     
     // Update meta description
     const metaDescription = document.querySelector('meta[name="description"]');

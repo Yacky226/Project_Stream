@@ -21,6 +21,8 @@ public class CoursDetailsDTO {
     private String imageUrl;
     
     private Integer dureeEstimeeHeures;
+
+    private String metadataJson;
     
     private LocalDateTime dateCreation;
     

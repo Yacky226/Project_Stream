@@ -31,13 +31,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="text-center max-w-md">
             <h2 className="text-xl font-semibold mb-4">Une erreur est survenue</h2>
             <p className="text-muted-foreground mb-4">
-              Quelque chose s'est mal passé. Veuillez rafraîchir la page.
+              Quelque chose s'est mal passe. Veuillez rafraichir la page.
             </p>
             <button 
               onClick={() => window.location.reload()}
               className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90"
             >
-              Rafraîchir la page
+              Rafraichir la page
             </button>
           </div>
         </div>

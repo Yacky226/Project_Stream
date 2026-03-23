@@ -15,90 +15,90 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
     {
       id: 'acceptance',
       title: '1. Acceptation des conditions',
-      content: `En accédant et en utilisant Stream Éducatif, vous acceptez d'être lié par ces conditions d'utilisation. Si vous n'acceptez pas toutes les conditions énoncées, vous ne pouvez pas utiliser nos services.`
+      content: `En accedant et en utilisant Stream Educatif, vous acceptez d'etre lie par ces conditions d'utilisation. Si vous n'acceptez pas toutes les conditions enoncees, vous ne pouvez pas utiliser nos services.`
     },
     {
       id: 'definitions',
-      title: '2. Définitions',
+      title: '2. Definitions',
       content: `
-• "Service" désigne la plateforme Stream Éducatif et tous ses services associés
-• "Utilisateur" désigne toute personne qui accède ou utilise nos services
-• "Contenu" désigne tout matériel publié sur notre plateforme
-• "Compte" désigne votre compte utilisateur sur notre plateforme`
+• "Service" designe la plateforme Stream Educatif et tous ses services associes
+• "Utilisateur" designe toute personne qui accede ou utilise nos services
+• "Contenu" designe tout materiel publie sur notre plateforme
+• "Compte" designe votre compte utilisateur sur notre plateforme`
     },
     {
       id: 'registration',
       title: '3. Inscription et compte utilisateur',
-      content: `Pour utiliser certaines fonctionnalités, vous devez créer un compte. Vous êtes responsable de :
-• Fournir des informations exactes et complètes
-• Maintenir la sécurité de votre mot de passe
-• Toutes les activités effectuées sous votre compte
-• Nous informer immédiatement de toute utilisation non autorisée`
+      content: `Pour utiliser certaines fonctionnalites, vous devez creer un compte. Vous etes responsable de :
+• Fournir des informations exactes et completes
+• Maintenir la securite de votre mot de passe
+• Toutes les activites effectuees sous votre compte
+• Nous informer immediatement de toute utilisation non autorisee`
     },
     {
       id: 'usage',
       title: '4. Utilisation acceptable',
-      content: `Vous vous engagez à :
-• Utiliser nos services conformément à la loi
+      content: `Vous vous engagez a :
+• Utiliser nos services conformement a la loi
 • Respecter les droits d'autrui
-• Ne pas porter atteinte à la sécurité de nos systèmes
-• Ne pas utiliser notre service à des fins commerciales sans autorisation
+• Ne pas porter atteinte a la securite de nos systemes
+• Ne pas utiliser notre service a des fins commerciales sans autorisation
 • Ne pas partager vos identifiants de connexion`
     },
     {
       id: 'content',
-      title: '5. Contenu et propriété intellectuelle',
+      title: '5. Contenu et propriete intellectuelle',
       content: `
-• Tout le contenu de la plateforme est protégé par des droits d'auteur
+• Tout le contenu de la plateforme est protege par des droits d'auteur
 • Vous ne pouvez pas reproduire, distribuer ou modifier notre contenu sans autorisation
 • En publiant du contenu, vous nous accordez une licence d'utilisation
-• Vous restez propriétaire du contenu que vous créez`
+• Vous restez proprietaire du contenu que vous creez`
     },
     {
       id: 'payments',
       title: '6. Paiements et remboursements',
       content: `
-• Les prix sont indiqués en euros TTC
-• Les paiements sont traités de manière sécurisée
+• Les prix sont indiques en euros TTC
+• Les paiements sont traites de maniere securisee
 • Politique de remboursement de 30 jours pour les cours
 • Les frais de traitement ne sont pas remboursables
-• Nous nous réservons le droit de modifier nos prix`
+• Nous nous reservons le droit de modifier nos prix`
     },
     {
       id: 'privacy',
-      title: '7. Protection des données',
-      content: `Nous nous engageons à protéger vos données personnelles conformément au RGPD. Consultez notre politique de confidentialité pour plus de détails sur la collecte, l'utilisation et la protection de vos données.`
+      title: '7. Protection des donnees',
+      content: `Nous nous engageons a proteger vos donnees personnelles conformement au RGPD. Consultez notre politique de confidentialite pour plus de details sur la collecte, l'utilisation et la protection de vos donnees.`
     },
     {
       id: 'termination',
-      title: '8. Résiliation',
+      title: '8. Resiliation',
       content: `
-• Vous pouvez supprimer votre compte à tout moment
-• Nous pouvons suspendre ou résilier votre compte en cas de violation
-• Certaines clauses survivent à la résiliation
-• Les données peuvent être conservées selon nos obligations légales`
+• Vous pouvez supprimer votre compte a tout moment
+• Nous pouvons suspendre ou resilier votre compte en cas de violation
+• Certaines clauses survivent a la resiliation
+• Les donnees peuvent etre conservees selon nos obligations legales`
     },
     {
       id: 'liability',
-      title: '9. Limitation de responsabilité',
+      title: '9. Limitation de responsabilite',
       content: `
-• Nos services sont fournis "en l'état"
+• Nos services sont fournis "en l'etat"
 • Nous ne garantissons pas un service ininterrompu
-• Notre responsabilité est limitée dans la mesure permise par la loi
-• Vous utilisez nos services à vos propres risques`
+• Notre responsabilite est limitee dans la mesure permise par la loi
+• Vous utilisez nos services a vos propres risques`
     },
     {
       id: 'modifications',
       title: '10. Modifications des conditions',
-      content: `Nous nous réservons le droit de modifier ces conditions à tout moment. Les modifications importantes seront notifiées par email ou sur la plateforme. L'utilisation continue de nos services constitue une acceptation des nouvelles conditions.`
+      content: `Nous nous reservons le droit de modifier ces conditions a tout moment. Les modifications importantes seront notifiees par email ou sur la plateforme. L'utilisation continue de nos services constitue une acceptation des nouvelles conditions.`
     },
     {
       id: 'contact',
       title: '11. Contact',
-      content: `Pour toute question concernant ces conditions d'utilisation, contactez-nous à :
+      content: `Pour toute question concernant ces conditions d'utilisation, contactez-nous a :
 • Email : legal@stream-educatif.fr
 • Adresse : 123 Avenue de l'Innovation, 75001 Paris, France
-• Téléphone : +33 1 23 45 67 89`
+• Telephone : +33 1 23 45 67 89`
     }
   ];
 
@@ -110,7 +110,7 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl mb-4">Conditions d'utilisation</h1>
             <p className="text-xl text-blue-100">
-              Dernière mise à jour : 15 janvier 2024
+              Derniere mise a jour : 15 janvier 2024
             </p>
           </div>
         </div>
@@ -170,7 +170,7 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
                   <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      Mis à jour le 15 janvier 2024
+                      Mis a jour le 15 janvier 2024
                     </div>
                     <div className="flex items-center">
                       <Shield className="w-4 h-4 mr-1" />
@@ -178,9 +178,9 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
                     </div>
                   </div>
                   <p className="text-muted-foreground">
-                    Bienvenue sur Stream Éducatif. Ces conditions d'utilisation régissent votre accès 
+                    Bienvenue sur Stream Educatif. Ces conditions d'utilisation regissent votre acces 
                     et votre utilisation de notre plateforme d'apprentissage en ligne. En utilisant nos 
-                    services, vous acceptez ces conditions dans leur intégralité.
+                    services, vous acceptez ces conditions dans leur integralite.
                   </p>
                 </div>
 
@@ -206,7 +206,7 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
                   <h3 className="font-semibold mb-4">Questions sur ces conditions ?</h3>
                   <p className="text-muted-foreground mb-4">
                     Si vous avez des questions concernant ces conditions d'utilisation, 
-                    n'hésitez pas à nous contacter.
+                    n'hesitez pas a nous contacter.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button onClick={() => onNavigate('/contact')}>
@@ -216,7 +216,7 @@ export function TermsPage({ onNavigate }: TermsPageProps) {
                       variant="outline" 
                       onClick={() => onNavigate('/privacy')}
                     >
-                      Politique de confidentialité
+                      Politique de confidentialite
                     </Button>
                     <Button 
                       variant="outline" 

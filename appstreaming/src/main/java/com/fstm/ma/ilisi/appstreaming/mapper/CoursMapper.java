@@ -17,6 +17,9 @@ public class CoursMapper {
         dto.setCategorie(cours.getCategorie());
         dto.setHoraire(cours.getHoraire());
         dto.setEnseignantId(cours.getEnseignant().getId());
+        dto.setImageUrl(cours.getImageUrl());
+        dto.setDureeEstimeeHeures(cours.getDureeEstimeeHeures());
+        dto.setMetadataJson(cours.getMetadataJson());
         return dto;
     }
 
@@ -28,6 +31,9 @@ public class CoursMapper {
         cours.setCategorie(dto.getCategorie());
         cours.setHoraire(dto.getHoraire());
         cours.setEnseignant(enseignant);
+        cours.setImageUrl(dto.getImageUrl());
+        cours.setDureeEstimeeHeures(dto.getDureeEstimeeHeures());
+        cours.setMetadataJson(dto.getMetadataJson());
         return cours;
     }
 }

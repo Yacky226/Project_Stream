@@ -221,6 +221,9 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         session.setRecordingEnabled(dto.isRecordingEnabled());
         session.setResolution(dto.getResolution());
         session.setBroadcastType(dto.getBroadcastType());
+        if (dto.getMetadataJson() != null) {
+            session.setMetadataJson(dto.getMetadataJson());
+        }
         session.setCours(cours);
         session.setEnseignant(enseignantAuthentifie);
 

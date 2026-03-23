@@ -96,6 +96,7 @@ export const userApi = createApi({
       transformResponse: (response: BackendProfileResponse): UserProfile =>
         normalizeUserProfile(response.data),
       providesTags: ['User'],
+      keepUnusedDataFor: 600,
     }),
 
     updateProfile: builder.mutation<UserProfile, UpdateProfilePayload>({
@@ -112,11 +113,13 @@ export const userApi = createApi({
     getStudentLevel: builder.query<string, void>({
       query: () => '/api/etudiant/niveau',
       providesTags: ['StudentLevel'],
+      keepUnusedDataFor: 600,
     }),
 
     getTeacherSpecialty: builder.query<string, void>({
       query: () => '/api/enseignant/specialite',
       providesTags: ['TeacherSpecialty'],
+      keepUnusedDataFor: 600,
     }),
 
     getTeacherCourses: builder.query<any[], void>({
@@ -128,6 +131,7 @@ export const userApi = createApi({
       query: () => '/api/utilisateurs/preferences',
       transformResponse: (response: BackendPreferencesResponse): UserPreferences => response.data,
       providesTags: ['UserPreferences'],
+      keepUnusedDataFor: 600,
     }),
 
     updatePreferences: builder.mutation<UserPreferences, Partial<UserPreferences>>({
@@ -177,7 +181,7 @@ export const userApi = createApi({
 
     unenrollCourse: builder.mutation<void, UnenrollCoursePayload>({
       query: (data) => ({
-        url: `/api/admin/inscriptions/${data.inscriptionId}/cancel`,
+        url: `/api/inscriptions/me/${data.inscriptionId}/cancel`,
         method: 'PATCH',
       }),
       invalidatesTags: ['User'],
@@ -220,6 +224,7 @@ export const userApi = createApi({
     getUnreadNotificationCount: builder.query<number, void>({
       query: () => '/api/notifications/unread-count',
       providesTags: ['Notification'],
+      keepUnusedDataFor: 120,
     }),
 
     markNotificationRead: builder.mutation<void, { notificationId: string }>({

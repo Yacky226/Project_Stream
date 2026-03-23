@@ -1,5 +1,5 @@
 ﻿import { FormEvent, useMemo, useState } from 'react';
-import { LayoutDashboard, Menu, Moon, Search, School, Sun, User } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, Menu, Moon, Search, Sun, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch } from '../../hooks/redux';
@@ -77,7 +77,7 @@ export function PublicHeaderBar({ currentPath, onNavigate }: PublicHeaderBarProp
         <div className="elite-header__left">
           <button type="button" onClick={() => onNavigate('/')} className="elite-header__brand">
             <span className="elite-header__brand-icon">
-              <School className="h-4 w-4" />
+              <GraduationCap className="h-4 w-4" />
             </span>
             <span className="elite-header__brand-name">EliteLearn</span>
           </button>

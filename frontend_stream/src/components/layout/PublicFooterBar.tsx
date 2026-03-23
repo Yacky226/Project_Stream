@@ -1,4 +1,4 @@
-﻿import { Facebook, Instagram, School, Twitter } from 'lucide-react';
+import { Facebook, GraduationCap, Instagram, Twitter } from 'lucide-react';
 
 interface PublicFooterBarProps {
   onNavigate: (path: string) => void;
@@ -52,7 +52,7 @@ export function PublicFooterBar({ onNavigate }: PublicFooterBarProps) {
           <div className="elite-footer__brand-col">
             <button type="button" onClick={() => onNavigate('/')} className="elite-footer__brand">
               <span className="elite-footer__brand-icon">
-                <School className="h-5 w-5" />
+                <GraduationCap className="h-5 w-5" />
               </span>
               <span className="elite-footer__brand-name">EliteLearn</span>
             </button>
@@ -95,7 +95,7 @@ export function PublicFooterBar({ onNavigate }: PublicFooterBarProps) {
         </div>
 
         <div className="elite-footer__bottom">
-          <p className="elite-footer__copyright">© {currentYear} EliteLearn Inc. All rights reserved.</p>
+          <p className="elite-footer__copyright">� {currentYear} EliteLearn Inc. All rights reserved.</p>
           <div className="elite-footer__legal">
             <button type="button" onClick={() => onNavigate('/help')} className="elite-footer__legal-link">Security</button>
             <button type="button" onClick={() => onNavigate('/search')} className="elite-footer__legal-link">Sitemap</button>
@@ -106,3 +106,4 @@ export function PublicFooterBar({ onNavigate }: PublicFooterBarProps) {
     </footer>
   );
 }
+

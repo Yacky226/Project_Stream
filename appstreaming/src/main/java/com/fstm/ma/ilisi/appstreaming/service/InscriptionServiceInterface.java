@@ -18,6 +18,8 @@ public interface InscriptionServiceInterface {
     List<InscriptionDTO> getInscriptionsByCours(Long coursId);
     
     boolean isEtudiantInscrit(Long etudiantId, Long coursId);
+
+    void abandonnerInscriptionEtudiant(Long inscriptionId, Long etudiantId);
     
     ProgressionLeconDTO marquerLeconTerminee(Long inscriptionId, Long leconId);
     

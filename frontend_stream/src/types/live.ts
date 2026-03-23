@@ -13,6 +13,7 @@ export interface BackendLiveSessionDTO {
   status?: LiveSessionStatus;
   resolution?: string | null;
   broadcastType?: string | null;
+  metadataJson?: string | null;
 }
 
 export interface LiveSession {
@@ -28,6 +29,7 @@ export interface LiveSession {
   status: LiveSessionStatus;
   resolution: string | null;
   broadcastType: string | null;
+  metadata: LiveSessionMetadata | null;
 }
 
 export interface BackendLiveChatMessageDTO {
@@ -111,11 +113,15 @@ export interface BackendCourseDTO {
   categorie: string;
   horaire: string;
   enseignantId: number;
+  imageUrl?: string | null;
+  dureeEstimeeHeures?: number | null;
+  metadataJson?: string | null;
 }
 
 export interface BackendCourseDetailsDTO extends BackendCourseDTO {
   imageUrl?: string | null;
   dureeEstimeeHeures?: number | null;
+  metadataJson?: string | null;
   enseignantNom?: string | null;
   enseignantSpecialite?: string | null;
   nombreInscrits?: number | null;
@@ -161,6 +167,7 @@ export interface LiveCourse {
   teacherId: string;
   coverImage: string | null;
   durationMinutes: number | null;
+  metadata: CourseMetadata | null;
 }
 
 export interface LiveCourseDetails extends LiveCourse {
@@ -193,6 +200,56 @@ export interface LiveCourseLesson {
   completed: boolean;
 }
 
+export interface CourseMetadata {
+  level?: string;
+  visibility?: string;
+  pricingMode?: string;
+  regularPrice?: string;
+  currency?: string;
+  discountedPrice?: string;
+  seoTitle?: string;
+  metaDescription?: string;
+  issueCertificate?: boolean;
+  password?: string;
+  thumbnailName?: string;
+}
+
+export interface LiveSessionMetadata {
+  savedAt?: string;
+  mode?: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  thumbnailName?: string;
+  streamType?: string;
+  enableLiveChat?: boolean;
+  enableQnaModeration?: boolean;
+  allowReactions?: boolean;
+  cloudBackup?: boolean;
+  visibility?: string;
+  targetLevel?: string;
+  maxParticipants?: string;
+  unlimitedParticipants?: boolean;
+  prerequisites?: string[];
+  pricingMode?: string;
+  currency?: string;
+  basePrice?: string;
+  earlyBirdEnabled?: boolean;
+  earlyBirdDiscount?: string;
+  linkedCourseId?: string;
+  linkedCourseTitle?: string | null;
+}
+
+function parseMetadataJson<T>(value?: string | null): T | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? (parsed as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function mapLiveSession(dto: BackendLiveSessionDTO): LiveSession {
   return {
     id: String(dto.id),
@@ -207,6 +264,7 @@ export function mapLiveSession(dto: BackendLiveSessionDTO): LiveSession {
     status: dto.status || 'CREATED',
     resolution: dto.resolution || null,
     broadcastType: dto.broadcastType || null,
+    metadata: parseMetadataJson<LiveSessionMetadata>(dto.metadataJson),
   };
 }
 
@@ -261,6 +319,8 @@ export function mapLiveCourse(dto: BackendCourseDTO): LiveCourseLite {
 }
 
 export function mapCourse(dto: BackendCourseDTO): LiveCourse {
+  const metadata = parseMetadataJson<CourseMetadata>(dto.metadataJson);
+
   return {
     id: String(dto.id),
     title: dto.titre || `Cours #${dto.id}`,
@@ -268,8 +328,10 @@ export function mapCourse(dto: BackendCourseDTO): LiveCourse {
     category: dto.categorie || 'General',
     scheduledAt: dto.horaire,
     teacherId: String(dto.enseignantId),
-    coverImage: null,
-    durationMinutes: null,
+    coverImage: dto.imageUrl || null,
+    durationMinutes:
+      typeof dto.dureeEstimeeHeures === 'number' ? dto.dureeEstimeeHeures * 60 : null,
+    metadata,
   };
 }
 

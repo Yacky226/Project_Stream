@@ -107,7 +107,7 @@ const badgeIcons = [Sparkles, Layers, BookOpen, Star, Award];
 
 export function ProfilePage({ onNavigate, currentPath }: ProfilePageProps) {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const teacherShared = useTeacherSpaceData();
+  const teacherShared = useTeacherSpaceData({ includeDashboard: false });
   const adminShared = useAdminSpaceData({ includeDashboard: false });
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useGetProfileQuery(undefined, {
@@ -1322,8 +1322,8 @@ export function ProfilePage({ onNavigate, currentPath }: ProfilePageProps) {
         displayRole={teacherShared.displayRole}
         initials={teacherShared.initials}
         avatarUrl={teacherShared.avatarUrl}
-        activeCourseCount={teacherShared.activeCourseCount}
-        liveSessions={teacherShared.liveSessions}
+        activeCourseCount={teacherDashboard?.stats.totalCourses ?? teacherShared.activeCourseCount}
+        liveSessions={teacherDashboard?.stats.liveSessions ?? teacherShared.liveSessions}
         unreadCount={teacherShared.unreadCount}
       >
         {roleProfileBody || profileBody}

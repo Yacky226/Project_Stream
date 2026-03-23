@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import { AdminSpaceShell, AdminSpaceStatus, useAdminSpaceData } from '../admin/AdminSpaceShared';
+import { AdminKpiCard, AdminPageIntro } from '../admin/AdminPageSections';
 import { useGetAdminCoursesQuery } from '../../store/api/dashboardApi';
 import { useGetCoursesQuery } from '../../store/api/liveApi';
 
@@ -53,7 +54,7 @@ export function AdminCoursesPage({ onNavigate, currentPath }: AdminCoursesPagePr
   const [statusFilter, setStatusFilter] = useState<CourseStatusFilter>('all');
   const [sortValue, setSortValue] = useState<CourseSortValue>('dateCreation:DESC');
   const [page, setPage] = useState(0);
-  const shared = useAdminSpaceData();
+  const shared = useAdminSpaceData({ includeDashboard: false });
 
   const [sortBy, sortDir] = sortValue.split(':') as [string, 'ASC' | 'DESC'];
   const { data: coursesPage, isLoading, isFetching, error } = useGetAdminCoursesQuery({
@@ -160,20 +161,12 @@ export function AdminCoursesPage({ onNavigate, currentPath }: AdminCoursesPagePr
       unreadCount={shared.unreadCount}
     >
       <div className="space-y-8">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1152d4]">
-              Catalog governance
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-              Course Management
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-300">
-              Review the platform inventory, navigate to course details, and monitor archived or low-signal offers. Status and category are derived from the existing course APIs when the backend does not expose dedicated moderation fields.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
+        <AdminPageIntro
+          eyebrow="Catalog governance"
+          title="Course Management"
+          description="Review the platform inventory, navigate to course details, and monitor archived or low-signal offers. Status and category are derived from the existing course APIs when the backend does not expose dedicated moderation fields."
+          actions={
+            <>
             <button
               type="button"
               onClick={exportCurrentView}
@@ -190,8 +183,9 @@ export function AdminCoursesPage({ onNavigate, currentPath }: AdminCoursesPagePr
             >
               Open course builder
             </button>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {[
@@ -223,25 +217,16 @@ export function AdminCoursesPage({ onNavigate, currentPath }: AdminCoursesPagePr
               icon: Star,
               accent: 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300',
             },
-          ].map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.title} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="mb-4 flex items-start justify-between">
-                  <div className={`rounded-2xl p-3 ${card.accent}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                    {card.meta}
-                  </span>
-                </div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{card.title}</p>
-                <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-                  {card.value}
-                </h3>
-              </div>
-            );
-          })}
+          ].map((card) => (
+            <AdminKpiCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              meta={card.meta}
+              icon={card.icon}
+              iconToneClass={card.accent}
+            />
+          ))}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-12">

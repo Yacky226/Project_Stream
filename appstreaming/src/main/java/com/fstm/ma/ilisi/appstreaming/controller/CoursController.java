@@ -5,6 +5,7 @@ import com.fstm.ma.ilisi.appstreaming.model.dto.CoursDetailsDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.PageResponse;
 import com.fstm.ma.ilisi.appstreaming.repository.EtudiantRepository;
 import com.fstm.ma.ilisi.appstreaming.service.CoursService;
+import com.fstm.ma.ilisi.appstreaming.service.FileStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,9 +15,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cours")
@@ -25,10 +29,15 @@ public class CoursController {
 
     private final CoursService coursService;
     private final EtudiantRepository etudiantRepository;
+    private final FileStorageService fileStorageService;
 
-    public CoursController(CoursService coursService, EtudiantRepository etudiantRepository) {
+    public CoursController(
+            CoursService coursService,
+            EtudiantRepository etudiantRepository,
+            FileStorageService fileStorageService) {
         this.coursService = coursService;
         this.etudiantRepository = etudiantRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     //  Créer un cours
@@ -36,6 +45,30 @@ public class CoursController {
     @PostMapping
     public ResponseEntity<CoursDTO> ajouterCours(@Valid @RequestBody CoursDTO dto) {
         return ResponseEntity.ok(coursService.ajouterCours(dto));
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMINISTRATEUR', 'ENSEIGNANT')")
+    @PostMapping("/thumbnail")
+    public ResponseEntity<Map<String, Object>> uploadCourseThumbnail(@RequestPart("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(buildErrorResponse("Le fichier miniature est obligatoire."));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            return ResponseEntity.badRequest().body(buildErrorResponse("Le fichier doit etre une image."));
+        }
+
+        try {
+            String imageUrl = fileStorageService.saveFile(file, "course-thumbnails");
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("imageUrl", imageUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(buildErrorResponse("Impossible de televerser la miniature pour le moment."));
+        }
     }
 
     //  Modifier un cours
@@ -98,5 +131,12 @@ public class CoursController {
                     .orElse(null);
         }
         return ResponseEntity.ok(coursService.getCoursDetailsById(id, resolvedEtudiantId));
+    }
+
+    private Map<String, Object> buildErrorResponse(String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", message);
+        return response;
     }
 }

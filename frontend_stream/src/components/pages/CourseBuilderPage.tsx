@@ -24,177 +24,52 @@ import {
   useCreateCourseMutation,
   useCreateLessonMutation,
   useCreateSectionMutation,
+  useUploadCourseThumbnailMutation,
 } from '../../store/api/liveApi';
 import {
   TeacherSpaceShell,
   TeacherSpaceStatus,
   useTeacherSpaceData,
 } from '../teacher/TeacherSpaceShared';
+import {
+  CourseBuilderBanner,
+  CourseBuilderHeader,
+} from '../teacher/course-builder/CourseBuilderChrome';
+import {
+  CATEGORY_OPTIONS,
+  COURSE_BUILDER_STORAGE_KEY,
+  LESSON_TYPE_OPTIONS,
+  LEVEL_OPTIONS,
+  VISIBILITY_OPTIONS,
+  addLessonToSection,
+  addSectionToDraft,
+  buildChecklist,
+  countQuizLessons,
+  countTotalLessons,
+  countTotalVideoMinutes,
+  createDefaultDraft,
+  formatDurationFromMinutes,
+  getStepValidationError,
+  handleThumbnailSelection,
+  parseLessonDurationMinutes,
+  removeLessonFromSection,
+  removeSectionFromDraft,
+  stepFromPath,
+  stepToPath,
+  toBackendLessonType,
+  updateLessonInSection,
+  updateSectionInDraft,
+  type BuilderStep,
+  type CourseBuilderDraft,
+  type LessonDraft,
+  type LessonType,
+  type PricingMode,
+  type SectionDraft,
+} from '../teacher/course-builder/courseBuilder.utils';
 
 interface CourseBuilderPageProps {
   onNavigate: (path: string) => void;
   currentPath?: string;
-}
-
-type BuilderStep = 1 | 2 | 3 | 4;
-type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
-type VisibilityMode = 'public' | 'private' | 'protected';
-type PricingMode = 'free' | 'paid';
-type LessonType = 'VIDEO' | 'PDF' | 'QUIZ' | 'ARTICLE';
-
-interface LessonDraft {
-  id: string;
-  title: string;
-  type: LessonType;
-  duration: string;
-  meta: string;
-}
-
-interface SectionDraft {
-  id: string;
-  title: string;
-  description: string;
-  lessons: LessonDraft[];
-}
-
-interface CourseBuilderDraft {
-  step: BuilderStep;
-  title: string;
-  subtitle: string;
-  category: string;
-  level: CourseLevel;
-  launchDate: string;
-  sections: SectionDraft[];
-  visibility: VisibilityMode;
-  pricingMode: PricingMode;
-  regularPrice: string;
-  currency: string;
-  discountedPrice: string;
-  seoTitle: string;
-  metaDescription: string;
-  issueCertificate: boolean;
-  password: string;
-}
-
-const COURSE_BUILDER_STORAGE_KEY = 'teacher-course-builder-draft-v1';
-const CATEGORY_OPTIONS = ['Development', 'Design', 'Business', 'Marketing'];
-const LEVEL_OPTIONS: Array<{ value: CourseLevel; label: string }> = [
-  { value: 'beginner', label: 'Beginner' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'advanced', label: 'Advanced' },
-];
-const LESSON_TYPE_OPTIONS: LessonType[] = ['VIDEO', 'PDF', 'QUIZ', 'ARTICLE'];
-
-function createId(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function createEmptyLesson(index = 1): LessonDraft {
-  return {
-    id: createId('lesson'),
-    title: `Nouvelle lecon ${index}`,
-    type: 'VIDEO',
-    duration: '',
-    meta: '',
-  };
-}
-
-function createEmptySection(index = 1): SectionDraft {
-  return {
-    id: createId('section'),
-    title: `Section ${index}`,
-    description: '',
-    lessons: [createEmptyLesson(1)],
-  };
-}
-
-function createDefaultDraft(): CourseBuilderDraft {
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const year = tomorrow.getFullYear();
-  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const day = String(tomorrow.getDate()).padStart(2, '0');
-  const hours = String(tomorrow.getHours()).padStart(2, '0');
-  const minutes = String(tomorrow.getMinutes()).padStart(2, '0');
-
-  return {
-    step: 1,
-    title: '',
-    subtitle: '',
-    category: 'Development',
-    level: 'beginner',
-    launchDate: `${year}-${month}-${day}T${hours}:${minutes}`,
-    sections: [createEmptySection(1)],
-    visibility: 'public',
-    pricingMode: 'paid',
-    regularPrice: '',
-    currency: 'USD',
-    discountedPrice: '',
-    seoTitle: '',
-    metaDescription: '',
-    issueCertificate: true,
-    password: '',
-  };
-}
-
-function formatDurationFromMinutes(totalMinutes: number) {
-  if (totalMinutes <= 0) {
-    return '0h';
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
-  return `${hours}h ${minutes}m`;
-}
-
-function toBackendLessonType(type: LessonType): 'VIDEO' | 'TEXTE' | 'QUIZ' {
-  if (type === 'QUIZ') {
-    return 'QUIZ';
-  }
-  if (type === 'VIDEO') {
-    return 'VIDEO';
-  }
-  return 'TEXTE';
-}
-
-function parseLessonDurationMinutes(value: string): number | undefined {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return undefined;
-  }
-  return Math.round(parsed);
-}
-
-function stepLabel(step: BuilderStep) {
-  switch (step) {
-    case 1:
-      return 'Basic Info';
-    case 2:
-      return 'Curriculum';
-    case 3:
-      return 'Settings';
-    case 4:
-      return 'Publish';
-    default:
-      return 'Builder';
-  }
-}
-
-function stepToPath(step: BuilderStep) {
-  if (step === 2) return '/teacher/course-builder/curriculum';
-  if (step === 3) return '/teacher/course-builder/settings';
-  if (step === 4) return '/teacher/course-builder/publish';
-  return '/teacher/course-builder';
-}
-
-function stepFromPath(path?: string): BuilderStep {
-  if (path?.includes('/teacher/course-builder/publish')) return 4;
-  if (path?.includes('/teacher/course-builder/settings')) return 3;
-  if (path?.includes('/teacher/course-builder/curriculum')) return 2;
-  return 1;
 }
 
 export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPageProps) {
@@ -202,13 +77,16 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
   const [createCourse, { isLoading: isPublishingCourse }] = useCreateCourseMutation();
   const [createSection, { isLoading: isPublishingSections }] = useCreateSectionMutation();
   const [createLesson, { isLoading: isPublishingLessons }] = useCreateLessonMutation();
+  const [uploadCourseThumbnail, { isLoading: isUploadingThumbnail }] = useUploadCourseThumbnailMutation();
   const [draft, setDraft] = useState<CourseBuilderDraft>(() => createDefaultDraft());
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [publishedCourseId, setPublishedCourseId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const isPublishing = isPublishingCourse || isPublishingSections || isPublishingLessons;
+  const isPublishing =
+    isPublishingCourse || isPublishingSections || isPublishingLessons || isUploadingThumbnail;
   const teacherId = teacherShared.user?.id ? String(teacherShared.user.id) : '';
 
   const progress = draft.step * 25;
@@ -241,49 +119,10 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
     setDraft((current) => (current.step === routeStep ? current : { ...current, step: routeStep }));
   }, [currentPath]);
 
-  const totalLessons = useMemo(
-    () => draft.sections.reduce((count, section) => count + section.lessons.length, 0),
-    [draft.sections],
-  );
-
-  const totalVideoMinutes = useMemo(
-    () =>
-      draft.sections.reduce((total, section) => {
-        return (
-          total +
-          section.lessons.reduce((sectionTotal, lesson) => {
-            const parsed = Number(lesson.duration);
-            return sectionTotal + (Number.isFinite(parsed) ? parsed : 0);
-          }, 0)
-        );
-      }, 0),
-    [draft.sections],
-  );
-
-  const checklist = useMemo(
-    () => [
-      {
-        label: 'Informations de base completes',
-        done: Boolean(draft.title.trim() && draft.subtitle.trim() && draft.launchDate),
-      },
-      {
-        label: 'Programme structure avec sections et lecons',
-        done: draft.sections.length > 0 && totalLessons > 0,
-      },
-      {
-        label: 'Pricing coherent et visibilite definie',
-        done:
-          draft.pricingMode === 'free' ||
-          (Boolean(draft.regularPrice) &&
-            (!draft.discountedPrice || Number(draft.discountedPrice) <= Number(draft.regularPrice))),
-      },
-      {
-        label: 'SEO renseigne',
-        done: Boolean(draft.seoTitle.trim() && draft.metaDescription.trim()),
-      },
-    ],
-    [draft, totalLessons],
-  );
+  const totalLessons = useMemo(() => countTotalLessons(draft.sections), [draft.sections]);
+  const totalVideoMinutes = useMemo(() => countTotalVideoMinutes(draft.sections), [draft.sections]);
+  const totalQuizzes = useMemo(() => countQuizLessons(draft.sections), [draft.sections]);
+  const checklist = useMemo(() => buildChecklist(draft, totalLessons), [draft, totalLessons]);
 
   const updateDraft = (updates: Partial<CourseBuilderDraft>) => {
     setDraft((current) => ({ ...current, ...updates }));
@@ -305,6 +144,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
     }
     setDraft(createDefaultDraft());
     setThumbnailPreview(null);
+    setThumbnailFile(null);
     setPublishedCourseId(null);
     setErrorMessage(null);
     setStatusMessage('Brouillon efface.');
@@ -320,38 +160,14 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
   };
 
   const validateCurrentStep = () => {
-    if (draft.step === 1) {
-      if (!draft.title.trim() || !draft.subtitle.trim()) {
-        setErrorMessage('Renseignez le titre et le sous-titre.');
-        return false;
-      }
-      if (!draft.launchDate) {
-        updateDraft({ launchDate: createDefaultDraft().launchDate });
-      }
+    if (draft.step === 1 && !draft.launchDate) {
+      updateDraft({ launchDate: createDefaultDraft().launchDate });
     }
 
-    if (draft.step === 2) {
-      if (!draft.sections.length || !totalLessons) {
-        setErrorMessage('Ajoutez au moins une section et une lecon.');
-        return false;
-      }
-    }
-
-    if (draft.step === 3) {
-      if (draft.visibility === 'protected' && !draft.password.trim()) {
-        setErrorMessage('Ajoutez un mot de passe pour le mode protege.');
-        return false;
-      }
-      if (draft.pricingMode === 'paid') {
-        if (!draft.regularPrice) {
-          setErrorMessage('Renseignez un prix standard pour continuer.');
-          return false;
-        }
-        if (draft.discountedPrice && Number(draft.discountedPrice) > Number(draft.regularPrice)) {
-          setErrorMessage('Le prix reduit doit etre inferieur ou egal au prix standard.');
-          return false;
-        }
-      }
+    const error = getStepValidationError(draft, totalLessons);
+    if (error) {
+      setErrorMessage(error);
+      return false;
     }
 
     setErrorMessage(null);
@@ -376,84 +192,48 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
   const addSection = () => {
     updateDraft({
-      sections: [...draft.sections, createEmptySection(draft.sections.length + 1)],
+      sections: addSectionToDraft(draft.sections),
     });
   };
 
   const updateSection = (sectionId: string, updates: Partial<SectionDraft>) => {
     updateDraft({
-      sections: draft.sections.map((section) =>
-        section.id === sectionId ? { ...section, ...updates } : section,
-      ),
+      sections: updateSectionInDraft(draft.sections, sectionId, updates),
     });
   };
 
   const removeSection = (sectionId: string) => {
-    if (draft.sections.length === 1) {
-      return;
-    }
-
     updateDraft({
-      sections: draft.sections.filter((section) => section.id !== sectionId),
+      sections: removeSectionFromDraft(draft.sections, sectionId),
     });
   };
 
   const addLesson = (sectionId: string) => {
     updateDraft({
-      sections: draft.sections.map((section) =>
-        section.id === sectionId
-          ? { ...section, lessons: [...section.lessons, createEmptyLesson(section.lessons.length + 1)] }
-          : section,
-      ),
+      sections: addLessonToSection(draft.sections, sectionId),
     });
   };
 
   const updateLesson = (sectionId: string, lessonId: string, updates: Partial<LessonDraft>) => {
     updateDraft({
-      sections: draft.sections.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              lessons: section.lessons.map((lesson) =>
-                lesson.id === lessonId ? { ...lesson, ...updates } : lesson,
-              ),
-            }
-          : section,
-      ),
+      sections: updateLessonInSection(draft.sections, sectionId, lessonId, updates),
     });
   };
 
   const removeLesson = (sectionId: string, lessonId: string) => {
     updateDraft({
-      sections: draft.sections.map((section) => {
-        if (section.id !== sectionId) {
-          return section;
-        }
-
-        if (section.lessons.length === 1) {
-          return section;
-        }
-
-        return {
-          ...section,
-          lessons: section.lessons.filter((lesson) => lesson.id !== lessonId),
-        };
-      }),
+      sections: removeLessonFromSection(draft.sections, sectionId, lessonId),
     });
   };
 
   const handleThumbnailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setThumbnailPreview(typeof reader.result === 'string' ? reader.result : null);
-    };
-    reader.readAsDataURL(file);
-    setStatusMessage(`Miniature chargee: ${file.name}`);
+    const selectedFile = event.target.files?.[0] || null;
+    setThumbnailFile(selectedFile);
+    handleThumbnailSelection(event, (preview, fileName) => {
+      setThumbnailPreview(preview);
+      updateDraft({ thumbnailName: fileName });
+      setStatusMessage(`Miniature chargee: ${fileName}`);
+    });
   };
 
   const publishCourse = async () => {
@@ -471,6 +251,14 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
     try {
       setErrorMessage(null);
       const scheduledAt = draft.launchDate || createDefaultDraft().launchDate;
+      let uploadedImageUrl: string | undefined;
+
+      if (thumbnailFile) {
+        const formData = new FormData();
+        formData.append('file', thumbnailFile);
+        const uploadResult = await uploadCourseThumbnail(formData).unwrap();
+        uploadedImageUrl = uploadResult.imageUrl;
+      }
 
       const createdCourse = await createCourse({
         title: draft.title,
@@ -478,6 +266,20 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
         category: draft.category,
         scheduledAt,
         teacherId,
+        imageUrl: uploadedImageUrl,
+        metadata: {
+          level: draft.level,
+          visibility: draft.visibility,
+          pricingMode: draft.pricingMode,
+          regularPrice: draft.regularPrice,
+          currency: draft.currency,
+          discountedPrice: draft.discountedPrice,
+          seoTitle: draft.seoTitle,
+          metaDescription: draft.metaDescription,
+          issueCertificate: draft.issueCertificate,
+          password: draft.visibility === 'protected' ? draft.password : '',
+          thumbnailName: draft.thumbnailName,
+        },
       }).unwrap();
 
       createdCourseId = createdCourse.id;
@@ -520,7 +322,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
 
       setPublishedCourseId(createdCourse.id);
       setStatusMessage(
-        'Cours publie avec succes. Le programme, les sections et les lecons sont maintenant enregistres dans le backend. Les options de miniature, SEO et pricing restent locales tant qu elles ne sont pas supportees cote API.',
+        'Cours publie avec succes. Le programme, les sections, les lecons et la metadata avancee sont enregistres dans le backend.',
       );
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(COURSE_BUILDER_STORAGE_KEY, JSON.stringify(draft));
@@ -563,50 +365,11 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
       unreadCount={teacherShared.unreadCount}
     >
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center py-6">
-        <div className="mb-10 w-full max-w-5xl">
-          <div className="mb-7 flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-4xl font-black tracking-tight text-slate-900">Create New Course</h2>
-              <p className="text-sm font-medium text-slate-500">
-                Step {draft.step} of 4: {stepLabel(draft.step)}
-              </p>
-            </div>
-            <div className="hidden sm:block">
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                <span className="text-xs font-bold text-blue-600">{progress}% Complete</span>
-                <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${progress}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
+        <CourseBuilderHeader step={draft.step} progress={progress} />
 
-          <div className="relative flex items-start justify-between">
-            <div className="absolute left-0 top-1/2 -z-10 h-0.5 w-full -translate-y-1/2 bg-slate-200" />
-            {([1, 2, 3, 4] as BuilderStep[]).map((step) => (
-              <div key={step} className="flex min-w-[78px] flex-col items-center gap-2">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${draft.step === step ? 'bg-blue-600 text-white ring-4 ring-blue-100' : draft.step > step ? 'border border-blue-200 bg-blue-50 text-blue-600' : 'border border-slate-200 bg-white text-slate-400'}`}>
-                  {draft.step > step ? <Check className="h-4 w-4" /> : step}
-                </div>
-                <span className={`text-[11px] ${draft.step === step ? 'font-bold text-slate-900' : 'font-semibold text-slate-400'}`}>
-                  {stepLabel(step)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {errorMessage ? <CourseBuilderBanner tone="error" message={errorMessage} /> : null}
 
-        {errorMessage ? (
-          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {errorMessage}
-          </div>
-        ) : null}
-
-        {statusMessage ? (
-          <div className="mb-6 w-full max-w-4xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {statusMessage}
-          </div>
-        ) : null}
+        {statusMessage ? <CourseBuilderBanner tone="success" message={statusMessage} /> : null}
 
         {draft.step === 1 ? (
           <>
@@ -695,7 +458,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleThumbnailChange} />
                     <p className="mt-3 text-xs text-slate-500">
-                      La miniature reste locale tant qu un endpoint upload n est pas expose.
+                      Le fichier est previsualise localement puis televerse au backend au moment de la publication.
                     </p>
                   </div>
                 </div>
@@ -998,26 +761,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                   </div>
 
                   <div className="grid gap-4">
-                    {([
-                      {
-                        value: 'public',
-                        title: 'Public',
-                        description:
-                          'Le cours peut etre decouvert, recherche et rejoint librement.',
-                      },
-                      {
-                        value: 'private',
-                        title: 'Private',
-                        description:
-                          'Le cours reste accessible via lien direct ou invitation uniquement.',
-                      },
-                      {
-                        value: 'protected',
-                        title: 'Password Protected',
-                        description:
-                          'Le cours necessite un mot de passe avant acces au contenu.',
-                      },
-                    ] as const).map((option) => (
+                    {VISIBILITY_OPTIONS.map((option) => (
                       <button
                         key={option.value}
                         type="button"
@@ -1150,7 +894,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     </div>
                   ) : (
                     <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-                      Le cours sera publie comme gratuit. Aucun prix ne sera envoye au backend actuel.
+                      Le cours sera publie comme gratuit avec metadata pricing synchronisee.
                     </div>
                   )}
                 </section>
@@ -1410,16 +1154,7 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                       </p>
                     </div>
                     <div className="rounded-[22px] bg-slate-50 p-4 text-center">
-                      <p className="text-3xl font-black text-blue-600">
-                        {
-                          draft.sections.reduce(
-                            (count, section) =>
-                              count +
-                              section.lessons.filter((lesson) => lesson.type === 'QUIZ').length,
-                            0,
-                          )
-                        }
-                      </p>
+                      <p className="text-3xl font-black text-blue-600">{totalQuizzes}</p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Quizzes
                       </p>
@@ -1548,9 +1283,8 @@ export function CourseBuilderPage({ onNavigate, currentPath }: CourseBuilderPage
                     </div>
                   ) : (
                     <div className="mt-5 rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                      Publication actuelle: le cours, les sections et les lecons sont envoyes au
-                      backend. Les reglages avances encore non supportes par l API restent en
-                      brouillon local.
+                      Publication actuelle: le cours, les sections, les lecons et les reglages
+                      avances sont envoyes au backend.
                     </div>
                   )}
 

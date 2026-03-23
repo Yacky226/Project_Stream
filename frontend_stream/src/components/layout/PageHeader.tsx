@@ -25,7 +25,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={cn("mb-6 lg:mb-8", className)}>
-      {/* Back button si présent */}
+      {/* Back button si present */}
       {onBack && (
         <Button
           variant="ghost"

@@ -8,6 +8,7 @@ import com.fstm.ma.ilisi.appstreaming.model.dto.InscriptionDTO;
 import com.fstm.ma.ilisi.appstreaming.model.dto.ProgressionLeconDTO;
 import com.fstm.ma.ilisi.appstreaming.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,6 +86,19 @@ public class InscriptionService implements InscriptionServiceInterface {
     @Transactional(readOnly = true)
     public boolean isEtudiantInscrit(Long etudiantId, Long coursId) {
         return inscriptionRepository.existsByEtudiantIdAndCoursId(etudiantId, coursId);
+    }
+
+    @Override
+    public void abandonnerInscriptionEtudiant(Long inscriptionId, Long etudiantId) {
+        Inscription inscription = inscriptionRepository.findById(inscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inscription not found with id: " + inscriptionId));
+
+        if (!inscription.getEtudiant().getId().equals(etudiantId)) {
+            throw new AccessDeniedException("You are not allowed to cancel this enrollment");
+        }
+
+        inscription.setStatut(StatutInscription.ABANDONNE);
+        inscriptionRepository.save(inscription);
     }
     
     @Override

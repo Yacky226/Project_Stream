@@ -34,12 +34,12 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
       items: [
-        'Support des lecteurs d\'écran (NVDA, JAWS, VoiceOver)',
-        'Contraste élevé et thèmes sombres',
+        'Support des lecteurs d\'ecran (NVDA, JAWS, VoiceOver)',
+        'Contraste eleve et themes sombres',
         'Tailles de police ajustables',
-        'Navigation au clavier complète',
+        'Navigation au clavier complete',
         'Descriptions alternatives pour les images',
-        'Sous-titres pour toutes les vidéos'
+        'Sous-titres pour toutes les videos'
       ]
     },
     {
@@ -49,24 +49,24 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       bgColor: 'bg-green-100',
       items: [
         'Sous-titres automatiques et manuels',
-        'Transcriptions complètes des cours',
+        'Transcriptions completes des cours',
         'Alertes visuelles pour les notifications',
         'Langue des signes pour les cours principaux',
-        'Contrôle précis du volume',
+        'Controle precis du volume',
         'Interface visuelle pour le chat vocal'
       ]
     },
     {
-      category: 'Motricité',
+      category: 'Motricite',
       icon: Hand,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
       items: [
-        'Navigation complète au clavier',
+        'Navigation complete au clavier',
         'Commandes vocales disponibles',
-        'Boutons et zones cliquables élargis',
-        'Temps de réaction prolongés',
-        'Alternatives aux glisser-déposer',
+        'Boutons et zones cliquables elargis',
+        'Temps de reaction prolonges',
+        'Alternatives aux glisser-deposer',
         'Support des contacteurs externes'
       ]
     },
@@ -76,12 +76,12 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
       items: [
-        'Interface simplifiée disponible',
-        'Progression sauvegardée automatiquement',
+        'Interface simplifiee disponible',
+        'Progression sauvegardee automatiquement',
         'Rappels et notifications personnalisables',
         'Vitesse de lecture ajustable',
         'Mode focus sans distractions',
-        'Aide contextuelle omniprésente'
+        'Aide contextuelle omnipresente'
       ]
     }
   ];
@@ -89,25 +89,25 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
   const standards = [
     {
       name: 'WCAG 2.1 AA',
-      description: 'Conforme aux directives d\'accessibilité du contenu web',
-      status: 'Certifié',
+      description: 'Conforme aux directives d\'accessibilite du contenu web',
+      status: 'Certifie',
       level: 'AA'
     },
     {
       name: 'Section 508',
-      description: 'Conforme aux standards d\'accessibilité américains',
+      description: 'Conforme aux standards d\'accessibilite americains',
       status: 'Conforme',
       level: 'Complet'
     },
     {
       name: 'EN 301 549',
-      description: 'Standard européen d\'accessibilité numérique',
-      status: 'Certifié',
+      description: 'Standard europeen d\'accessibilite numerique',
+      status: 'Certifie',
       level: 'V3.2.1'
     },
     {
       name: 'RGAA 4.1',
-      description: 'Référentiel général d\'amélioration de l\'accessibilité',
+      description: 'Referentiel general d\'amelioration de l\'accessibilite',
       status: 'Conforme',
       level: 'AA'
     }
@@ -115,7 +115,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
 
   const tools = [
     {
-      name: 'Lecteurs d\'écran',
+      name: 'Lecteurs d\'ecran',
       description: 'NVDA, JAWS, VoiceOver, TalkBack',
       icon: Volume2,
       compatibility: '100%'
@@ -127,14 +127,14 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       compatibility: '100%'
     },
     {
-      name: 'Loupes d\'écran',
+      name: 'Loupes d\'ecran',
       description: 'ZoomText, Loupe Windows, Zoom',
       icon: ZoomIn,
       compatibility: '100%'
     },
     {
-      name: 'Contraste élevé',
-      description: 'Thèmes et modes d\'affichage adaptés',
+      name: 'Contraste eleve',
+      description: 'Themes et modes d\'affichage adaptes',
       icon: Contrast,
       compatibility: '100%'
     }
@@ -148,10 +148,10 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center mb-6">
               <Accessibility className="w-12 h-12 mr-4" />
-              <h1 className="text-4xl md:text-5xl font-bold">Accessibilité</h1>
+              <h1 className="text-4xl md:text-5xl font-bold">Accessibilite</h1>
             </div>
             <p className="text-xl text-green-100 mb-6">
-              Stream Éducatif s'engage à rendre l'apprentissage accessible à tous, 
+              Stream Educatif s'engage a rendre l'apprentissage accessible a tous, 
               sans exception ni discrimination.
             </p>
             <Badge variant="secondary" className="bg-white/20 text-white text-lg py-2 px-4">
@@ -171,18 +171,18 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Nous croyons fermement que l'éducation est un droit universel. C'est pourquoi 
-                  Stream Éducatif a été conçue dès le départ pour être accessible à tous les 
-                  apprenants, quels que soient leurs besoins ou leurs capacités.
+                  Nous croyons fermement que l'education est un droit universel. C'est pourquoi 
+                  Stream Educatif a ete concue des le depart pour etre accessible a tous les 
+                  apprenants, quels que soient leurs besoins ou leurs capacites.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Notre plateforme respecte et dépasse les standards internationaux d'accessibilité 
-                  numérique, et nous améliorons continuellement notre interface pour offrir 
-                  une expérience d'apprentissage inclusive et enrichissante.
+                  Notre plateforme respecte et depasse les standards internationaux d'accessibilite 
+                  numerique, et nous ameliorons continuellement notre interface pour offrir 
+                  une experience d'apprentissage inclusive et enrichissante.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button onClick={() => onNavigate('/contact')}>
-                    Signaler un problème d'accessibilité
+                    Signaler un probleme d'accessibilite
                   </Button>
                   <Button variant="outline" onClick={() => onNavigate('/help')}>
                     Guide d'utilisation accessible
@@ -198,7 +198,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Fonctionnalités d'accessibilité
+            Fonctionnalites d'accessibilite
           </h2>
           
           <div className="grid lg:grid-cols-2 gap-8">
@@ -233,7 +233,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">
-              Conformité aux standards
+              Conformite aux standards
             </h2>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -268,7 +268,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">
-              Compatibilité des outils d'assistance
+              Compatibilite des outils d'assistance
             </h2>
             
             <div className="grid md:grid-cols-2 gap-6">
@@ -305,17 +305,17 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <AlertCircle className="w-6 h-6 text-orange-600 mr-3" />
-                  Signaler un problème d'accessibilité
+                  Signaler un probleme d'accessibilite
                 </CardTitle>
                 <CardDescription>
-                  Votre retour nous aide à améliorer continuellement notre plateforme
+                  Votre retour nous aide a ameliorer continuellement notre plateforme
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-6">
-                  Si vous rencontrez des difficultés d'accessibilité sur notre plateforme, 
-                  nous vous encourageons vivement à nous le signaler. Votre retour est précieux 
-                  pour nous aider à identifier et corriger rapidement tout problème.
+                  Si vous rencontrez des difficultes d'accessibilite sur notre plateforme, 
+                  nous vous encourageons vivement a nous le signaler. Votre retour est precieux 
+                  pour nous aider a identifier et corriger rapidement tout probleme.
                 </p>
                 
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -323,7 +323,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
                     <h4 className="font-semibold mb-3">Comment signaler :</h4>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li>• Email : accessibilite@stream-educatif.fr</li>
-                      <li>• Téléphone : +33 1 23 45 67 89</li>
+                      <li>• Telephone : +33 1 23 45 67 89</li>
                       <li>• Formulaire de contact en ligne</li>
                       <li>• Chat en direct sur la plateforme</li>
                     </ul>
@@ -331,17 +331,17 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
                   <div>
                     <h4 className="font-semibold mb-3">Informations utiles :</h4>
                     <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Description détaillée du problème</li>
-                      <li>• Page ou section concernée</li>
-                      <li>• Navigateur et système utilisés</li>
-                      <li>• Outils d'assistance utilisés</li>
+                      <li>• Description detaillee du probleme</li>
+                      <li>• Page ou section concernee</li>
+                      <li>• Navigateur et systeme utilises</li>
+                      <li>• Outils d'assistance utilises</li>
                     </ul>
                   </div>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button onClick={() => onNavigate('/contact')}>
-                    Signaler un problème
+                    Signaler un probleme
                   </Button>
                   <Button variant="outline" onClick={() => onNavigate('/help')}>
                     Consulter l'aide
@@ -357,7 +357,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-6">Nos prochaines améliorations</h2>
+            <h2 className="text-3xl font-bold mb-6">Nos prochaines ameliorations</h2>
             <p className="text-muted-foreground mb-8">
               Nous continuons d'innover pour rendre notre plateforme encore plus accessible
             </p>
@@ -368,7 +368,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
                   <Type className="w-8 h-8 text-blue-600 mx-auto mb-4" />
                   <h3 className="font-semibold mb-2">IA de transcription</h3>
                   <p className="text-sm text-muted-foreground">
-                    Transcription automatique améliorée avec ponctuation intelligente
+                    Transcription automatique amelioree avec ponctuation intelligente
                   </p>
                 </CardContent>
               </Card>
@@ -378,7 +378,7 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
                   <Brain className="w-8 h-8 text-purple-600 mx-auto mb-4" />
                   <h3 className="font-semibold mb-2">Personnalisation cognitive</h3>
                   <p className="text-sm text-muted-foreground">
-                    Interface adaptive selon les besoins cognitifs spécifiques
+                    Interface adaptive selon les besoins cognitifs specifiques
                   </p>
                 </CardContent>
               </Card>
@@ -386,9 +386,9 @@ export function AccessibilityPage({ onNavigate }: AccessibilityPageProps) {
               <Card>
                 <CardContent className="p-6 text-center">
                   <Settings className="w-8 h-8 text-green-600 mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">Contrôles avancés</h3>
+                  <h3 className="font-semibold mb-2">Controles avances</h3>
                   <p className="text-sm text-muted-foreground">
-                    Paramètres d'accessibilité plus granulaires et personnalisables
+                    Parametres d'accessibilite plus granulaires et personnalisables
                   </p>
                 </CardContent>
               </Card>

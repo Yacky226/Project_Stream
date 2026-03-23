@@ -506,7 +506,7 @@ export function VideoPlayer({
             <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <p className="text-lg mb-2">{isLive ? t('video.waitingRoom') : t('video.offline')}</p>
             <p className="text-sm opacity-75">
-              {isLive ? 'La session commencera bientôt' : 'Aucun contenu disponible'}
+              {isLive ? 'La session commencera bientot' : 'Aucun contenu disponible'}
             </p>
           </div>
         </div>

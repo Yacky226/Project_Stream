@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQueryWithAuth } from './apiClient';
+import { baseQueryWithAuth, multipartBaseQuery } from './apiClient';
 import type {
   BackendCourseDetailsDTO,
   BackendCourseDTO,
@@ -18,6 +18,8 @@ import type {
   LiveHandRaise,
   LiveQuestion,
   LiveSession,
+  CourseMetadata,
+  LiveSessionMetadata,
 } from '../../types/live';
 import {
   mapCourse,
@@ -36,6 +38,7 @@ export interface CreateLiveSessionPayload {
   recordingEnabled?: boolean;
   resolution?: string;
   broadcastType?: string;
+  metadata?: LiveSessionMetadata;
 }
 
 export interface CreateCoursePayload {
@@ -44,6 +47,8 @@ export interface CreateCoursePayload {
   category: string;
   scheduledAt: string;
   teacherId: string | number;
+  imageUrl?: string;
+  metadata?: CourseMetadata;
 }
 
 type BackendLessonType = 'VIDEO' | 'TEXTE' | 'QUIZ';
@@ -77,6 +82,7 @@ export interface UpdateLiveSessionPayload {
   recordingEnabled?: boolean;
   resolution?: string | null;
   broadcastType?: string | null;
+  metadata?: LiveSessionMetadata | null;
 }
 
 export interface SendLiveChatMessagePayload {
@@ -341,6 +347,7 @@ export const liveApi = createApi({
           recordingEnabled: payload.recordingEnabled ?? true,
           resolution: payload.resolution || '720p',
           broadcastType: payload.broadcastType || 'WebRTC',
+          metadataJson: payload.metadata ? JSON.stringify(payload.metadata) : undefined,
         },
       }),
       transformResponse: (response: BackendLiveSessionDTO): LiveSession =>
@@ -362,6 +369,7 @@ export const liveApi = createApi({
           recordingEnabled: payload.recordingEnabled ?? true,
           resolution: payload.resolution || undefined,
           broadcastType: payload.broadcastType || undefined,
+          metadataJson: payload.metadata ? JSON.stringify(payload.metadata) : undefined,
         },
       }),
       transformResponse: (response: BackendLiveSessionDTO): LiveSession =>
@@ -422,6 +430,39 @@ export const liveApi = createApi({
       ],
     }),
 
+    uploadCourseThumbnail: builder.mutation<{ imageUrl: string }, FormData>({
+      queryFn: async (formData, api, extraOptions) => {
+        const result = await multipartBaseQuery(
+          {
+            url: '/api/cours/thumbnail',
+            method: 'POST',
+            body: formData,
+          },
+          api,
+          extraOptions,
+        );
+
+        if (result.error) {
+          return { error: result.error };
+        }
+
+        const payload = (result.data || {}) as { imageUrl?: string; data?: { imageUrl?: string } };
+        const imageUrl = payload.imageUrl || payload.data?.imageUrl;
+        if (!imageUrl) {
+          return {
+            error: {
+              status: 'PARSING_ERROR',
+              originalStatus: 200,
+              data: result.data || '',
+              error: 'Thumbnail upload response is missing imageUrl.',
+            },
+          };
+        }
+
+        return { data: { imageUrl } };
+      },
+    }),
+
     createCourse: builder.mutation<LiveCourse, CreateCoursePayload>({
       query: (payload) => ({
         url: '/api/cours',
@@ -432,6 +473,8 @@ export const liveApi = createApi({
           categorie: payload.category.trim(),
           horaire: toBackendDateTime(payload.scheduledAt),
           enseignantId: Number(payload.teacherId),
+          imageUrl: payload.imageUrl || undefined,
+          metadataJson: payload.metadata ? JSON.stringify(payload.metadata) : undefined,
         },
       }),
       transformResponse: (response: BackendCourseDTO): LiveCourse => mapCourse(response),
@@ -669,6 +712,7 @@ export const {
   useStopSessionMutation,
   useJoinSessionMutation,
   useFetchSessionVodMutation,
+  useUploadCourseThumbnailMutation,
   useCreateCourseMutation,
   useCreateSectionMutation,
   useCreateLessonMutation,

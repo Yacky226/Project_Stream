@@ -10,7 +10,7 @@ export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 // Language display names
 export const LANGUAGE_NAMES: Record<SupportedLanguage, { native: string; english: string }> = {
   en: { native: 'English', english: 'English' },
-  fr: { native: 'Français', english: 'French' },
+  fr: { native: 'Francais', english: 'French' },
 };
 
 // Configure i18next WITHOUT calling init() - we'll do that in the provider

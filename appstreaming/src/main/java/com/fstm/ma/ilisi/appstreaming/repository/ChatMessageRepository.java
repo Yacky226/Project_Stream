@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -24,6 +25,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     
     @Query("SELECT COUNT(cm) FROM ChatMessage cm WHERE cm.session.id = :sessionId")
     Long countBySessionId(@Param("sessionId") Long sessionId);
+
+    @Query("SELECT DISTINCT cm.session.id FROM ChatMessage cm WHERE cm.session.id IN :sessionIds")
+    List<Long> findSessionIdsWithMessages(@Param("sessionIds") Collection<Long> sessionIds);
     
     void deleteBySessionId(Long sessionId);
 }

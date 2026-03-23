@@ -26,4 +26,8 @@ public class CoursDTO {
 
     @NotNull
     private Long enseignantId;
+
+    private String imageUrl;
+    private Integer dureeEstimeeHeures;
+    private String metadataJson;
 }

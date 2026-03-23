@@ -42,6 +42,18 @@ public class InscriptionController {
         InscriptionDTO inscription = inscriptionService.inscrireEtudiant(etudiantId, coursId);
         return new ResponseEntity<>(inscription, HttpStatus.CREATED);
     }
+
+    @PatchMapping("/me/{inscriptionId}/cancel")
+    @PreAuthorize("hasAuthority('ETUDIANT')")
+    public ResponseEntity<Void> annulerInscriptionEtudiantConnecte(
+            @PathVariable Long inscriptionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long etudiantId = etudiantRepository.findByEmail(userDetails.getUsername())
+                .map(etudiant -> etudiant.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Etudiant introuvable"));
+        inscriptionService.abandonnerInscriptionEtudiant(inscriptionId, etudiantId);
+        return ResponseEntity.ok().build();
+    }
     
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")

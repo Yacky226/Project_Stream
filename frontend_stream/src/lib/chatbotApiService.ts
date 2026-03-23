@@ -1,16 +1,22 @@
 /**
  * Service API abstrait pour les chatbots
- * Facilite l'intégration de différents providers (OpenAI, Anthropic, Gemini)
+ * Facilite l'integration de differents providers (OpenAI, Anthropic, Gemini)
  */
 
 import {
   ChatbotProvider,
   ChatbotConfig,
   ChatMessage,
+  defaultConfig,
   getProviderConfig,
+  getProviderApiKey,
+  isBackendProxyEnabled,
+  isStrictApiModeEnabled,
   providerEndpoints,
   formatMessagesForProvider
 } from './chatbotConfig';
+import { buildApiUrl } from './api-base-url';
+import { authStorage } from './localStorage';
 
 export interface ChatCompletionRequest {
   messages: ChatMessage[];
@@ -30,22 +36,20 @@ export interface ChatCompletionResponse {
 }
 
 /**
- * Service principal pour les requêtes chatbot
+ * Service principal pour les requetes chatbot
  */
 export class ChatbotApiService {
   private config: ChatbotConfig;
   private provider: ChatbotProvider;
 
-  constructor(provider: ChatbotProvider = 'mock', apiKey?: string) {
+  constructor(provider: ChatbotProvider = defaultConfig.provider, apiKey?: string) {
     this.provider = provider;
     this.config = getProviderConfig(provider);
-    if (apiKey) {
-      this.config.apiKey = apiKey;
-    }
+    this.config.apiKey = apiKey || this.config.apiKey || getProviderApiKey(provider);
   }
 
   /**
-   * Envoie un message et reçoit une réponse
+   * Envoie un message et recoit une reponse
    */
   async sendMessage(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     // Ajoute le system prompt
@@ -55,6 +59,10 @@ export class ChatbotApiService {
     ];
 
     try {
+      if (this.provider !== 'mock' && isBackendProxyEnabled()) {
+        return await this.callBackendProxy(allMessages, request);
+      }
+
       switch (this.provider) {
         case 'openai':
           return await this.callOpenAI(allMessages, request);
@@ -63,6 +71,9 @@ export class ChatbotApiService {
         case 'gemini':
           return await this.callGemini(allMessages, request);
         default:
+          if (isStrictApiModeEnabled()) {
+            throw new Error('Strict API mode enabled: local mock provider is disabled.');
+          }
           return await this.callMockAPI(allMessages, request);
       }
     } catch (error) {
@@ -71,13 +82,86 @@ export class ChatbotApiService {
     }
   }
 
+  private async callBackendProxy(
+    messages: ChatMessage[],
+    request: ChatCompletionRequest
+  ): Promise<ChatCompletionResponse> {
+    const auth = authStorage.loadAuthData();
+    if (!auth?.token) {
+      throw new Error('No authenticated session found for chatbot backend call.');
+    }
+
+    const response = await fetch(buildApiUrl('/api/chatbot/completions'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${auth.token}`,
+      },
+      body: JSON.stringify({
+        provider: this.provider,
+        model: this.config.model,
+        temperature: request.temperature ?? this.config.temperature,
+        maxTokens: request.maxTokens ?? this.config.maxTokens,
+        stream: request.stream ?? false,
+        messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const details = await this.readErrorDetails(response);
+      throw new Error(`Chatbot backend error ${response.status}: ${details || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = typeof data?.content === 'string' ? data.content.trim() : '';
+    if (!content) {
+      throw new Error('Chatbot backend returned an empty response.');
+    }
+
+    return {
+      content,
+      finishReason: data?.finishReason === 'stop' ? 'stop' : 'length',
+      usage: data?.usage
+        ? {
+            promptTokens: Number(data.usage.promptTokens ?? 0),
+            completionTokens: Number(data.usage.completionTokens ?? 0),
+            totalTokens: Number(data.usage.totalTokens ?? 0),
+          }
+        : undefined,
+    };
+  }
+
+  private async readErrorDetails(response: Response): Promise<string> {
+    try {
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        return text.slice(0, 240);
+      }
+
+      const data = await response.json();
+      const message =
+        data?.error?.message ||
+        data?.error?.details ||
+        data?.message ||
+        JSON.stringify(data);
+      return String(message).slice(0, 240);
+    } catch {
+      return '';
+    }
+  }
+
   /**
-   * Appel à l'API OpenAI
+   * Appel a l'API OpenAI
    */
   private async callOpenAI(
     messages: ChatMessage[],
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    if (!this.config.apiKey) {
+      throw new Error('OpenAI API key missing. Configure VITE_OPENAI_API_KEY.');
+    }
+
     const response = await fetch(providerEndpoints.openai, {
       method: 'POST',
       headers: {
@@ -94,7 +178,8 @@ export class ChatbotApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const details = await this.readErrorDetails(response);
+      throw new Error(`OpenAI API error ${response.status}: ${details || response.statusText}`);
     }
 
     const data = await response.json();
@@ -111,19 +196,23 @@ export class ChatbotApiService {
   }
 
   /**
-   * Appel à l'API Anthropic Claude
+   * Appel a l'API Anthropic Claude
    */
   private async callAnthropic(
     messages: ChatMessage[],
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    if (!this.config.apiKey) {
+      throw new Error('Anthropic API key missing. Configure VITE_ANTHROPIC_API_KEY.');
+    }
+
     const formatted = formatMessagesForProvider(messages, 'anthropic');
     
     const response = await fetch(providerEndpoints.anthropic, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.config.apiKey!,
+        'x-api-key': this.config.apiKey,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
@@ -136,7 +225,8 @@ export class ChatbotApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.statusText}`);
+      const details = await this.readErrorDetails(response);
+      throw new Error(`Anthropic API error ${response.status}: ${details || response.statusText}`);
     }
 
     const data = await response.json();
@@ -153,12 +243,16 @@ export class ChatbotApiService {
   }
 
   /**
-   * Appel à l'API Google Gemini
+   * Appel a l'API Google Gemini
    */
   private async callGemini(
     messages: ChatMessage[],
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
+    if (!this.config.apiKey) {
+      throw new Error('Gemini API key missing. Configure VITE_GEMINI_API_KEY.');
+    }
+
     const formatted = formatMessagesForProvider(messages, 'gemini');
     const endpoint = `${providerEndpoints.gemini}/${this.config.model}:generateContent?key=${this.config.apiKey}`;
     
@@ -177,7 +271,8 @@ export class ChatbotApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const details = await this.readErrorDetails(response);
+      throw new Error(`Gemini API error ${response.status}: ${details || response.statusText}`);
     }
 
     const data = await response.json();
@@ -194,14 +289,14 @@ export class ChatbotApiService {
   }
 
   /**
-   * Mock API pour le mode démo (utilise le service existant)
+   * Mock API pour le mode demo (utilise le service existant)
    */
   private async callMockAPI(
     messages: ChatMessage[],
     request: ChatCompletionRequest
   ): Promise<ChatCompletionResponse> {
     // Utilise la logique existante du chatbotService
-    const { generateResponse } = await import('./chatbotService');
+    const { generateChatbotResponse } = await import('./chatbotService');
     const userMessage = messages[messages.length - 1].content;
     const context = {
       userRole: 'student',
@@ -209,10 +304,10 @@ export class ChatbotApiService {
       conversationHistory: messages.slice(0, -1)
     };
 
-    const response = await generateResponse(userMessage, context);
+    const response = generateChatbotResponse(userMessage, context);
     
     return {
-      content: response.response,
+      content: response.message,
       finishReason: 'stop',
       usage: {
         promptTokens: 0,
@@ -223,39 +318,37 @@ export class ChatbotApiService {
   }
 
   /**
-   * Change le provider à la volée
+   * Change le provider a la volee
    */
   switchProvider(provider: ChatbotProvider, apiKey?: string) {
     this.provider = provider;
     this.config = getProviderConfig(provider);
-    if (apiKey) {
-      this.config.apiKey = apiKey;
-    }
+    this.config.apiKey = apiKey || this.config.apiKey || getProviderApiKey(provider);
   }
 
   /**
-   * Met à jour la configuration
+   * Met a jour la configuration
    */
   updateConfig(updates: Partial<ChatbotConfig>) {
     this.config = { ...this.config, ...updates };
   }
 
   /**
-   * Récupère la configuration actuelle
+   * Recupere la configuration actuelle
    */
   getConfig(): ChatbotConfig {
     return { ...this.config };
   }
 }
 
-// Instance singleton par défaut (mode mock)
-export const defaultChatbotService = new ChatbotApiService('mock');
+// Instance singleton par defaut
+export const defaultChatbotService = new ChatbotApiService(defaultConfig.provider);
 
 /**
- * Hook pour créer ou récupérer une instance du service
+ * Hook pour creer ou recuperer une instance du service
  */
 export function createChatbotService(
-  provider: ChatbotProvider = 'mock',
+  provider: ChatbotProvider = defaultConfig.provider,
   apiKey?: string
 ): ChatbotApiService {
   return new ChatbotApiService(provider, apiKey);
