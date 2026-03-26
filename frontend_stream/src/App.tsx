@@ -60,7 +60,8 @@ function AppContent() {
     isTeacherProfileRoute ||
     isProfileRoute ||
     isPublicStudentProfileRoute ||
-    isSettingsRoute;
+    isSettingsRoute ||
+    isLiveSessionBuilderRoute;
   const standalonePages = new Set([
     '/',
     '/catalog',
@@ -137,8 +138,13 @@ function AppContent() {
       metaDescription.setAttribute('content', routeMeta.description);
     }
     
-    // Smooth scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Keep workspace navigation stable (no global smooth-scroll effect on tab clicks).
+    const isWorkspaceRoute =
+      currentPath.startsWith('/teacher/') ||
+      currentPath.startsWith('/admin/') ||
+      currentPath === '/dashboard' ||
+      currentPath.startsWith('/student/');
+    window.scrollTo({ top: 0, behavior: isWorkspaceRoute ? 'auto' : 'smooth' });
     
     configUtils.debug('Route changed', { path: currentPath, meta: routeMeta });
   }, [currentPath, dispatch]);

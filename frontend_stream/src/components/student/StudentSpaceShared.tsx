@@ -68,6 +68,7 @@ interface StudentSpaceShellProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   showSearch?: boolean;
+  showHeader?: boolean;
   headerTitle?: string;
   headerDescription?: string;
   displayName: string;
@@ -394,6 +395,7 @@ export function StudentSpaceShell({
   onSearchChange,
   searchPlaceholder = 'Search courses, sessions, articles...',
   showSearch = true,
+  showHeader = true,
   headerTitle,
   headerDescription,
   displayName,
@@ -410,7 +412,12 @@ export function StudentSpaceShell({
   const workspaceNavItems = MAIN_NAV_ITEMS;
   const accountNavItems = ACCOUNT_NAV_ITEMS;
   const allNavItems = [...workspaceNavItems, ...accountNavItems];
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return window.localStorage.getItem(STUDENT_SIDEBAR_PREFERENCE_KEY) === '1';
+  });
   const boundedGoalProgress = Math.max(0, Math.min(goalProgress, 100));
   const roundedGoalProgress = Math.round(boundedGoalProgress);
   const rootClass = isDark ? 'bg-[#08101d] text-[#e2e8f0]' : 'bg-[#eff4ff] text-[#0f172a]';
@@ -444,12 +451,6 @@ export function StudentSpaceShell({
     '/student/learning-path': `${roundedGoalProgress}%`,
     '/notifications': unreadCount > 0 ? String(unreadCount) : null,
   };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(STUDENT_SIDEBAR_PREFERENCE_KEY);
-    setIsSidebarCollapsed(stored === '1');
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -544,9 +545,9 @@ export function StudentSpaceShell({
                         type="button"
                         title={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition-colors duration-150 ${
                           active
-                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            ? 'bg-[#1152d4] text-white shadow-sm'
                             : navItemIdleClass
                         } ${
                           isSidebarCollapsed
@@ -557,7 +558,7 @@ export function StudentSpaceShell({
                         {active && !isSidebarCollapsed ? (
                           <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
                         ) : null}
-                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        <Icon className="h-5 w-5 shrink-0" />
                         {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
                         {!isSidebarCollapsed && badge ? (
                           <span
@@ -591,9 +592,9 @@ export function StudentSpaceShell({
                         type="button"
                         title={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition-colors duration-150 ${
                           active
-                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            ? 'bg-[#1152d4] text-white shadow-sm'
                             : navItemIdleClass
                         } ${
                           isSidebarCollapsed
@@ -604,7 +605,7 @@ export function StudentSpaceShell({
                         {active && !isSidebarCollapsed ? (
                           <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
                         ) : null}
-                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        <Icon className="h-5 w-5 shrink-0" />
                         {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
                         {!isSidebarCollapsed && badge ? (
                           <span
@@ -690,7 +691,8 @@ export function StudentSpaceShell({
         </aside>
 
         <main className="student-space-shell__main min-w-0 h-screen flex-1 overflow-y-auto">
-          <header className={`student-space-shell__header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
+          {showHeader ? (
+            <header className={`student-space-shell__header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}>
             <div className="flex items-center justify-between gap-4">
               {showSearch ? (
                 <div className="relative w-full md:max-w-md">
@@ -772,7 +774,7 @@ export function StudentSpaceShell({
                       key={item.path}
                       type="button"
                       onClick={() => onNavigate(item.path)}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
                         active
                           ? 'bg-[#1152d4] text-white'
                           : isDark
@@ -787,7 +789,8 @@ export function StudentSpaceShell({
                 })}
               </div>
             </nav>
-          </header>
+            </header>
+          ) : null}
 
           <div className="student-space-shell__content mx-auto w-full max-w-[1280px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
             {children}

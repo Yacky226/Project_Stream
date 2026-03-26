@@ -66,6 +66,7 @@ interface TeacherSpaceShellProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   showSearch?: boolean;
+  showHeader?: boolean;
   headerTitle?: string;
   headerDescription?: string;
   displayName: string;
@@ -196,6 +197,7 @@ export function TeacherSpaceShell({
   onSearchChange,
   searchPlaceholder = 'Search courses, sessions, or students...',
   showSearch = true,
+  showHeader = true,
   headerTitle,
   headerDescription,
   displayName,
@@ -213,7 +215,12 @@ export function TeacherSpaceShell({
   const allNavItems = SIDEBAR_NAV_ITEMS;
   const workspaceNavItems = SIDEBAR_NAV_ITEMS.filter((item) => item.section === 'workspace');
   const accountNavItems = SIDEBAR_NAV_ITEMS.filter((item) => item.section === 'account');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return window.localStorage.getItem(TEACHER_SIDEBAR_PREFERENCE_KEY) === '1';
+  });
   const rootClass = isDark ? 'bg-[#08101d] text-[#e2e8f0]' : 'bg-[#eff4ff] text-[#0f172a]';
   const sidebarClass = isDark
     ? 'border-[#1e2d45] bg-[#0b1528]/96'
@@ -245,12 +252,6 @@ export function TeacherSpaceShell({
     '/teacher/my-courses': activeCourseCount > 0 ? String(activeCourseCount) : null,
     '/teacher/live-sessions': liveSessions > 0 ? String(liveSessions) : null,
   };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(TEACHER_SIDEBAR_PREFERENCE_KEY);
-    setIsSidebarCollapsed(stored === '1');
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -345,9 +346,9 @@ export function TeacherSpaceShell({
                         type="button"
                         title={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition-colors duration-150 ${
                           active
-                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            ? 'bg-[#1152d4] text-white shadow-sm'
                             : navItemIdleClass
                         } ${
                           isSidebarCollapsed
@@ -358,7 +359,7 @@ export function TeacherSpaceShell({
                         {active && !isSidebarCollapsed ? (
                           <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
                         ) : null}
-                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        <Icon className="h-5 w-5 shrink-0" />
                         {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
                         {!isSidebarCollapsed && badge ? (
                           <span
@@ -389,9 +390,9 @@ export function TeacherSpaceShell({
                         type="button"
                         title={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition ${
+                        className={`group relative flex w-full cursor-pointer items-center rounded-xl text-base font-semibold transition-colors duration-150 ${
                           active
-                            ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/25'
+                            ? 'bg-[#1152d4] text-white shadow-sm'
                             : navItemIdleClass
                         } ${
                           isSidebarCollapsed
@@ -402,7 +403,7 @@ export function TeacherSpaceShell({
                         {active && !isSidebarCollapsed ? (
                           <span className="absolute left-2 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/85" />
                         ) : null}
-                        <Icon className={`h-5 w-5 shrink-0 ${active ? '' : 'transition-transform group-hover:scale-105'}`} />
+                        <Icon className="h-5 w-5 shrink-0" />
                         {!isSidebarCollapsed ? <span className={`truncate ${active ? 'pl-2' : ''}`}>{item.label}</span> : null}
                       </button>
                     );
@@ -480,110 +481,112 @@ export function TeacherSpaceShell({
         </aside>
 
         <main className="teacher-space-main min-w-0 h-screen flex-1 overflow-y-auto">
-          <header
-            className={`teacher-space-header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}
-          >
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              {showSearch ? (
-                <div className="relative w-full xl:w-[32rem] xl:max-w-none">
-                  <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${mutedTextClass}`} />
-                  <input
-                    value={searchQuery}
-                    onChange={(event) => handleSearchChange(event.target.value)}
-                    className={`h-11 w-full rounded-xl border pl-12 pr-4 text-sm shadow-sm transition focus:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-200 ${searchClass}`}
-                    placeholder={searchPlaceholder}
-                    type="text"
-                  />
-                </div>
-              ) : (
-                <div className="min-w-0">
-                  <p className={`text-xs font-semibold ${mutedTextClass}`}>{displayRole}</p>
-                  <h1 className="mt-1 truncate text-3xl font-black tracking-tight">
-                    {headerTitle || displayName}
-                  </h1>
-                  {headerDescription ? (
-                    <p className={`mt-1 max-w-2xl text-sm ${mutedTextClass}`}>{headerDescription}</p>
-                  ) : null}
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
-                <div className="hidden items-center gap-2 md:flex">
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statPillClass}`}>
-                    {activeCourseCount} course(s)
-                  </span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statPillClass}`}>
-                    {liveSessions} live
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={`relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border transition ${iconButtonClass}`}
-                    onClick={() => onNavigate('/notifications')}
-                  >
-                    <Bell className="h-4 w-4" />
-                    {unreadCount > 0 ? (
-                      <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+          {showHeader ? (
+            <header
+              className={`teacher-space-header sticky top-0 z-30 border-b px-4 py-4 backdrop-blur-xl md:px-8 xl:px-10 ${headerClass}`}
+            >
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                {showSearch ? (
+                  <div className="relative w-full xl:w-[32rem] xl:max-w-none">
+                    <Search className={`absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${mutedTextClass}`} />
+                    <input
+                      value={searchQuery}
+                      onChange={(event) => handleSearchChange(event.target.value)}
+                      className={`h-11 w-full rounded-xl border pl-12 pr-4 text-sm shadow-sm transition focus:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-200 ${searchClass}`}
+                      placeholder={searchPlaceholder}
+                      type="text"
+                    />
+                  </div>
+                ) : (
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold ${mutedTextClass}`}>{displayRole}</p>
+                    <h1 className="mt-1 truncate text-3xl font-black tracking-tight">
+                      {headerTitle || displayName}
+                    </h1>
+                    {headerDescription ? (
+                      <p className={`mt-1 max-w-2xl text-sm ${mutedTextClass}`}>{headerDescription}</p>
                     ) : null}
-                  </button>
-                  <button
-                    type="button"
-                    className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border transition ${iconButtonClass}`}
-                    onClick={() => onNavigate('/notifications')}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('/profile')}
-                    className={`hidden items-center gap-2 rounded-xl border px-2.5 py-1.5 transition sm:inline-flex ${
-                      isDark
-                        ? 'border-[#334b71] bg-[#12203a] hover:bg-[#19325b]'
-                        : 'border-[#d4e2fb] bg-white hover:bg-[#eef4ff]'
-                    }`}
-                  >
-                    <Avatar className="h-7 w-7 border border-[#1152d4]/25">
-                      <AvatarImage src={avatarUrl || undefined} />
-                      <AvatarFallback className="bg-blue-100 text-[11px] font-bold text-blue-700">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className={`max-w-[9rem] truncate text-xs font-bold ${mutedTextClass}`}>
-                      {displayName}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
+                  </div>
+                )}
 
-            <nav className="mt-4 lg:hidden">
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                {allNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActiveNavItem(currentPath, item.path);
-                  return (
+                <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
+                  <div className="hidden items-center gap-2 md:flex">
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${statPillClass}`}>
+                      {activeCourseCount} course(s)
+                    </span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${statPillClass}`}>
+                      {liveSessions} live
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <button
-                      key={item.path}
                       type="button"
-                      onClick={() => onNavigate(item.path)}
-                      className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                        active
-                          ? 'bg-[#1152d4] text-white'
-                          : isDark
-                            ? 'bg-[#152845] text-[#d1e1fd]'
-                            : 'bg-white text-[#35527d] shadow-sm'
+                      className={`relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border transition ${iconButtonClass}`}
+                      onClick={() => onNavigate('/notifications')}
+                    >
+                      <Bell className="h-4 w-4" />
+                      {unreadCount > 0 ? (
+                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border transition ${iconButtonClass}`}
+                      onClick={() => onNavigate('/notifications')}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('/profile')}
+                      className={`hidden items-center gap-2 rounded-xl border px-2.5 py-1.5 transition sm:inline-flex ${
+                        isDark
+                          ? 'border-[#334b71] bg-[#12203a] hover:bg-[#19325b]'
+                          : 'border-[#d4e2fb] bg-white hover:bg-[#eef4ff]'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
-                      {item.label}
+                      <Avatar className="h-7 w-7 border border-[#1152d4]/25">
+                        <AvatarImage src={avatarUrl || undefined} />
+                        <AvatarFallback className="bg-blue-100 text-[11px] font-bold text-blue-700">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className={`max-w-[9rem] truncate text-xs font-bold ${mutedTextClass}`}>
+                        {displayName}
+                      </span>
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
-            </nav>
-          </header>
+
+              <nav className="mt-4 lg:hidden">
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                  {allNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActiveNavItem(currentPath, item.path);
+                    return (
+                      <button
+                        key={item.path}
+                        type="button"
+                        onClick={() => onNavigate(item.path)}
+                        className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
+                          active
+                            ? 'bg-[#1152d4] text-white'
+                            : isDark
+                              ? 'bg-[#152845] text-[#d1e1fd]'
+                              : 'bg-white text-[#35527d] shadow-sm'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
+            </header>
+          ) : null}
 
           <div className="mx-auto w-full max-w-[1360px] p-4 pb-28 md:p-8 md:pb-12 xl:px-10">
             {children}

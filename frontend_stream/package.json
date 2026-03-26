@@ -39,6 +39,7 @@
     "i18next": "*",
     "i18next-browser-languagedetector": "*",
     "input-otp": "^1.4.2",
+    "livekit-client": "^2.15.1",
     "lucide-react": "^0.487.0",
     "next-themes": "^0.4.6",
     "react": "^18.3.1",

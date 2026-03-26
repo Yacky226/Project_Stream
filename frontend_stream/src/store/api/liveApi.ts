@@ -333,6 +333,7 @@ export const liveApi = createApi({
 
     getSessionStreamUrl: builder.query<string, string | number>({
       query: (sessionId) => `/api/sessions/${sessionId}/url`,
+      keepUnusedDataFor: 0,
       providesTags: (_result, _error, arg) => [{ type: 'LiveSession', id: `URL-${arg}` }],
     }),
 
@@ -389,6 +390,7 @@ export const liveApi = createApi({
         mapLiveSession(response),
       invalidatesTags: (_result, _error, arg) => [
         { type: 'LiveSession', id: String(arg) },
+        { type: 'LiveSession', id: `URL-${arg}` },
         'LiveSession',
       ],
     }),
@@ -402,6 +404,7 @@ export const liveApi = createApi({
         mapLiveSession(response),
       invalidatesTags: (_result, _error, arg) => [
         { type: 'LiveSession', id: String(arg) },
+        { type: 'LiveSession', id: `URL-${arg}` },
         'LiveSession',
       ],
     }),

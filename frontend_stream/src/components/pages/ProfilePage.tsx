@@ -1292,6 +1292,7 @@ export function ProfilePage({ onNavigate, currentPath }: ProfilePageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="My Profile"
         headerDescription="Retrouvez vos indicateurs, certificats et votre progression dans un profil etudiant aligne avec le reste de votre espace."
         displayName={fullName}
@@ -1316,6 +1317,7 @@ export function ProfilePage({ onNavigate, currentPath }: ProfilePageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="Teacher Profile"
         headerDescription="Retrouvez vos indicateurs de cours, vos sessions a venir et votre identite publique dans un profil aligne avec le reste de votre espace enseignant."
         displayName={teacherShared.displayName}
@@ -1341,6 +1343,7 @@ export function ProfilePage({ onNavigate, currentPath }: ProfilePageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="Admin Profile"
         headerDescription="Conservez votre identite d administration et vos indicateurs de plateforme dans le meme cadre que le reste de votre espace admin."
         displayName={adminShared.displayName}

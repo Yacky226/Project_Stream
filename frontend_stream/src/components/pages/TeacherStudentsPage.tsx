@@ -83,6 +83,7 @@ export function TeacherStudentsPage({ onNavigate, currentPath }: TeacherStudents
       currentPath={currentPath}
       onNavigate={onNavigate}
       showSearch={false}
+      showHeader={false}
       headerTitle="Students"
       displayName={shared.displayName}
       displayRole={shared.displayRole}

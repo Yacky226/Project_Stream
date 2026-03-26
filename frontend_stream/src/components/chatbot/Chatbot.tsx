@@ -1,16 +1,18 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import {
   addAssistantMessage,
   addUserMessage,
+  clearCurrentSession,
   closeChatbot,
   setTyping,
   startNewSession,
 } from '../../store/slices/chatbotSlice';
 import { getChatbotResponseAsync } from '../../lib/chatbotService';
-import { Bot, ChevronRight, Mic, Sparkles, X } from 'lucide-react';
+import { Bot, ChevronRight, Mic, RefreshCcw, Sparkles, X } from 'lucide-react';
 
 interface ChatbotProps {
   onNavigate?: (path: string) => void;
@@ -39,43 +41,6 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
   const { isOpen, currentSession, isTyping, quickActions } = chatbotState;
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const body = document.body;
-    const root = document.documentElement;
-    const scrollY = window.scrollY || window.pageYOffset;
-
-    const previousBodyOverflow = body.style.overflow;
-    const previousBodyPosition = body.style.position;
-    const previousBodyTop = body.style.top;
-    const previousBodyWidth = body.style.width;
-    const previousBodyTouchAction = body.style.touchAction;
-    const previousRootOverflow = root.style.overflow;
-    const previousRootOverscroll = root.style.overscrollBehaviorY;
-
-    body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.width = '100%';
-    body.style.touchAction = 'none';
-    root.style.overflow = 'hidden';
-    root.style.overscrollBehaviorY = 'none';
-
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      body.style.position = previousBodyPosition;
-      body.style.top = previousBodyTop;
-      body.style.width = previousBodyWidth;
-      body.style.touchAction = previousBodyTouchAction;
-      root.style.overflow = previousRootOverflow;
-      root.style.overscrollBehaviorY = previousRootOverscroll;
-      window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
     if (!isOpen || currentSession || !user) {
       return;
     }
@@ -94,6 +59,19 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentSession?.messages, isTyping]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        dispatch(closeChatbot());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dispatch, isOpen]);
 
   const visibleQuickActions = useMemo(() => {
     return quickActions
@@ -163,43 +141,52 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
   }
 
   const panelClass = isDark
-    ? 'border-[#1152d4]/20 bg-slate-900/95 text-slate-100 shadow-[0_30px_68px_-30px_rgba(2,8,23,0.95)]'
-    : 'border-[#1152d4]/10 bg-white text-slate-900 shadow-[0_34px_72px_-32px_rgba(17,82,212,0.45)]';
+    ? 'border-[#1152d4]/25 bg-slate-900/95 text-slate-100 shadow-[0_36px_76px_-30px_rgba(2,8,23,0.95)]'
+    : 'border-[#1152d4]/15 bg-white/95 text-slate-900 shadow-[0_34px_72px_-28px_rgba(17,82,212,0.42)]';
   const headerClass = isDark
-    ? 'border-[#1152d4]/20 bg-slate-900/72 backdrop-blur-xl supports-[backdrop-filter]:bg-slate-900/66'
-    : 'border-[#1152d4]/10 bg-white/82 backdrop-blur-xl supports-[backdrop-filter]:bg-white/76';
+    ? 'border-[#1152d4]/20 bg-slate-900/84 backdrop-blur-xl'
+    : 'border-[#1152d4]/10 bg-white/86 backdrop-blur-xl';
   const mutedTextClass = isDark ? 'text-slate-400' : 'text-slate-500';
+  const messageAreaClass = isDark
+    ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.55)_0%,rgba(2,6,23,0.65)_100%)]'
+    : 'bg-[linear-gradient(180deg,rgba(248,251,255,0.92)_0%,rgba(241,247,255,0.94)_100%)]';
   const assistantBubbleClass = isDark
-    ? 'rounded-2xl rounded-tl-none bg-slate-800 text-slate-100'
-    : 'rounded-2xl rounded-tl-none bg-slate-100 text-slate-700';
+    ? 'rounded-2xl rounded-tl-none border border-slate-700/70 bg-slate-800 text-slate-100'
+    : 'rounded-2xl rounded-tl-none border border-slate-200 bg-white text-slate-700';
   const userBubbleClass = isDark
-    ? 'rounded-2xl rounded-tr-none bg-[#1152d4] text-white shadow-[0_12px_26px_-14px_rgba(17,82,212,0.9)]'
-    : 'rounded-2xl rounded-tr-none bg-[#1152d4] text-white shadow-[0_12px_26px_-14px_rgba(17,82,212,0.72)]';
+    ? 'rounded-2xl rounded-tr-none bg-[#1152d4] text-white shadow-[0_12px_24px_-14px_rgba(17,82,212,0.9)]'
+    : 'rounded-2xl rounded-tr-none bg-[#1152d4] text-white shadow-[0_12px_24px_-14px_rgba(17,82,212,0.7)]';
   const composerClass = isDark
     ? 'bg-slate-800/55 border-transparent focus-within:ring-[#1152d4]/35'
     : 'bg-slate-50 border-transparent focus-within:ring-[#1152d4]/26';
   const typedDotsClass = isDark ? 'bg-slate-300/80' : 'bg-slate-500/60';
   const quickActionClass = isDark
-    ? 'border-[#1152d4]/35 bg-[#1152d4]/15 text-blue-100 hover:bg-[#1152d4] hover:text-white'
+    ? 'border-[#1152d4]/35 bg-[#1152d4]/12 text-blue-100 hover:bg-[#1152d4] hover:text-white'
     : 'border-[#1152d4]/20 bg-[#1152d4]/5 text-[#1152d4] hover:bg-[#1152d4] hover:text-white';
+  const ghostButtonClass = isDark
+    ? 'border-slate-700/80 bg-slate-800/75 text-slate-300 hover:bg-slate-700 hover:text-white'
+    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900';
 
-  return (
-    <div className="fixed inset-0 z-[9998]">
+  return createPortal(
+    <div className="pointer-events-none fixed inset-0 z-[10020] flex items-end justify-end p-2 sm:p-5">
       <button
         type="button"
         aria-label="Close chatbot"
         onClick={() => dispatch(closeChatbot())}
-        className="absolute inset-0 h-full w-full cursor-default bg-slate-900/26 backdrop-blur-[2px]"
+        className="pointer-events-auto absolute inset-0 bg-slate-950/10"
       />
-
-      <div
-        className={`absolute bottom-20 right-2 h-[min(600px,calc(100vh-6.25rem))] w-[min(400px,calc(100vw-1rem))] overflow-hidden rounded-2xl border sm:right-5 md:bottom-24 md:right-6 ${panelClass}`}
+      <section
+        className={`pointer-events-auto relative z-[1] flex w-[min(420px,calc(100vw-1rem))] flex-col overflow-hidden rounded-[24px] border sm:w-[min(420px,calc(100vw-2.5rem))] ${panelClass}`}
+        style={{
+          height: 'min(620px, calc(100dvh - 7.25rem))',
+          maxHeight: 'calc(100dvh - 7.25rem)',
+        }}
       >
-        <div className={`flex items-center justify-between border-b px-5 py-4 ${headerClass}`}>
+        <div className={`flex items-center justify-between border-b px-4 py-3.5 ${headerClass}`}>
           <div className="flex items-center gap-3">
             <div className="relative">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
                   isDark ? 'bg-[#1152d4]/18 text-blue-200' : 'bg-[#1152d4]/10 text-[#1152d4]'
                 }`}
               >
@@ -219,21 +206,30 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => dispatch(closeChatbot())}
-            className={`rounded-full p-1.5 transition ${
-              isDark ? 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100' : 'text-slate-500 hover:bg-slate-200/70 hover:text-slate-700'
-            }`}
-            aria-label="Close chatbot"
-          >
-            <X className="h-4.5 w-4.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => dispatch(clearCurrentSession())}
+              className={`inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition ${ghostButtonClass}`}
+              aria-label="New chat session"
+            >
+              <RefreshCcw className="h-3.5 w-3.5" />
+              New
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch(closeChatbot())}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm transition ${ghostButtonClass}`}
+              aria-label="Close chatbot"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
         </div>
 
-        <div className="relative h-[calc(100%-172px)] overflow-y-auto p-5">
+        <div className={`relative flex-1 overflow-y-auto p-4 sm:p-5 ${messageAreaClass}`}>
           {!currentSession ? null : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {currentSession.messages.map((message) => {
                 const isUser = message.role === 'user';
                 return (
@@ -258,7 +254,7 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
                         </span>
                       </div>
                       <div
-                        className={`px-4 py-3 text-[13px] leading-relaxed shadow-sm ${
+                        className={`whitespace-pre-wrap px-4 py-3 text-[13px] leading-relaxed shadow-sm ${
                           isUser ? userBubbleClass : assistantBubbleClass
                         }`}
                       >
@@ -307,7 +303,7 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
           )}
         </div>
 
-        <div className={`relative border-t px-4 py-4 ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-white'}`}>
+        <div className={`relative border-t px-3 py-3.5 ${isDark ? 'border-slate-800 bg-slate-900/98' : 'border-slate-200 bg-white/98'}`}>
           <form
             onSubmit={onSubmit}
             className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 transition focus-within:ring-2 ${composerClass}`}
@@ -331,16 +327,14 @@ export function Chatbot({ onNavigate, currentPath }: ChatbotProps) {
             <button
               type="submit"
               disabled={!draft.trim() || isTyping}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1152d4] text-white shadow-[0_12px_24px_-14px_rgba(17,82,212,0.9)] transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-60"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1152d4] text-white shadow-[0_12px_24px_-14px_rgba(17,82,212,0.9)] transition hover:brightness-110 active:scale-95 disabled:opacity-60"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </form>
-          <p className={`mt-3 text-center text-[9px] font-bold uppercase tracking-[0.18em] ${mutedTextClass}`}>
-            Powered by Lexend Academic Engine
-          </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </div>,
+    document.body,
   );
 }

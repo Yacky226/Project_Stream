@@ -6,6 +6,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * Accessible via /actuator/health
  */
 @Component
+@ConditionalOnProperty(name = "streaming.provider", havingValue = "antmedia", matchIfMissing = true)
 public class AntMediaHealthIndicator implements HealthIndicator {
 
     private static final Logger log = LoggerFactory.getLogger(AntMediaHealthIndicator.class);

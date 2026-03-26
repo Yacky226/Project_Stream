@@ -21,7 +21,7 @@ public interface SessionStreamingServiceInterface {
     SessionStreamingDTO getSessionParId(Long id);
     SessionStreamingDTO modifierSession(Long id, SessionStreamingDTO dto, String enseignantEmail);
     void supprimerSession(Long id, String enseignantEmail);
-    String getStreamUrl(Long sessionId);
+    String getStreamUrl(Long sessionId, String requesterEmail);
     void updateRecordingUrl(Long sessionId);
     SessionStreamingDTO joinSession(Long sessionId, Long etudiantId);
     SessionStreamingDTO joinSession(Long sessionId, String emailEtudiant);

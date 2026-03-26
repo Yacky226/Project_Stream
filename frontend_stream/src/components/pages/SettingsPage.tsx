@@ -498,6 +498,7 @@ export function SettingsPage({ onNavigate, currentPath }: SettingsPageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="Settings"
         headerDescription="Ajustez vos preferences de lecture, notifications et confidentialite depuis un espace coherent avec votre parcours etudiant."
         displayName={studentShared.displayName}
@@ -518,6 +519,7 @@ export function SettingsPage({ onNavigate, currentPath }: SettingsPageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="Settings"
         headerDescription="Ajustez vos preferences de lecture, notifications et confidentialite depuis un espace enseignant coherent avec le reste de votre studio."
         displayName={teacherShared.displayName}
@@ -539,6 +541,7 @@ export function SettingsPage({ onNavigate, currentPath }: SettingsPageProps) {
         currentPath={currentPath}
         onNavigate={onNavigate}
         showSearch={false}
+        showHeader={false}
         headerTitle="Settings"
         headerDescription="Gardez vos preferences, notifications et options de confidentialite dans le meme cadre que le reste de l espace administrateur."
         displayName={adminShared.displayName}

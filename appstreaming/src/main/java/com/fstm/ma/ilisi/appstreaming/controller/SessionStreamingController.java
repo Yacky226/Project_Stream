@@ -200,8 +200,10 @@ public class SessionStreamingController {
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id:\\d+}/url")
-    public ResponseEntity<String> getStreamUrl(@PathVariable Long id) {
-        return ResponseEntity.ok(sessionStreamingService.getStreamUrl(id));
+    public ResponseEntity<String> getStreamUrl(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(sessionStreamingService.getStreamUrl(id, userDetails.getUsername()));
     }
 
     @Operation(summary = "Rejoindre une session avec l'etudiant connecte")

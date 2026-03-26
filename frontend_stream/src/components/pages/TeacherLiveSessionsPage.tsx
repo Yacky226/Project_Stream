@@ -76,6 +76,7 @@ export function TeacherLiveSessionsPage({
       currentPath={currentPath}
       onNavigate={onNavigate}
       showSearch={false}
+      showHeader={false}
       headerTitle="Live Sessions"
       headerDescription="Organisez vos diffusions, lancez le studio et gardez vos replays et programmations dans un meme espace enseignant."
       displayName={shared.displayName}

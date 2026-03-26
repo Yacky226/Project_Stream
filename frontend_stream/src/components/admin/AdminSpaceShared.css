@@ -73,11 +73,11 @@
 
 .admin-space-shell__nav-item {
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .admin-space-shell__nav-item:hover {
-  transform: translateX(2px);
+  transform: none;
 }
 
 .admin-space-shell__nav-item--active {

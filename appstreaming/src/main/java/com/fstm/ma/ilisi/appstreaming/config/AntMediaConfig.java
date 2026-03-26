@@ -2,6 +2,7 @@ package com.fstm.ma.ilisi.appstreaming.config;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import java.net.URI;
 
 @Configuration
+@ConditionalOnProperty(name = "streaming.provider", havingValue = "antmedia", matchIfMissing = true)
 public class AntMediaConfig {
 
     @Value("${antmedia.server.base-url}")

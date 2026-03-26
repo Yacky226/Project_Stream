@@ -53,6 +53,7 @@ interface AdminSpaceShellProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   showSearch?: boolean;
+  showHeader?: boolean;
   headerTitle?: string;
   headerDescription?: string;
   displayName: string;
@@ -177,6 +178,7 @@ export function AdminSpaceShell({
   onSearchChange,
   searchPlaceholder = 'Search courses, users, or reports...',
   showSearch = true,
+  showHeader = true,
   headerTitle,
   headerDescription,
   displayName,
@@ -316,7 +318,8 @@ export function AdminSpaceShell({
         </aside>
 
         <main className="admin-space-shell__main relative min-w-0 flex-1 overflow-y-auto">
-          <header className={`admin-space-shell__header sticky top-0 z-50 border-b px-4 md:px-8 ${headerSizingClass} ${headerClass}`}>
+          {showHeader ? (
+            <header className={`admin-space-shell__header sticky top-0 z-50 border-b px-4 md:px-8 ${headerSizingClass} ${headerClass}`}>
             <div className={headerInnerClass}>
               {showSearch ? (
                 <div className="relative w-full max-w-xl">
@@ -417,7 +420,7 @@ export function AdminSpaceShell({
                       key={item.path}
                       type="button"
                       onClick={() => onNavigate(item.path)}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
                         active
                           ? 'bg-[#1152d4]/10 text-[#1152d4]'
                           : isDark
@@ -432,7 +435,8 @@ export function AdminSpaceShell({
                 })}
               </div>
             </nav>
-          </header>
+            </header>
+          ) : null}
 
           <div className="admin-space-shell__content relative z-0 w-full p-4 pb-28 md:p-8 md:pb-12">
             {children}

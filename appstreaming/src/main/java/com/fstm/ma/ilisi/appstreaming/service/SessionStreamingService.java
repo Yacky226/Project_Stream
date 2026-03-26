@@ -13,7 +13,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fstm.ma.ilisi.appstreaming.config.AntMediaConfig;
 import com.fstm.ma.ilisi.appstreaming.exception.ResourceNotFoundException;
 import com.fstm.ma.ilisi.appstreaming.exception.EnrollmentRequiredException;
 import com.fstm.ma.ilisi.appstreaming.mapper.SessionStreamingMapper;
@@ -46,7 +45,6 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
     private final EtudiantRepository etudiantRepository;
     private final SessionStreamingMapper sessionMapper;
     private final StreamingServiceInterface streamingService;
-    private final AntMediaConfig antMediaConfig;
 
     public SessionStreamingService(
             SessionStreamingRepository sessionRepository,
@@ -55,8 +53,7 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
             InscriptionRepository inscriptionRepository,
             EtudiantRepository etudiantRepository,
             SessionStreamingMapper sessionMapper,
-            StreamingServiceInterface streamingService,
-            AntMediaConfig antMediaConfig) {
+            StreamingServiceInterface streamingService) {
         this.sessionRepository = sessionRepository;
         this.coursRepository = coursRepository;
         this.enseignantRepository = enseignantRepository;
@@ -64,7 +61,6 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         this.etudiantRepository = etudiantRepository;
         this.sessionMapper = sessionMapper;
         this.streamingService = streamingService;
-        this.antMediaConfig = antMediaConfig;
     }
 
     @Override
@@ -247,21 +243,32 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
 
     @Override
     @Transactional(readOnly = true)
-    public String getStreamUrl(Long sessionId) {
+    public String getStreamUrl(Long sessionId, String requesterEmail) {
         SessionStreaming session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session introuvable"));
 
         if (session.isLive()) {
+            if (session.getStreamKey() == null || session.getStreamKey().isBlank()) {
+                throw new IllegalStateException("Aucun stream disponible pour cette session");
+            }
+
             String liveUrl = session.getVideoUrl();
-            if ((liveUrl == null || liveUrl.isBlank())
-                    && session.getStreamKey() != null
-                    && !session.getStreamKey().isBlank()) {
-                liveUrl = antMediaConfig.getPlaybackUrl(session.getStreamKey());
+            if (liveUrl == null || liveUrl.isBlank()) {
+                liveUrl = streamingService.buildPlaybackUrl(session);
             }
-            if (liveUrl != null && !liveUrl.isBlank()) {
-                return liveUrl;
+            if (liveUrl == null || liveUrl.isBlank()) {
+                throw new IllegalStateException("Aucun stream disponible pour cette session");
             }
-            throw new IllegalStateException("Aucun stream disponible pour cette session");
+
+            boolean canPublish = requesterEmail != null
+                    && session.getEnseignant() != null
+                    && requesterEmail.equalsIgnoreCase(session.getEnseignant().getEmail());
+            String resolvedUrl = streamingService.resolveAccessUrl(session, requesterEmail, canPublish);
+            if (resolvedUrl != null && !resolvedUrl.isBlank()) {
+                return resolvedUrl;
+            }
+
+            return liveUrl;
         }
         if (session.getRecordingUrl() != null) {
             return session.getRecordingUrl();
@@ -284,7 +291,7 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
             return;
         }
 
-        throw new IllegalStateException("VOD pas encore disponible sur Ant Media");
+        throw new IllegalStateException("VOD pas encore disponible sur le provider de streaming");
     }
 
     private boolean tryAttachVod(SessionStreaming session, int maxAttempts, long retryDelayMs) {
@@ -369,7 +376,7 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
         }
 
         if (session.getVideoUrl() == null || session.getVideoUrl().isBlank()) {
-            session.setVideoUrl(antMediaConfig.getPlaybackUrl(session.getStreamKey()));
+            session.setVideoUrl(streamingService.buildPlaybackUrl(session));
         }
     }
 }

@@ -94,6 +94,7 @@ export function TeacherCoursesPage({ onNavigate, currentPath }: TeacherCoursesPa
       currentPath={currentPath}
       onNavigate={onNavigate}
       showSearch={false}
+      showHeader={false}
       headerTitle="My Courses"
       displayName={shared.displayName}
       displayRole={shared.displayRole}

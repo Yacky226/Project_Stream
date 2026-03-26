@@ -1,6 +1,7 @@
 package com.fstm.ma.ilisi.appstreaming.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RestController
+@ConditionalOnProperty(name = "streaming.provider", havingValue = "antmedia", matchIfMissing = true)
 @RequestMapping("/api/webhook/antmedia")
 public class AntMediaWebhookController {
 

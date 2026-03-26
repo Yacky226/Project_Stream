@@ -1,4 +1,12 @@
-import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChangeEvent,
+  ComponentProps,
+  KeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,18 +25,18 @@ import {
   Video,
   X,
   Zap,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   useCreateCourseMutation,
   useCreateSessionMutation,
   useGetTeacherCoursesQuery,
-} from '../../store/api/liveApi';
-import type { LiveCourse } from '../../types/live';
+} from "../../store/api/liveApi";
+import type { LiveCourse } from "../../types/live";
 import {
   TeacherSpaceShell,
   TeacherSpaceStatus,
   useTeacherSpaceData,
-} from '../teacher/TeacherSpaceShared';
+} from "../teacher/TeacherSpaceShared";
 import {
   CATEGORY_OPTIONS,
   CURRENCY_OPTIONS,
@@ -50,36 +58,47 @@ import {
   type BuilderStep,
   type LiveBuilderDraft,
   type PricingMode,
-} from '../teacher/live-session-builder/liveSessionBuilder.utils';
+} from "../teacher/live-session-builder/liveSessionBuilder.utils";
+import { Switch } from "../ui/switch";
 
 interface LiveSessionBuilderPageProps {
   onNavigate: (path: string) => void;
   currentPath?: string;
 }
 
-export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionBuilderPageProps) {
+export function LiveSessionBuilderPage({
+  onNavigate,
+  currentPath,
+}: LiveSessionBuilderPageProps) {
   const teacherShared = useTeacherSpaceData({ includeDashboard: true });
-  const shouldLoad = teacherShared.status === 'ready';
-  const { data: teacherCourses = [], isLoading: isLoadingCourses, error: coursesError } = useGetTeacherCoursesQuery(
-    undefined,
-    { skip: !shouldLoad },
+  const shouldLoad = teacherShared.status === "ready";
+  const {
+    data: teacherCourses = [],
+    isLoading: isLoadingCourses,
+    error: coursesError,
+  } = useGetTeacherCoursesQuery(undefined, { skip: !shouldLoad });
+  const [createCourse, { isLoading: isCreatingCourse }] =
+    useCreateCourseMutation();
+  const [createSession, { isLoading: isCreatingSession }] =
+    useCreateSessionMutation();
+  const [draft, setDraft] = useState<LiveBuilderDraft>(() =>
+    createDefaultDraft(),
   );
-  const [createCourse, { isLoading: isCreatingCourse }] = useCreateCourseMutation();
-  const [createSession, { isLoading: isCreatingSession }] = useCreateSessionMutation();
-  const [draft, setDraft] = useState<LiveBuilderDraft>(() => createDefaultDraft());
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [prerequisiteInput, setPrerequisiteInput] = useState('');
+  const [prerequisiteInput, setPrerequisiteInput] = useState("");
   const thumbnailUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasHydratedDraft = useRef(false);
 
-  const displayName = teacherShared.displayName || 'Instructor';
+  const displayName = teacherShared.displayName || "Instructor";
   const avatarUrl = teacherShared.avatarUrl;
-  const teacherId = teacherShared.user?.id ? String(teacherShared.user.id) : '';
+  const teacherId = teacherShared.user?.id ? String(teacherShared.user.id) : "";
   const selectedCourse = useMemo(
-    () => teacherCourses.find((course) => course.id === draft.selectedCourseId) || null,
+    () =>
+      teacherCourses.find((course) => course.id === draft.selectedCourseId) ||
+      null,
     [teacherCourses, draft.selectedCourseId],
   );
   const progress = progressForStep(draft.step);
@@ -89,32 +108,45 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     setDraft((current) => ({ ...current, ...updates }));
   };
 
+  type SwitchChecked = Parameters<
+    NonNullable<ComponentProps<typeof Switch>["onCheckedChange"]>
+  >[0];
+
+  const handleEarlyBirdToggle = (checked: SwitchChecked) => {
+    updateDraft({ earlyBirdEnabled: checked === true });
+  };
+
   const handleSaveDraft = () => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(LIVE_BUILDER_STORAGE_KEY, JSON.stringify(draft));
-    setStatusMessage('Draft saved locally on this device.');
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      LIVE_BUILDER_STORAGE_KEY,
+      JSON.stringify(draft),
+    );
+    setStatusMessage("Draft saved locally on this device.");
     setErrorMessage(null);
   };
 
   const handleAddPrerequisite = () => {
     const normalized = prerequisiteInput.trim();
     if (!normalized || draft.prerequisites.includes(normalized)) {
-      setPrerequisiteInput('');
+      setPrerequisiteInput("");
       return;
     }
     updateDraft({ prerequisites: [...draft.prerequisites, normalized] });
-    setPrerequisiteInput('');
+    setPrerequisiteInput("");
   };
 
-  const handlePrerequisiteKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' || event.key === ',') {
+  const handlePrerequisiteKeyDown = (
+    event: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key === "Enter" || event.key === ",") {
       event.preventDefault();
       handleAddPrerequisite();
     }
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -126,9 +158,10 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
           ...current,
           ...parsed,
           prerequisites:
-            parsed.prerequisites?.filter((entry) => entry.trim().length > 0) || current.prerequisites,
+            parsed.prerequisites?.filter((entry) => entry.trim().length > 0) ||
+            current.prerequisites,
         }));
-        setStatusMessage('A local wizard draft has been restored.');
+        setStatusMessage("A local wizard draft has been restored.");
       } catch {
         window.localStorage.removeItem(LIVE_BUILDER_STORAGE_KEY);
       }
@@ -143,15 +176,20 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     }
 
     const routeStep = stepFromPath(currentPath);
-    setDraft((current) => (current.step === routeStep ? current : { ...current, step: routeStep }));
+    setDraft((current) =>
+      current.step === routeStep ? current : { ...current, step: routeStep },
+    );
   }, [currentPath]);
 
   useEffect(() => {
-    if (!hasHydratedDraft.current || typeof window === 'undefined') {
+    if (!hasHydratedDraft.current || typeof window === "undefined") {
       return;
     }
 
-    window.localStorage.setItem(LIVE_BUILDER_STORAGE_KEY, JSON.stringify(draft));
+    window.localStorage.setItem(
+      LIVE_BUILDER_STORAGE_KEY,
+      JSON.stringify(draft),
+    );
   }, [draft]);
 
   useEffect(() => {
@@ -163,11 +201,15 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   }, []);
 
   useEffect(() => {
-    if (!isLoadingCourses && !teacherCourses.length && draft.sessionMode === 'existing') {
+    if (
+      !isLoadingCourses &&
+      !teacherCourses.length &&
+      draft.sessionMode === "existing"
+    ) {
       setDraft((current) => ({
         ...current,
-        sessionMode: 'new',
-        selectedCourseId: '',
+        sessionMode: "new",
+        selectedCourseId: "",
       }));
     }
   }, [draft.sessionMode, isLoadingCourses, teacherCourses.length]);
@@ -186,7 +228,19 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     thumbnailUrlRef.current = localUrl;
     setThumbnailPreview(localUrl);
     updateDraft({ thumbnailName: file.name });
-    setStatusMessage('Thumbnail preview updated. The image stays local until dedicated upload support is added.');
+    setStatusMessage(
+      "Thumbnail preview updated. The image stays local until dedicated upload support is added.",
+    );
+    event.target.value = "";
+  };
+
+  const clearThumbnail = () => {
+    if (thumbnailUrlRef.current) {
+      URL.revokeObjectURL(thumbnailUrlRef.current);
+      thumbnailUrlRef.current = null;
+    }
+    setThumbnailPreview(null);
+    updateDraft({ thumbnailName: "" });
   };
 
   const applySelectedCourse = (course: LiveCourse) => {
@@ -194,8 +248,12 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
       ...current,
       selectedCourseId: course.id,
       category: course.category || current.category,
-      title: current.title.trim() ? current.title : `${course.title} Live Session`,
-      description: current.description.trim() ? current.description : course.description,
+      title: current.title.trim()
+        ? current.title
+        : `${course.title} Live Session`,
+      description: current.description.trim()
+        ? current.description
+        : course.description,
     }));
   };
 
@@ -220,7 +278,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   const handleBack = () => {
     setErrorMessage(null);
     if (draft.step === 1) {
-      onNavigate('/teacher/live-sessions');
+      onNavigate("/teacher/live-sessions");
       return;
     }
     onNavigate(stepToPath((draft.step - 1) as BuilderStep));
@@ -234,20 +292,20 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     }
 
     if (!teacherId) {
-      setErrorMessage('Unable to resolve the current teacher profile.');
+      setErrorMessage("Unable to resolve the current teacher profile.");
       return;
     }
 
     setErrorMessage(null);
     setStatusMessage(null);
-    let createdCourseId: string | null = null;
+    let createdCourseId = "";
     let createdCourseTitle: string | null = null;
 
     try {
       let courseId = draft.selectedCourseId;
       let linkedCourseTitle = selectedCourse?.title || null;
 
-      if (draft.sessionMode === 'new') {
+      if (draft.sessionMode === "new") {
         const createdCourse = await createCourse({
           title: draft.title.trim(),
           description: draft.description.trim(),
@@ -322,12 +380,12 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         linkedCourseTitle,
       });
 
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         window.localStorage.removeItem(LIVE_BUILDER_STORAGE_KEY);
       }
 
       setStatusMessage(
-        'Live session published. Core settings and advanced metadata are saved in the backend. Redirecting to the studio...',
+        "Live session published. Core settings and advanced metadata are saved in the backend. Redirecting to the studio...",
       );
       onNavigate(`/teacher/live/${courseId}/${createdSession.id}`);
     } catch (error) {
@@ -337,11 +395,10 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         message?: string;
       };
       if (createdCourseId) {
-        setDraft((current) => ({
-          ...current,
-          sessionMode: 'existing',
+        updateDraft({
+          sessionMode: "existing",
           selectedCourseId: createdCourseId,
-        }));
+        });
         setStatusMessage(
           `The course "${createdCourseTitle || createdCourseId}" was created, but the live session still needs to be published.`,
         );
@@ -351,209 +408,279 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
           payload.data?.error ||
           payload.error ||
           payload.message ||
-          'The live session could not be created.',
+          "The live session could not be created.",
       );
     }
   };
 
-  if (teacherShared.status !== 'ready') {
+  if (teacherShared.status !== "ready") {
     return <TeacherSpaceStatus shared={teacherShared} />;
   }
 
   const stepOneContent = (
-    <div className="mx-auto w-full max-w-4xl">
-      <div className="mb-10 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#1152d4]">Step 1 of 3</span>
-            <h2 className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{stepLabel(draft.step)}</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">{stepDescription(draft.step)}</p>
-          </div>
-          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-            {progress}% Complete
-          </span>
-        </div>
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div className="absolute inset-y-0 left-0 rounded-full bg-[#1152d4]" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="mt-4 grid grid-cols-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em]">
-          <div className="text-[#1152d4]">Info</div>
-          <div className="text-slate-400">Technical</div>
-          <div className="text-slate-400">Audience</div>
-        </div>
-      </div>
-
+    <div className="mx-auto w-full max-w-6xl">
       <div className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
-        <div className="space-y-8 p-8 md:p-10">
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => updateDraft({ sessionMode: 'new', selectedCourseId: '' })}
-              className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                draft.sessionMode === 'new'
-                  ? 'bg-[#1152d4] text-white shadow-lg shadow-[#1152d4]/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-              }`}
-            >
-              Create with a new course
-            </button>
-            <button
-              type="button"
-              disabled={!teacherCourses.length}
-              onClick={() => updateDraft({ sessionMode: 'existing' })}
-              className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                draft.sessionMode === 'existing'
-                  ? 'bg-[#1152d4]/10 text-[#1152d4]'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-              } ${!teacherCourses.length ? 'cursor-not-allowed opacity-50' : ''}`}
-            >
-              Attach to an existing course
-            </button>
-          </div>
+        <div className="border-b border-slate-100 px-5 py-5 dark:border-slate-800 md:px-7 md:py-6">
+          <div className="flex flex-col gap-4">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="  mt-1.5 text-2xl font-bold text-slate-950 dark:text-white">
+                {stepLabel(draft.step)}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                {stepDescription(draft.step)}
+              </p>
+            </div>
 
-          {draft.sessionMode === 'existing' ? (
-            <div className="space-y-3">
-              <label className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Choose course</label>
-              <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-                <div className="relative">
-                  <select
-                    value={draft.selectedCourseId}
-                    onChange={(event) => {
-                      const course = teacherCourses.find((entry) => entry.id === event.target.value);
-                      if (course) {
-                        applySelectedCourse(course);
-                      } else {
-                        updateDraft({ selectedCourseId: event.target.value });
-                      }
-                    }}
-                    className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100"
-                  >
-                    <option value="">Select one of your courses</option>
-                    {teacherCourses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title} - {course.category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-800/70">
+              <div className="grid gap-1 sm:grid-cols-2 mx-auto">
                 <button
                   type="button"
-                  onClick={() => onNavigate('/teacher/course-builder')}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  onClick={() =>
+                    updateDraft({ sessionMode: "new", selectedCourseId: "" })
+                  }
+                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                    draft.sessionMode === "new"
+                      ? "bg-[#1152d4] text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                  }`}
                 >
-                  New course
+                  New course + live session
+                </button>
+                <button
+                  type="button"
+                  disabled={!teacherCourses.length}
+                  onClick={() => updateDraft({ sessionMode: "existing" })}
+                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                    draft.sessionMode === "existing"
+                      ? "bg-[#1152d4] text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                  } ${!teacherCourses.length ? "cursor-not-allowed opacity-50" : ""}`}
+                >
+                  Existing course
                 </button>
               </div>
-              {selectedCourse ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-800/40">
-                  <p className="font-bold text-slate-900 dark:text-white">{selectedCourse.title}</p>
-                  <p className="mt-1 text-slate-500 dark:text-slate-300">{selectedCourse.description}</p>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Category: {selectedCourse.category}
-                  </p>
-                </div>
-              ) : null}
             </div>
-          ) : null}
+          </div>
 
+          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:border-slate-700 dark:bg-slate-800/70 sm:w-auto">
+              <span className="flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[#1152d4] shadow-sm dark:bg-slate-900 sm:flex-none">
+                Info
+              </span>
+              <span className="flex-1 px-3 py-1.5 text-center sm:flex-none">
+                Technical
+              </span>
+              <span className="flex-1 px-3 py-1.5 text-center sm:flex-none">
+                Audience
+              </span>
+            </div>
+            <span className="w-fit rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              {progress}% complete
+            </span>
+          </div>
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-[#1152d4]"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-5 p-5 md:p-7 lg:grid-cols-[1.35fr_1fr]">
           <div className="space-y-4">
             <label className="block">
               <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {draft.sessionMode === 'new' ? 'Course and session title' : 'Session title'}
+                {draft.sessionMode === "new"
+                  ? "Course and session title"
+                  : "Session title"}
               </span>
               <input
                 value={draft.title}
                 onChange={(event) => updateDraft({ title: event.target.value })}
                 className="mt-2 block h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base text-slate-900 transition-all focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
                 placeholder={
-                  draft.sessionMode === 'new'
-                    ? 'e.g. Advanced Quantum Mechanics - Week 1'
-                    : 'e.g. Portfolio critique office hours'
+                  draft.sessionMode === "new"
+                    ? "e.g. Advanced Quantum Mechanics - Week 1"
+                    : "e.g. Portfolio critique office hours"
                 }
                 type="text"
               />
             </label>
 
             <label className="block">
-              <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Description</span>
+              <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Description
+              </span>
               <textarea
                 value={draft.description}
-                onChange={(event) => updateDraft({ description: event.target.value })}
-                className="mt-2 block min-h-[150px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-base text-slate-900 transition-all focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                onChange={(event) =>
+                  updateDraft({ description: event.target.value })
+                }
+                className="mt-2 block h-[110px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-base text-slate-900 transition-all focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
                 placeholder="Briefly describe what students will learn in this session..."
               />
             </label>
+
+            <div className="hidden rounded-xl border border-[#1152d4]/15 bg-[#1152d4]/5 p-3 text-xs text-slate-600 dark:text-slate-300 lg:block">
+              Thumbnail, audience and pricing details will be persisted in
+              backend metadata.
+            </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <label className="block">
-              <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Category</span>
-              <div className="relative mt-2">
-                <select
-                  value={draft.category}
-                  onChange={(event) => updateDraft({ category: event.target.value })}
-                  className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
-                >
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="block">
-              <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Date & time</span>
-              <div className="relative mt-2">
-                <input
-                  value={draft.scheduledAt}
-                  onChange={(event) => updateDraft({ scheduledAt: event.target.value })}
-                  className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
-                  type="datetime-local"
-                />
-                <CalendarClock className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              </div>
-            </label>
-          </div>
-
-          <div className="space-y-3">
-            <span className="ml-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Session thumbnail</span>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-52 w-full flex-col items-center justify-center rounded-[28px] border-2 border-dashed border-slate-200 bg-slate-50 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/30 dark:hover:bg-slate-800/50"
-            >
-              {thumbnailPreview ? (
-                <div className="flex h-full w-full flex-col overflow-hidden rounded-[26px]">
-                  <img src={thumbnailPreview} alt="Thumbnail preview" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center">
-                  <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#1152d4]/10">
-                    <ImagePlus className="h-6 w-6 text-[#1152d4]" />
+          <div className="space-y-4">
+            {draft.sessionMode === "existing" ? (
+              <div className="space-y-3">
+                <label className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Choose course
+                </label>
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <div className="relative">
+                    <select
+                      value={draft.selectedCourseId}
+                      onChange={(event) => {
+                        const course = teacherCourses.find(
+                          (entry) => entry.id === event.target.value,
+                        );
+                        if (course) {
+                          applySelectedCourse(course);
+                        } else {
+                          updateDraft({ selectedCourseId: event.target.value });
+                        }
+                      }}
+                      className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100"
+                    >
+                      <option value="">Select one of your courses</option>
+                      {teacherCourses.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.title} - {course.category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    PNG, JPG, GIF or WEBP preview only
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("/teacher/course-builder")}
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    New course
+                  </button>
                 </div>
-              )}
-            </button>
-            {draft.thumbnailName ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Local asset selected: <span className="font-semibold">{draft.thumbnailName}</span>
-              </p>
+                {selectedCourse ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/40">
+                    <p className="line-clamp-1 font-bold text-slate-900 dark:text-white">
+                      {selectedCourse.title}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-slate-500 dark:text-slate-300">
+                      {selectedCourse.description}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
-          </div>
 
-          <div className="flex gap-4 rounded-2xl border border-[#1152d4]/10 bg-[#1152d4]/5 p-4">
-            <Info className="mt-0.5 h-5 w-5 shrink-0 text-[#1152d4]" />
-            <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              This information powers course creation and live publishing. Thumbnail, audience and pricing details are now persisted in backend metadata as well.
-            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Category
+                </span>
+                <div className="relative mt-2">
+                  <select
+                    value={draft.category}
+                    onChange={(event) =>
+                      updateDraft({ category: event.target.value })
+                    }
+                    className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                  >
+                    {CATEGORY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Date & time
+                </span>
+                <div className="relative mt-2">
+                  <input
+                    value={draft.scheduledAt}
+                    onChange={(event) =>
+                      updateDraft({ scheduledAt: event.target.value })
+                    }
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                    type="datetime-local"
+                  />
+                  <CalendarClock className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="ml-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Session thumbnail
+                </span>
+                {draft.thumbnailName ? (
+                  <button
+                    type="button"
+                    onClick={clearThumbnail}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative flex h-32 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/30 dark:hover:bg-slate-800/50"
+              >
+                {thumbnailPreview ? (
+                  <>
+                    <img
+                      src={thumbnailPreview}
+                      alt="Thumbnail preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-3 py-2 text-left">
+                      <p className="text-xs font-semibold text-white">
+                        Click to replace image
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#1152d4]/10">
+                      <ImagePlus className="h-4 w-4 text-[#1152d4]" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Upload thumbnail
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                      PNG, JPG, GIF or WEBP
+                    </p>
+                  </div>
+                )}
+              </button>
+              <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                {draft.thumbnailName ? (
+                  <>
+                    Selected:{" "}
+                    <span className="font-semibold">{draft.thumbnailName}</span>
+                  </>
+                ) : (
+                  "No thumbnail selected yet"
+                )}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-[#1152d4]/15 bg-[#1152d4]/5 p-3 text-xs text-slate-600 dark:text-slate-300 lg:hidden">
+              Thumbnail, audience and pricing details will be persisted in
+              backend metadata.
+            </div>
           </div>
         </div>
       </div>
@@ -561,19 +688,26 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   );
 
   const stepTwoContent = (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="mb-10">
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="mb-8">
         <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-slate-950 dark:text-slate-50">{stepLabel(draft.step)}</h2>
-            <p className="mt-1 text-slate-500 dark:text-slate-400">{stepDescription(draft.step)}</p>
+            <h2 className="text-3xl font-bold text-slate-950 dark:text-slate-50">
+              {stepLabel(draft.step)}
+            </h2>
+            <p className="mt-1 text-slate-500 dark:text-slate-400">
+              {stepDescription(draft.step)}
+            </p>
           </div>
           <span className="w-fit rounded-full bg-[#1152d4]/10 px-3 py-1 text-sm font-semibold text-[#1152d4]">
             Step 2 of 3
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-          <div className="h-full rounded-full bg-[#1152d4]" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full bg-[#1152d4]"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         <div className="mt-2 flex justify-between text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
           <span>Basic info</span>
@@ -582,8 +716,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-6 flex items-center gap-2">
               <Radio className="h-5 w-5 text-[#1152d4]" />
@@ -592,21 +726,24 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
             <div className="space-y-4">
               {[
                 {
-                  value: 'rtmp' as const,
-                  title: 'Live streaming software (RTMP)',
-                  description: 'Best for professional setups using OBS, vMix, or Wirecast.',
+                  value: "rtmp" as const,
+                  title: "Live streaming software (RTMP)",
+                  description:
+                    "Best for professional setups using OBS, vMix, or Wirecast.",
                   icon: Monitor,
                 },
                 {
-                  value: 'browser' as const,
-                  title: 'Webcam / browser-based',
-                  description: 'Quick start directly from your browser with no extra software.',
+                  value: "browser" as const,
+                  title: "Webcam / browser-based",
+                  description:
+                    "Quick start directly from your browser with no extra software.",
                   icon: Video,
                 },
                 {
-                  value: 'zoom' as const,
-                  title: 'Zoom integration',
-                  description: 'Reserve the session for an external Zoom room or webinar link.',
+                  value: "zoom" as const,
+                  title: "Zoom integration",
+                  description:
+                    "Reserve the session for an external Zoom room or webinar link.",
                   icon: Users,
                 },
               ].map((option) => {
@@ -619,19 +756,27 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                     onClick={() => updateDraft({ streamType: option.value })}
                     className={`flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition ${
                       isActive
-                        ? 'border-[#1152d4] bg-[#1152d4]/5'
-                        : 'border-slate-100 hover:border-[#1152d4]/30 dark:border-slate-800'
+                        ? "border-[#1152d4] bg-[#1152d4]/5"
+                        : "border-slate-100 hover:border-[#1152d4]/30 dark:border-slate-800"
                     }`}
                   >
                     <div className="rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
                       <Icon className="h-5 w-5 text-slate-600 dark:text-slate-300" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-slate-900 dark:text-white">{option.title}</p>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{option.description}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        {option.title}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {option.description}
+                      </p>
                     </div>
-                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${isActive ? 'border-[#1152d4]' : 'border-slate-300 dark:border-slate-700'}`}>
-                      {isActive ? <div className="h-3 w-3 rounded-full bg-[#1152d4]" /> : null}
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${isActive ? "border-[#1152d4]" : "border-slate-300 dark:border-slate-700"}`}
+                    >
+                      {isActive ? (
+                        <div className="h-3 w-3 rounded-full bg-[#1152d4]" />
+                      ) : null}
                     </div>
                   </button>
                 );
@@ -644,52 +789,58 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               <MessageSquare className="h-5 w-5 text-[#1152d4]" />
               <h3 className="text-lg font-bold">Interactivity settings</h3>
             </div>
-            <div className="space-y-6">
+            <div className="grid gap-3 md:grid-cols-2">
               {[
                 {
-                  label: 'Enable live chat',
-                  description: 'Allow students to message during the session.',
+                  label: "Enable live chat",
+                  description: "Allow students to message during the session.",
                   value: draft.enableLiveChat,
-                  onToggle: () => updateDraft({ enableLiveChat: !draft.enableLiveChat }),
+                  onToggle: (checked: boolean) =>
+                    updateDraft({ enableLiveChat: checked }),
                 },
                 {
-                  label: 'Enable Q&A moderation',
-                  description: 'Review questions before they become visible to everyone.',
+                  label: "Enable Q&A moderation",
+                  description:
+                    "Review questions before they become visible to everyone.",
                   value: draft.enableQnaModeration,
-                  onToggle: () => updateDraft({ enableQnaModeration: !draft.enableQnaModeration }),
+                  onToggle: (checked: boolean) =>
+                    updateDraft({ enableQnaModeration: checked }),
                 },
                 {
-                  label: 'Allow student reactions',
-                  description: 'Let students react with lightweight emoji signals during the live.',
+                  label: "Allow student reactions",
+                  description:
+                    "Let students react with lightweight emoji signals during the live.",
                   value: draft.allowReactions,
-                  onToggle: () => updateDraft({ allowReactions: !draft.allowReactions }),
+                  onToggle: (checked: boolean) =>
+                    updateDraft({ allowReactions: checked }),
                 },
-              ].map((setting) => (
-                <div key={setting.label} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold">{setting.label}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{setting.description}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={setting.onToggle}
-                    className={`relative h-7 w-12 rounded-full transition ${
-                      setting.value ? 'bg-[#1152d4]' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
-                        setting.value ? 'left-6' : 'left-1'
-                      }`}
+              ].map((setting, index) => (
+                <div
+                  key={setting.label}
+                  className={`rounded-xl border border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/30 ${
+                    index === 2 ? "md:col-span-2" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold">{setting.label}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {setting.description}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={setting.value}
+                      onCheckedChange={setting.onToggle}
+                      className="mt-0.5 shrink-0 data-[state=checked]:bg-[#1152d4] data-[state=unchecked]:bg-slate-200 dark:data-[state=unchecked]:bg-slate-700"
                     />
-                  </button>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-6 flex items-center gap-2">
               <Shield className="h-5 w-5 text-[#1152d4]" />
@@ -698,31 +849,30 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
             <div className="space-y-6">
               {[
                 {
-                  label: 'Auto-record session',
+                  label: "Auto-record session",
                   value: draft.recordingEnabled,
-                  onToggle: () => updateDraft({ recordingEnabled: !draft.recordingEnabled }),
+                  onToggle: (checked: boolean) =>
+                    updateDraft({ recordingEnabled: checked }),
                 },
                 {
-                  label: 'Cloud storage backup',
+                  label: "Cloud storage backup",
                   value: draft.cloudBackup,
-                  onToggle: () => updateDraft({ cloudBackup: !draft.cloudBackup }),
+                  onToggle: (checked: boolean) =>
+                    updateDraft({ cloudBackup: checked }),
                 },
               ].map((setting) => (
-                <div key={setting.label} className="flex items-center justify-between gap-4">
-                  <p className="max-w-[160px] text-sm font-semibold">{setting.label}</p>
-                  <button
-                    type="button"
-                    onClick={setting.onToggle}
-                    className={`relative h-7 w-12 rounded-full transition ${
-                      setting.value ? 'bg-[#1152d4]' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
-                        setting.value ? 'left-6' : 'left-1'
-                      }`}
-                    />
-                  </button>
+                <div
+                  key={setting.label}
+                  className="flex items-center justify-between gap-4"
+                >
+                  <p className="max-w-[160px] text-sm font-semibold">
+                    {setting.label}
+                  </p>
+                  <Switch
+                    checked={setting.value}
+                    onCheckedChange={setting.onToggle}
+                    className="shrink-0 data-[state=checked]:bg-[#1152d4] data-[state=unchecked]:bg-slate-200 dark:data-[state=unchecked]:bg-slate-700"
+                  />
                 </div>
               ))}
 
@@ -731,22 +881,22 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => updateDraft({ visibility: 'public' })}
+                    onClick={() => updateDraft({ visibility: "public" })}
                     className={`flex-1 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
-                      draft.visibility === 'public'
-                        ? 'border-[#1152d4] bg-[#1152d4]/10 text-[#1152d4]'
-                        : 'border-slate-100 text-slate-500 dark:border-slate-800 dark:text-slate-400'
+                      draft.visibility === "public"
+                        ? "border-[#1152d4] bg-[#1152d4]/10 text-[#1152d4]"
+                        : "border-slate-100 text-slate-500 dark:border-slate-800 dark:text-slate-400"
                     }`}
                   >
                     Public
                   </button>
                   <button
                     type="button"
-                    onClick={() => updateDraft({ visibility: 'private' })}
+                    onClick={() => updateDraft({ visibility: "private" })}
                     className={`flex-1 rounded-xl border-2 px-3 py-2 text-sm font-bold transition ${
-                      draft.visibility === 'private'
-                        ? 'border-[#1152d4] bg-[#1152d4]/10 text-[#1152d4]'
-                        : 'border-slate-100 text-slate-500 dark:border-slate-800 dark:text-slate-400'
+                      draft.visibility === "private"
+                        ? "border-[#1152d4] bg-[#1152d4]/10 text-[#1152d4]"
+                        : "border-slate-100 text-slate-500 dark:border-slate-800 dark:text-slate-400"
                     }`}
                   >
                     Private
@@ -755,10 +905,14 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">Resolution</span>
+                <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Resolution
+                </span>
                 <select
                   value={draft.resolution}
-                  onChange={(event) => updateDraft({ resolution: event.target.value })}
+                  onChange={(event) =>
+                    updateDraft({ resolution: event.target.value })
+                  }
                   className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 >
                   {RESOLUTION_OPTIONS.map((option) => (
@@ -777,22 +931,32 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               <div>
                 <p className="text-sm font-semibold text-[#1152d4]">Pro tip</p>
                 <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-                  RTMP is best when you want lower latency with overlays from OBS. For stable e-learning sessions, 1080p at 30fps is the safest starting point.
+                  RTMP is best when you want lower latency with overlays from
+                  OBS. For stable e-learning sessions, 1080p at 30fps is the
+                  safest starting point.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Draft summary</p>
-            <h3 className="mt-2 text-lg font-bold text-slate-950 dark:text-white">{draft.title || 'Untitled live session'}</h3>
-            <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">{formatSchedule(draft.scheduledAt)}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+              Draft summary
+            </p>
+            <h3 className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+              {draft.title || "Untitled live session"}
+            </h3>
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">
+              {formatSchedule(draft.scheduledAt)}
+            </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 {broadcastLabel(draft.streamType)}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {draft.visibility === 'public' ? 'Public access' : 'Private access'}
+                {draft.visibility === "public"
+                  ? "Public access"
+                  : "Private access"}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 {draft.resolution}
@@ -804,7 +968,7 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
     </div>
   );
   const stepThreeContent = (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <div className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-6 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
@@ -812,8 +976,12 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-950 dark:text-white">{stepLabel(draft.step)}</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{stepDescription(draft.step)}</p>
+              <h2 className="text-2xl font-bold text-slate-950 dark:text-white">
+                {stepLabel(draft.step)}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {stepDescription(draft.step)}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-full bg-[#1152d4] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-white">
@@ -824,11 +992,18 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
         <div className="border-b border-slate-100 px-6 py-5 dark:border-slate-800 md:px-10">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Wizard progress</p>
-            <p className="text-sm font-bold text-[#1152d4]">{progress}% completed</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Wizard progress
+            </p>
+            <p className="text-sm font-bold text-[#1152d4]">
+              {progress}% completed
+            </p>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div className="h-full rounded-full bg-[#1152d4]" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full rounded-full bg-[#1152d4]"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
 
@@ -840,10 +1015,16 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
             </div>
             <div className="grid gap-6 p-6 md:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Target levels</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Target levels
+                </label>
                 <select
                   value={draft.targetLevel}
-                  onChange={(event) => updateDraft({ targetLevel: event.target.value as AudienceLevel })}
+                  onChange={(event) =>
+                    updateDraft({
+                      targetLevel: event.target.value as AudienceLevel,
+                    })
+                  }
                   className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 >
                   {TARGET_LEVEL_OPTIONS.map((option) => (
@@ -852,15 +1033,21 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Who is this live session designed for?</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Who is this live session designed for?
+                </p>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Max participants</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Max participants
+                </label>
                 <div className="flex items-center gap-3">
                   <input
                     value={draft.maxParticipants}
-                    onChange={(event) => updateDraft({ maxParticipants: event.target.value })}
+                    onChange={(event) =>
+                      updateDraft({ maxParticipants: event.target.value })
+                    }
                     disabled={draft.unlimitedParticipants}
                     className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     placeholder="50"
@@ -870,7 +1057,11 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                   <label className="flex min-w-max items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                     <input
                       checked={draft.unlimitedParticipants}
-                      onChange={(event) => updateDraft({ unlimitedParticipants: event.target.checked })}
+                      onChange={(event) =>
+                        updateDraft({
+                          unlimitedParticipants: event.target.checked,
+                        })
+                      }
                       className="h-4 w-4 rounded border-slate-300 text-[#1152d4] focus:ring-[#1152d4]"
                       type="checkbox"
                     />
@@ -880,7 +1071,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               </div>
 
               <div className="flex flex-col gap-2 md:col-span-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Prerequisites & skills required</label>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Prerequisites & skills required
+                </label>
                 <div className="min-h-[60px] rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
                   <div className="flex flex-wrap gap-2">
                     {draft.prerequisites.map((item) => (
@@ -893,7 +1086,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                           type="button"
                           onClick={() =>
                             updateDraft({
-                              prerequisites: draft.prerequisites.filter((entry) => entry !== item),
+                              prerequisites: draft.prerequisites.filter(
+                                (entry) => entry !== item,
+                              ),
                             })
                           }
                         >
@@ -903,7 +1098,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                     ))}
                     <input
                       value={prerequisiteInput}
-                      onChange={(event) => setPrerequisiteInput(event.target.value)}
+                      onChange={(event) =>
+                        setPrerequisiteInput(event.target.value)
+                      }
                       onKeyDown={handlePrerequisiteKeyDown}
                       onBlur={handleAddPrerequisite}
                       className="min-w-[180px] flex-1 border-none bg-transparent p-0 text-sm focus:outline-none focus:ring-0"
@@ -925,14 +1122,16 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               <div className="grid gap-4 md:grid-cols-2">
                 {[
                   {
-                    value: 'free' as const,
-                    title: 'Free session',
-                    description: 'Accessible to all registered users without charge.',
+                    value: "free" as const,
+                    title: "Free session",
+                    description:
+                      "Accessible to all registered users without charge.",
                   },
                   {
-                    value: 'paid' as const,
-                    title: 'Paid session',
-                    description: 'Learners must pay a fee before joining the event.',
+                    value: "paid" as const,
+                    title: "Paid session",
+                    description:
+                      "Learners must pay a fee before joining the event.",
                   },
                 ].map((option) => {
                   const active = draft.pricingMode === option.value;
@@ -943,17 +1142,25 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                       onClick={() => updateDraft({ pricingMode: option.value })}
                       className={`rounded-2xl border-2 p-4 text-left transition ${
                         active
-                          ? 'border-[#1152d4] bg-[#1152d4]/5'
-                          : 'border-slate-100 bg-slate-50 hover:border-[#1152d4]/20 dark:border-slate-800 dark:bg-slate-800'
+                          ? "border-[#1152d4] bg-[#1152d4]/5"
+                          : "border-slate-100 bg-slate-50 hover:border-[#1152d4]/20 dark:border-slate-800 dark:bg-slate-800"
                       }`}
                     >
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="text-sm font-bold">{option.title}</span>
-                        <div className={`flex h-4 w-4 items-center justify-center rounded-full border ${active ? 'border-[#1152d4]' : 'border-slate-300 dark:border-slate-700'}`}>
-                          {active ? <div className="h-2 w-2 rounded-full bg-[#1152d4]" /> : null}
+                        <span className="text-sm font-bold">
+                          {option.title}
+                        </span>
+                        <div
+                          className={`flex h-4 w-4 items-center justify-center rounded-full border ${active ? "border-[#1152d4]" : "border-slate-300 dark:border-slate-700"}`}
+                        >
+                          {active ? (
+                            <div className="h-2 w-2 rounded-full bg-[#1152d4]" />
+                          ) : null}
                         </div>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {option.description}
+                      </p>
                     </button>
                   );
                 })}
@@ -961,12 +1168,16 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
               <div className="grid gap-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800/50 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Base price</label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Base price
+                  </label>
                   <div className="flex h-12">
                     <select
                       value={draft.currency}
-                      onChange={(event) => updateDraft({ currency: event.target.value })}
-                      disabled={draft.pricingMode === 'free'}
+                      onChange={(event) =>
+                        updateDraft({ currency: event.target.value })
+                      }
+                      disabled={draft.pricingMode === "free"}
                       className="h-full w-24 rounded-l-xl border border-r-0 border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     >
                       {CURRENCY_OPTIONS.map((option) => (
@@ -977,8 +1188,10 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
                     </select>
                     <input
                       value={draft.basePrice}
-                      onChange={(event) => updateDraft({ basePrice: event.target.value })}
-                      disabled={draft.pricingMode === 'free'}
+                      onChange={(event) =>
+                        updateDraft({ basePrice: event.target.value })
+                      }
+                      disabled={draft.pricingMode === "free"}
                       className="h-full flex-1 rounded-r-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       placeholder="0.00"
                       type="number"
@@ -990,33 +1203,33 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Early bird discount</label>
-                    <button
-                      type="button"
-                      onClick={() => updateDraft({ earlyBirdEnabled: !draft.earlyBirdEnabled })}
-                      className={`relative h-7 w-12 rounded-full transition ${
-                        draft.earlyBirdEnabled ? 'bg-[#1152d4]' : 'bg-slate-200 dark:bg-slate-700'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
-                          draft.earlyBirdEnabled ? 'left-6' : 'left-1'
-                        }`}
-                      />
-                    </button>
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Early bird discount
+                    </label>
+                    <Switch
+                      checked={draft.earlyBirdEnabled}
+                      onCheckedChange={handleEarlyBirdToggle}
+                      className="shrink-0 data-[state=checked]:bg-[#1152d4] data-[state=unchecked]:bg-slate-200 dark:data-[state=unchecked]:bg-slate-700"
+                    />
                   </div>
                   <div className="relative">
                     <input
                       value={draft.earlyBirdDiscount}
-                      onChange={(event) => updateDraft({ earlyBirdDiscount: event.target.value })}
-                      disabled={!draft.earlyBirdEnabled || draft.pricingMode === 'free'}
+                      onChange={(event) =>
+                        updateDraft({ earlyBirdDiscount: event.target.value })
+                      }
+                      disabled={
+                        !draft.earlyBirdEnabled || draft.pricingMode === "free"
+                      }
                       className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-medium text-slate-900 focus:border-[#1152d4] focus:outline-none focus:ring-2 focus:ring-[#1152d4]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                       placeholder="20"
                       type="number"
                       min="0"
                       max="99"
                     />
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                      %
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1025,18 +1238,30 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
 
           <section className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/40">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Publishing into</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Publishing into
+              </p>
               <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">
-                {draft.sessionMode === 'new' ? 'A new course will be created' : selectedCourse?.title || 'Selected course pending'}
+                {draft.sessionMode === "new"
+                  ? "A new course will be created"
+                  : selectedCourse?.title || "Selected course pending"}
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/40">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Broadcast mode</p>
-              <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">{broadcastLabel(draft.streamType)}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Broadcast mode
+              </p>
+              <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">
+                {broadcastLabel(draft.streamType)}
+              </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/40">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Go-live date</p>
-              <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">{formatSchedule(draft.scheduledAt)}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Go-live date
+              </p>
+              <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">
+                {formatSchedule(draft.scheduledAt)}
+              </p>
             </div>
           </section>
 
@@ -1044,7 +1269,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
             <div className="flex gap-3">
               <Info className="h-5 w-5 shrink-0 text-[#1152d4]" />
               <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                Audience, pricing, thumbnail and moderation preferences are now persisted in backend metadata together with the created session.
+                Audience, pricing, thumbnail and moderation preferences are now
+                persisted in backend metadata together with the created session.
               </p>
             </div>
           </div>
@@ -1056,8 +1282,11 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
   return (
     <TeacherSpaceShell
       currentPath={currentPath}
-      onNavigate={(path) => onNavigate(typeof path === 'number' ? String(path) : path)}
+      onNavigate={(path) =>
+        onNavigate(typeof path === "number" ? String(path) : path)
+      }
       showSearch={false}
+      showHeader={false}
       headerTitle="Live Session Builder"
       headerDescription="Planifiez et publiez vos sessions live depuis le meme cadre visuel que votre dashboard enseignant."
       displayName={teacherShared.displayName}
@@ -1076,11 +1305,11 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         onChange={handleThumbnailChange}
       />
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col px-2 pb-16 pt-6 md:px-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col px-2 pb-32 pt-6 md:px-4 md:pb-36">
         <div className="mb-6 flex items-center justify-between gap-4">
           <button
             type="button"
-            onClick={() => onNavigate('/teacher/live-sessions')}
+            onClick={() => onNavigate("/teacher/live-sessions")}
             className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1107,8 +1336,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
         {draft.step === 3 ? stepThreeContent : null}
       </div>
 
-      <footer className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/90 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#101622]/90 md:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <footer className="sticky bottom-2 z-30 px-3 pb-2 md:bottom-4 md:px-4 md:pb-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md dark:border-slate-700 dark:bg-[#101622]/95 md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -1119,7 +1348,8 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               Save as draft
             </button>
             <p className="hidden text-xs text-slate-500 dark:text-slate-400 lg:block">
-              A local backup is kept, but advanced live metadata is now synchronized to the backend.
+              A local backup is kept, but advanced live metadata is now
+              synchronized to the backend.
             </p>
           </div>
 
@@ -1129,12 +1359,12 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
               onClick={handleBack}
               className={`inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 draft.step === 1
-                  ? 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-                  : 'border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
+                  ? "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  : "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               }`}
             >
               <ArrowLeft className="h-4 w-4" />
-              {draft.step === 1 ? 'Cancel' : 'Back'}
+              {draft.step === 1 ? "Cancel" : "Back"}
             </button>
 
             {draft.step < 3 ? (
@@ -1171,8 +1401,9 @@ export function LiveSessionBuilderPage({ onNavigate, currentPath }: LiveSessionB
       </footer>
 
       {coursesError ? (
-        <div className="fixed bottom-28 right-4 z-50 max-w-sm rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-700 shadow-lg dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-200">
-          We could not refresh your course inventory. You can still create a new course and live session from this wizard.
+        <div className="fixed bottom-36 right-4 z-50 max-w-sm rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-700 shadow-lg dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-200 md:bottom-28">
+          We could not refresh your course inventory. You can still create a new
+          course and live session from this wizard.
         </div>
       ) : null}
     </TeacherSpaceShell>
