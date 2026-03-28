@@ -125,20 +125,6 @@
 			    <artifactId>spring-boot-starter-websocket</artifactId>
 			</dependency>
 			
-			<!-- Client HTTP pour Ant Media Server -->
-			<dependency>
-			    <groupId>org.apache.httpcomponents</groupId>
-			    <artifactId>httpclient</artifactId>
-			    <version>4.5.13</version>
-			</dependency>
-			
-			<!-- JSON Processing -->
-			<dependency>
-			    <groupId>org.json</groupId>
-			    <artifactId>json</artifactId>
-			    <version>20231013</version>
-			</dependency>
-			
 			<!-- Spring Actuator pour Health Checks et Monitoring -->
 			<dependency>
 			    <groupId>org.springframework.boot</groupId>

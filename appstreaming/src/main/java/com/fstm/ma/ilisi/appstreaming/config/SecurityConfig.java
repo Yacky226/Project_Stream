@@ -3,7 +3,6 @@ package com.fstm.ma.ilisi.appstreaming.config;
 import com.fstm.ma.ilisi.appstreaming.security.JwtAuthenticationFilter;
 import com.fstm.ma.ilisi.appstreaming.security.RateLimitingFilter;
 import com.fstm.ma.ilisi.appstreaming.security.RequestTracingFilter;
-import com.fstm.ma.ilisi.appstreaming.security.WebhookSecurityFilter;
 import java.util.Arrays;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,17 +29,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
-    private final WebhookSecurityFilter webhookFilter;
     private final RateLimitingFilter rateLimitingFilter;
     private final RequestTracingFilter requestTracingFilter;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtFilter,
-            WebhookSecurityFilter webhookFilter,
             RateLimitingFilter rateLimitingFilter,
             RequestTracingFilter requestTracingFilter) {
         this.jwtFilter = jwtFilter;
-        this.webhookFilter = webhookFilter;
         this.rateLimitingFilter = rateLimitingFilter;
         this.requestTracingFilter = requestTracingFilter;
     }
@@ -64,8 +60,6 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/Uploads/photos/**",
-                                "/api/webhook/antmedia",
-                                "/hls/**",
                                 "/v2/message-subscriptions/search",
                                 "/v2/process-definitions/search",
                                 "/ws-stream/**")
@@ -107,10 +101,12 @@ public class SecurityConfig {
                         org.springframework.security.web.context.SecurityContextHolderFilter.class)
                 .addFilterAfter(rateLimitingFilter, RequestTracingFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(webhookFilter, JwtAuthenticationFilter.class)
                 .headers(headers -> headers
                         .contentSecurityPolicy(
-                                csp -> csp.policyDirectives("media-src 'self' http://localhost:5080;"))
+                                csp -> csp.policyDirectives(
+                                        "default-src 'self'; media-src 'self' https: blob:; "
+                                                + "connect-src 'self' https: wss: ws:; "
+                                                + "frame-src 'self' https://meet.livekit.io;"))
                         .frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
@@ -153,6 +149,6 @@ public class SecurityConfig {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().requestMatchers("/api/stream/**", "/hls/**", "/error");
+        return (web) -> web.ignoring().requestMatchers("/api/stream/**", "/error");
     }
 }

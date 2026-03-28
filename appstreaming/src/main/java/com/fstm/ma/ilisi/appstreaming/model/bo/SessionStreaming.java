@@ -19,12 +19,9 @@ import lombok.Data;
 @Data
 public class SessionStreaming implements Serializable {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -36,7 +33,7 @@ public class SessionStreaming implements Serializable {
     private boolean estEnDirect;
 
     @Column
-    private String videoUrl; // URL de lecture HLS
+    private String videoUrl; // URL de lecture (LiveKit room URL ou URL replay)
 
     @NotNull
     @ManyToOne
@@ -49,10 +46,10 @@ public class SessionStreaming implements Serializable {
     private Enseignant enseignant;
 
     @Column(unique = true)
-    private String streamKey; // Clé RTMP pour OBS/Ant Media
+    private String streamKey; // Identifiant unique de salle LiveKit
 
     @Column
-    private String recordingUrl; // URL du replay après stream
+    private String recordingUrl; // URL du replay apres le live
 
     @Column
     private boolean isRecordingEnabled = true;
@@ -62,15 +59,15 @@ public class SessionStreaming implements Serializable {
     private StreamStatus status = StreamStatus.CREATED;
 
     @Column
-    private String resolution; // Résolution vidéo
+    private String resolution; // Resolution video
 
     @Column
-    private String broadcastType; // "RTMP", "WebRTC"
+    private String broadcastType; // "LIVEKIT"
 
     @Column(columnDefinition = "TEXT")
     private String metadataJson;
 
-    // Méthodes utilitaires
+    // Methodes utilitaires
     public boolean isLive() {
         return status == StreamStatus.LIVE;
     }

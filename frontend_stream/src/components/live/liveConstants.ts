@@ -1,0 +1,3 @@
+export const LIVE_CHAT_POLLING_MS = 1000;
+export const LIVE_HAND_RAISE_POLLING_MS = 1000;
+export const LIVE_QUESTION_POLLING_MS = 1200;

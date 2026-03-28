@@ -372,7 +372,11 @@ public class SessionStreamingService implements SessionStreamingServiceInterface
 
     private void ensureSessionStreamConfiguration(SessionStreaming session) {
         if (session.getStreamKey() == null || session.getStreamKey().isBlank()) {
-            session.setStreamKey("stream_" + UUID.randomUUID());
+            session.setStreamKey("lk_room_" + UUID.randomUUID().toString().replace("-", ""));
+        }
+
+        if (session.getBroadcastType() == null || session.getBroadcastType().isBlank()) {
+            session.setBroadcastType("LIVEKIT");
         }
 
         if (session.getVideoUrl() == null || session.getVideoUrl().isBlank()) {

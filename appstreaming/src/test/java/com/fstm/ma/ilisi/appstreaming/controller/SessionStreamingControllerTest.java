@@ -1,6 +1,5 @@
 package com.fstm.ma.ilisi.appstreaming.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fstm.ma.ilisi.appstreaming.model.dto.SessionStreamingDTO;
 import com.fstm.ma.ilisi.appstreaming.service.SessionStreamingService;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,23 +10,29 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Tests du contrôleur SessionStreaming")
+@DisplayName("Tests du controleur SessionStreaming")
 class SessionStreamingControllerTest {
+
+    private static final String TEACHER_EMAIL = "teacher@test.com";
 
     @Mock
     private SessionStreamingService sessionStreamingService;
+
+    @Mock
+    private UserDetails userDetails;
 
     @InjectMocks
     private SessionStreamingController controller;
@@ -45,144 +50,125 @@ class SessionStreamingControllerTest {
         sessionDTO.setRecordingEnabled(true);
     }
 
+    private void stubTeacherIdentity() {
+        when(userDetails.getUsername()).thenReturn(TEACHER_EMAIL);
+    }
+
     @Test
-    @DisplayName("Récupérer toutes les sessions - Succès")
+    @DisplayName("Recuperer toutes les sessions - Success")
     void getToutesLesSessions_Success() {
-        // Given
         List<SessionStreamingDTO> sessions = Arrays.asList(sessionDTO);
         when(sessionStreamingService.getToutesLesSessions()).thenReturn(sessions);
 
-        // When
         ResponseEntity<List<SessionStreamingDTO>> response = controller.getToutesLesSessions();
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
         assertThat(response.getBody().get(0).getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Récupérer une session par ID - Succès")
+    @DisplayName("Recuperer une session par ID - Success")
     void getSessionParId_Success() {
-        // Given
         when(sessionStreamingService.getSessionParId(1L)).thenReturn(sessionDTO);
 
-        // When
         ResponseEntity<SessionStreamingDTO> response = controller.getSessionParId(1L);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Créer une session - Succès")
+    @DisplayName("Creer une session - Success")
     void creerSession_Success() {
-        // Given
-        when(sessionStreamingService.creerSession(any())).thenReturn(sessionDTO);
+        stubTeacherIdentity();
+        when(sessionStreamingService.creerSession(any(), eq(TEACHER_EMAIL))).thenReturn(sessionDTO);
 
-        // When
-        ResponseEntity<SessionStreamingDTO> response = controller.creerSession(sessionDTO);
+        ResponseEntity<SessionStreamingDTO> response = controller.creerSession(sessionDTO, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Modifier une session - Succès")
+    @DisplayName("Modifier une session - Success")
     void modifierSession_Success() {
-        // Given
-        when(sessionStreamingService.modifierSession(eq(1L), any())).thenReturn(sessionDTO);
+        stubTeacherIdentity();
+        when(sessionStreamingService.modifierSession(eq(1L), any(), eq(TEACHER_EMAIL))).thenReturn(sessionDTO);
 
-        // When
-        ResponseEntity<SessionStreamingDTO> response = controller.modifierSession(1L, sessionDTO);
+        ResponseEntity<SessionStreamingDTO> response = controller.modifierSession(1L, sessionDTO, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Supprimer une session - Succès")
+    @DisplayName("Supprimer une session - Success")
     void supprimerSession_Success() {
-        // When
-        ResponseEntity<Void> response = controller.supprimerSession(1L);
+        stubTeacherIdentity();
+        ResponseEntity<Void> response = controller.supprimerSession(1L, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(sessionStreamingService).supprimerSession(1L);
+        verify(sessionStreamingService).supprimerSession(1L, TEACHER_EMAIL);
     }
 
     @Test
-    @DisplayName("Démarrer un stream - Succès")
+    @DisplayName("Demarrer un stream - Success")
     void demarrerStream_Success() {
-        // Given
-        when(sessionStreamingService.demarrerStream(1L)).thenReturn(sessionDTO);
+        stubTeacherIdentity();
+        when(sessionStreamingService.demarrerStream(1L, TEACHER_EMAIL)).thenReturn(sessionDTO);
 
-        // When
-        ResponseEntity<SessionStreamingDTO> response = controller.demarrerStream(1L);
+        ResponseEntity<SessionStreamingDTO> response = controller.demarrerStream(1L, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Arrêter un stream - Succès")
+    @DisplayName("Arreter un stream - Success")
     void arreterStream_Success() {
-        // Given
-        when(sessionStreamingService.arreterStream(1L)).thenReturn(sessionDTO);
+        stubTeacherIdentity();
+        when(sessionStreamingService.arreterStream(1L, TEACHER_EMAIL)).thenReturn(sessionDTO);
 
-        // When
-        ResponseEntity<SessionStreamingDTO> response = controller.arreterStream(1L);
+        ResponseEntity<SessionStreamingDTO> response = controller.arreterStream(1L, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Récupérer les sessions actives - Succès")
+    @DisplayName("Recuperer les sessions actives - Success")
     void getSessionsActives_Success() {
-        // Given
         List<SessionStreamingDTO> sessions = Arrays.asList(sessionDTO);
         when(sessionStreamingService.getSessionsActives()).thenReturn(sessions);
 
-        // When
         ResponseEntity<List<SessionStreamingDTO>> response = controller.getSessionsActives();
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
     }
 
     @Test
-    @DisplayName("Récupérer les sessions par cours - Succès")
+    @DisplayName("Recuperer les sessions par cours - Success")
     void getSessionsParCours_Success() {
-        // Given
         List<SessionStreamingDTO> sessions = Arrays.asList(sessionDTO);
         when(sessionStreamingService.getSessionsParCours(1L)).thenReturn(sessions);
 
-        // When
         ResponseEntity<List<SessionStreamingDTO>> response = controller.getSessionsParCours(1L);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
     }
 
     @Test
-    @DisplayName("Récupérer l'URL du stream - Succès")
+    @DisplayName("Recuperer l URL du stream - Success")
     void getStreamUrl_Success() {
-        // Given
-        String expectedUrl = "http://localhost:5080/LiveApp/streams/stream_123.m3u8";
-        when(sessionStreamingService.getStreamUrl(1L)).thenReturn(expectedUrl);
+        stubTeacherIdentity();
+        String expectedUrl = "https://meet.livekit.io/custom?liveKitUrl=ws%3A%2F%2Flocalhost%3A7880&token=test-token";
+        when(sessionStreamingService.getStreamUrl(1L, TEACHER_EMAIL)).thenReturn(expectedUrl);
 
-        // When
-        ResponseEntity<String> response = controller.getStreamUrl(1L);
+        ResponseEntity<String> response = controller.getStreamUrl(1L, userDetails);
 
-        // Then
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isEqualTo(expectedUrl);
     }

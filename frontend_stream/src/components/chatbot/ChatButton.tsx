@@ -1,7 +1,7 @@
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useResolvedTheme } from '../../hooks/useResolvedTheme';
 import { toggleChatbot } from '../../store/slices/chatbotSlice';
-import { Bot, X } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 export function ChatButton() {
   const dispatch = useAppDispatch();
@@ -13,6 +13,10 @@ export function ChatButton() {
   }
 
   const { isOpen, currentSession } = chatbotState;
+
+  if (isOpen) {
+    return null;
+  }
 
   const handleToggle = () => {
     dispatch(toggleChatbot());
@@ -37,15 +41,15 @@ export function ChatButton() {
       <button
         type="button"
         onClick={handleToggle}
-        aria-label={isOpen ? 'Close chat' : 'Open chat'}
+        aria-label="Open chat"
         className={`relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full text-white shadow-[0_24px_48px_-20px_rgba(17,82,212,0.78)] transition-all duration-300 hover:scale-105 hover:shadow-[0_30px_54px_-20px_rgba(17,82,212,0.88)] ${
-          isOpen ? 'bg-[#0f44b4] ring-2 ring-white/65' : 'bg-[#1152d4]'
+          'bg-[#1152d4]'
         }`}
       >
         <span className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/20" />
         <span className="absolute inset-0 rounded-full ring-1 ring-white/30" />
-        {!isOpen ? <span className="pointer-events-none absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-25" /> : null}
-        {isOpen ? <X className="relative z-10 h-8 w-8 text-white" /> : <Bot className="relative z-10 h-8 w-8 text-white" />}
+        <span className="pointer-events-none absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-25" />
+        <Bot className="relative z-10 h-8 w-8 text-white" />
       </button>
     </div>
   );

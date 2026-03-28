@@ -42,6 +42,7 @@ public class ChatWebSocketController {
 class ChatRestController {
     
     private final ChatServiceInterface chatService;
+    private final SimpMessageSendingOperations messagingTemplate;
     
     /**
      * Récupérer l'historique des messages d'une session
@@ -59,6 +60,9 @@ class ChatRestController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChatMessageDTO> sendMessage(@RequestBody ChatMessageDTO message) {
         ChatMessageDTO saved = chatService.saveMessage(message);
+        if (saved.getSessionId() != null) {
+            messagingTemplate.convertAndSend("/topic/chat/" + saved.getSessionId(), saved);
+        }
         return ResponseEntity.status(201).body(saved);
     }
     

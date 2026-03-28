@@ -25,7 +25,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("AppStreaming API")
                         .version("1.0.0")
-                        .description("API REST pour la plateforme de streaming éducatif avec diffusion en direct via Ant Media Server")
+                        .description("API REST pour la plateforme de streaming éducatif avec diffusion en direct via LiveKit")
                         .contact(new Contact()
                                 .name("Équipe AppStreaming")
                                 .email("support@appstreaming.com"))
@@ -43,3 +43,4 @@ public class OpenApiConfig {
                                 .description("Entrez le token JWT (sans 'Bearer ' devant)")));
     }
 }
+

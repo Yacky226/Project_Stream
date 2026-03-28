@@ -347,7 +347,7 @@ export const liveApi = createApi({
           enseignantId: Number(payload.teacherId),
           recordingEnabled: payload.recordingEnabled ?? true,
           resolution: payload.resolution || '720p',
-          broadcastType: payload.broadcastType || 'WebRTC',
+          broadcastType: payload.broadcastType || 'LIVEKIT',
           metadataJson: payload.metadata ? JSON.stringify(payload.metadata) : undefined,
         },
       }),

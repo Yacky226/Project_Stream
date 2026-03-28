@@ -45,6 +45,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -385,7 +386,38 @@ public class DevDataSeeder implements CommandLineRunner {
             Cours course = cours.get(index);
             List<SessionStreaming> existing = sessionStreamingRepository.findByCoursId(course.getId());
             if (!existing.isEmpty()) {
-                result.addAll(existing);
+                for (SessionStreaming session : existing) {
+                    boolean updated = false;
+
+                    if (!StringUtils.hasText(session.getStreamKey())) {
+                        session.setStreamKey("lk_room_seed_" + course.getId());
+                        updated = true;
+                    }
+                    if (!"LIVEKIT".equalsIgnoreCase(session.getBroadcastType())) {
+                        session.setBroadcastType("LIVEKIT");
+                        updated = true;
+                    }
+
+                    String expectedLiveKitUrl = "livekit://room/" + session.getStreamKey();
+                    if (!expectedLiveKitUrl.equals(session.getVideoUrl())) {
+                        session.setVideoUrl(expectedLiveKitUrl);
+                        updated = true;
+                    }
+
+                    if (session.getStatus() == StreamStatus.ENDED && session.isRecordingEnabled()) {
+                        String expectedRecordingUrl =
+                                "https://cdn.seed.edu/replays/" + session.getStreamKey() + ".mp4";
+                        if (!expectedRecordingUrl.equals(session.getRecordingUrl())) {
+                            session.setRecordingUrl(expectedRecordingUrl);
+                            updated = true;
+                        }
+                    }
+
+                    if (updated) {
+                        sessionStreamingRepository.save(session);
+                    }
+                    result.add(session);
+                }
                 continue;
             }
 
@@ -393,26 +425,24 @@ public class DevDataSeeder implements CommandLineRunner {
             session.setCours(course);
             session.setEnseignant(course.getEnseignant());
             session.setRecordingEnabled(true);
-            session.setBroadcastType(index % 2 == 0 ? "WebRTC" : "RTMP");
+            session.setBroadcastType("LIVEKIT");
             session.setResolution(index % 3 == 0 ? "1080p" : "720p");
-            session.setStreamKey("seed-stream-" + course.getId());
+            session.setStreamKey("lk_room_seed_" + course.getId());
+            session.setVideoUrl("livekit://room/" + session.getStreamKey());
 
             if (index % 7 == 0) {
                 session.setStatus(StreamStatus.LIVE);
                 session.setEstEnDirect(true);
                 session.setDateHeure(LocalDateTime.now().minusMinutes(35));
-                session.setVideoUrl("http://localhost:5080/LiveApp/streams/seed-live-" + course.getId() + ".m3u8");
             } else if (index % 3 == 0) {
                 session.setStatus(StreamStatus.CREATED);
                 session.setEstEnDirect(false);
                 session.setDateHeure(LocalDateTime.now().plusDays(index % 14).withHour(19).withMinute(0));
-                session.setVideoUrl(null);
             } else {
                 session.setStatus(StreamStatus.ENDED);
                 session.setEstEnDirect(false);
                 session.setDateHeure(LocalDateTime.now().minusDays((index % 20) + 1).withHour(18).withMinute(0));
-                session.setRecordingUrl("http://localhost:5080/LiveApp/streams/seed-replay-" + course.getId() + ".mp4");
-                session.setVideoUrl("http://localhost:5080/LiveApp/streams/seed-replay-" + course.getId() + ".m3u8");
+                session.setRecordingUrl("https://cdn.seed.edu/replays/" + session.getStreamKey() + ".mp4");
             }
 
             result.add(sessionStreamingRepository.save(session));

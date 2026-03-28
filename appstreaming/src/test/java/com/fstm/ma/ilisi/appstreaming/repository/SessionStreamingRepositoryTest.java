@@ -60,7 +60,7 @@ class SessionStreamingRepositoryTest {
         session1.setDateHeure(LocalDateTime.now().plusDays(1));
         session1.setStatus(StreamStatus.CREATED);
         session1.setStreamKey("stream-key-1");
-        session1.setVideoUrl("rtmp://test.com/live/stream1");
+        session1.setVideoUrl("livekit://room/stream-key-1");
         session1 = entityManager.persist(session1);
 
         session2 = new SessionStreaming();
@@ -69,7 +69,7 @@ class SessionStreamingRepositoryTest {
         session2.setDateHeure(LocalDateTime.now().plusDays(2));
         session2.setStatus(StreamStatus.LIVE);
         session2.setStreamKey("stream-key-2");
-        session2.setVideoUrl("rtmp://test.com/live/stream2");
+        session2.setVideoUrl("livekit://room/stream-key-2");
         session2 = entityManager.persist(session2);
 
         entityManager.flush();
@@ -168,7 +168,7 @@ class SessionStreamingRepositoryTest {
         newSession.setDateHeure(LocalDateTime.now().plusDays(3));
         newSession.setStatus(StreamStatus.CREATED);
         newSession.setStreamKey("stream-key-3");
-        newSession.setVideoUrl("rtmp://test.com/live/stream3");
+        newSession.setVideoUrl("livekit://room/stream-key-3");
 
         // When
         SessionStreaming saved = sessionStreamingRepository.save(newSession);
@@ -186,7 +186,7 @@ class SessionStreamingRepositoryTest {
     void save_ExistingSession_UpdatesSuccessfully() {
         // Given
         session1.setStatus(StreamStatus.LIVE);
-        session1.setVideoUrl("rtmp://updated.com/live/stream1");
+        session1.setVideoUrl("livekit://room/stream-key-1-updated");
 
         // When
         SessionStreaming updated = sessionStreamingRepository.save(session1);
@@ -194,7 +194,7 @@ class SessionStreamingRepositoryTest {
         // Then
         assertThat(updated.getId()).isEqualTo(session1.getId());
         assertThat(updated.getStatus()).isEqualTo(StreamStatus.LIVE);
-        assertThat(updated.getVideoUrl()).isEqualTo("rtmp://updated.com/live/stream1");
+        assertThat(updated.getVideoUrl()).isEqualTo("livekit://room/stream-key-1-updated");
     }
 
     @Test

@@ -1,5 +1,5 @@
 {
-  "name": "Add Routing Section",
+  "name": "streamApp",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -31,6 +31,8 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@reduxjs/toolkit": "*",
+    "@stomp/stompjs": "^7.3.0",
+    "@types/sockjs-client": "^1.5.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "*",
     "cmdk": "^1.1.1",
@@ -50,6 +52,7 @@
     "react-redux": "*",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
+    "sockjs-client": "^1.6.1",
     "sonner": "^2.0.3",
     "tailwind-merge": "*",
     "vaul": "^1.1.2"

@@ -2,7 +2,7 @@ import { toLocalDateTimeInput } from '../../live/liveSession.utils';
 
 export type BuilderStep = 1 | 2 | 3;
 export type SessionMode = 'new' | 'existing';
-export type StreamType = 'rtmp' | 'browser' | 'zoom';
+export type StreamType = 'livekit';
 export type VisibilityMode = 'public' | 'private';
 export type AudienceLevel = 'all' | 'beginner' | 'intermediate' | 'advanced';
 export type PricingMode = 'free' | 'paid';
@@ -97,7 +97,7 @@ export function createDefaultDraft(): LiveBuilderDraft {
     category: 'Science & Technology',
     scheduledAt: toLocalDateTimeInput(targetDate.toISOString()),
     thumbnailName: '',
-    streamType: 'rtmp',
+    streamType: 'livekit',
     enableLiveChat: true,
     enableQnaModeration: false,
     allowReactions: true,
@@ -150,9 +150,8 @@ export function formatSchedule(value: string) {
 }
 
 export function broadcastLabel(streamType: StreamType) {
-  if (streamType === 'rtmp') return 'RTMP';
-  if (streamType === 'zoom') return 'Zoom';
-  return 'WebRTC';
+  if (streamType === 'livekit') return 'LIVEKIT';
+  return 'LIVEKIT';
 }
 
 export function stepLabel(step: BuilderStep) {

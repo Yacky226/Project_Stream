@@ -83,7 +83,6 @@ function LiveKitAudioTracks({ tracks }: { tracks: AudioTrack[] }) {
       const mediaElement = track.attach();
       if (mediaElement instanceof HTMLAudioElement) {
         mediaElement.autoplay = true;
-        mediaElement.playsInline = true;
       }
       mediaElement.classList.add('hidden');
       container.appendChild(mediaElement);
@@ -208,6 +207,9 @@ export function LiveKitRoomView({
       return;
     }
 
+    const wsUrl = access.wsUrl;
+    const token = access.token;
+
     let cancelled = false;
     const room = new Room({
       adaptiveStream: true,
@@ -251,7 +253,7 @@ export function LiveKitRoomView({
 
     const connectRoom = async () => {
       try {
-        await room.connect(access.wsUrl, access.token);
+        await room.connect(wsUrl, token);
         if (cancelled) {
           return;
         }

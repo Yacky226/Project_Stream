@@ -122,7 +122,7 @@ class CoursServiceTest {
         // When & Then
         assertThatThrownBy(() -> coursService.ajouterCours(coursDTO))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Enseignant non trouvé");
+                .hasMessageContaining("Enseignant non trouve");
         
         verify(enseignantRepository).findById(anyLong());
         verify(coursRepository, never()).save(any(Cours.class));
@@ -191,7 +191,7 @@ class CoursServiceTest {
         // When & Then
         assertThatThrownBy(() -> coursService.getCoursParId(999L))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Cours non trouvé");
+                .hasMessageContaining("Cours non trouve");
         
         verify(coursRepository).findById(999L);
     }
@@ -223,13 +223,15 @@ class CoursServiceTest {
     @DisplayName("Supprimer un cours - Succès")
     void supprimerCours_Success() {
         // Given
-        doNothing().when(coursRepository).deleteById(1L);
+        when(coursRepository.findById(1L)).thenReturn(Optional.of(cours));
+        doNothing().when(coursRepository).delete(cours);
 
         // When
         coursService.supprimerCours(1L);
 
         // Then
-        verify(coursRepository).deleteById(1L);
+        verify(coursRepository).findById(1L);
+        verify(coursRepository).delete(cours);
     }
 
     /*

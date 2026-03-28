@@ -55,10 +55,10 @@ class CoursControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/cours - Non authentifié - 401")
-    void getTousLesCours_NotAuthenticated_Returns401() throws Exception {
+    @DisplayName("GET /api/cours - Non authentifié - endpoint public")
+    void getTousLesCours_NotAuthenticated_Returns200() throws Exception {
         mockMvc.perform(get("/api/cours"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
